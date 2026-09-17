@@ -34,6 +34,9 @@ export function Composer({ onSend, sending }: ComposerProps) {
       void handleAbort();
       return;
     }
+    if (e.key === "@") {
+      useUiStore.getState().setCommandOpen(true);
+    }
     if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
       e.preventDefault();
       handleSubmit();

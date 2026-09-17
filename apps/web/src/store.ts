@@ -1,9 +1,11 @@
 import type {
   AgentStatus,
   ApprovalRequest,
+  FileChange,
   ModelInfo,
   SessionSummary,
   ToolStatus,
+  TreeNode,
   UiMessage,
   Usage,
 } from "@anvil/protocol";
@@ -45,6 +47,10 @@ export type UiState = {
   pendingApproval: ApprovalRequest | null;
   adapter: "fake" | "sdk" | null;
   preview: FilePreview | null;
+  tree: TreeNode | null;
+  changes: FileChange[];
+  currentEntryId: string | null;
+  commandOpen: boolean;
 
   activeTab: ActiveTab;
   sidebarOpen: boolean;
@@ -59,6 +65,7 @@ type Actions = {
   applyEvent: (payload: unknown) => void;
   resetTransient: () => void;
   setPreview: (preview: FilePreview | null) => void;
+  setCommandOpen: (open: boolean) => void;
 };
 
 const emptyUsage: Usage = { inputTokens: 0, outputTokens: 0 };
@@ -82,6 +89,10 @@ export const useUiStore = create<UiState & Actions>((set) => ({
   pendingApproval: null,
   adapter: null,
   preview: null,
+  tree: null,
+  changes: [],
+  currentEntryId: null,
+  commandOpen: false,
 
   activeTab: "chat",
   sidebarOpen: true,
@@ -93,6 +104,7 @@ export const useUiStore = create<UiState & Actions>((set) => ({
   toggleInspector: () => set((state) => ({ inspectorOpen: !state.inspectorOpen })),
   resetTransient: () => set({ lastError: null }),
   setPreview: (preview) => set({ preview }),
+  setCommandOpen: (commandOpen) => set({ commandOpen }),
 
   applyEvent: (payload) => {
     if (!payload || typeof payload !== "object" || !("type" in payload)) {
@@ -119,6 +131,9 @@ export const useUiStore = create<UiState & Actions>((set) => ({
             : [],
           pendingApproval: (event.pendingApproval as ApprovalRequest | null) ?? null,
           adapter: (event.adapter as "fake" | "sdk" | null) ?? null,
+          tree: (event.tree as TreeNode | null) ?? null,
+          changes: Array.isArray(event.changes) ? (event.changes as FileChange[]) : [],
+          currentEntryId: (event.currentEntryId as string | null) ?? null,
         });
         break;
       case "session/replaced":
@@ -182,6 +197,14 @@ export const useUiStore = create<UiState & Actions>((set) => ({
         break;
       case "approval/needed":
         set({ pendingApproval: event.request as ApprovalRequest });
+        break;
+      case "tree/changed":
+        set({ tree: event.root as TreeNode });
+        break;
+      case "fs/changed":
+        if (Array.isArray(event.changes)) {
+          set({ changes: event.changes as FileChange[] });
+        }
         break;
       case "usage/update":
         set({ usage: event.tokens as Usage });

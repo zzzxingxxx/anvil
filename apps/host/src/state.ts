@@ -1,14 +1,17 @@
 import type {
   AgentStatus,
   ApprovalRequest,
+  FileChange,
   ModelInfo,
   SessionSummary,
   ToolStatus,
+  TreeNode,
   TrustLevel,
   UiMessage,
   Usage,
 } from "@anvil/protocol";
 import type { AdapterKind } from "./pi-adapter.ts";
+import type { TreeSeed } from "./tree.ts";
 
 export type ToolCard = {
   callId: string;
@@ -33,6 +36,11 @@ export type WorkspaceState = {
   recentWorkspaces: string[];
   pendingApproval: ApprovalRequest | null;
   adapterKind: AdapterKind;
+  tree: TreeNode | null;
+  treeSeeds: TreeSeed[];
+  currentEntryId: string | null;
+  changes: FileChange[];
+  snapshots: Record<string, { before: string | null; after: string | null }>;
 };
 
 export function createWorkspaceState(kind: AdapterKind = "fake"): WorkspaceState {
@@ -72,6 +80,11 @@ export function createWorkspaceState(kind: AdapterKind = "fake"): WorkspaceState
     recentWorkspaces: [],
     pendingApproval: null,
     adapterKind: kind,
+    tree: null,
+    treeSeeds: [],
+    currentEntryId: null,
+    changes: [],
+    snapshots: {},
   };
 }
 
@@ -80,6 +93,10 @@ export function resetConversation(state: WorkspaceState): void {
   state.tools = [];
   state.pendingApproval = null;
   state.agentStatus = "idle";
+  state.tree = null;
+  state.treeSeeds = [];
+  state.currentEntryId = null;
+  state.changes = [];
 }
 
 export function upsertMessage(state: WorkspaceState, message: UiMessage): void {

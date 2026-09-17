@@ -7,11 +7,13 @@ import {
   makeResponse,
 } from "@anvil/protocol";
 import { loadConfig, rememberWorkspace, saveConfig, trustFor } from "./config.ts";
+import { writeFile } from "node:fs/promises";
 import { listTree, readTextFile } from "./fs-ops.ts";
+import { searchFiles } from "./search.ts";
 import { logInfo } from "./log.ts";
 import type { PiAdapter } from "./pi-adapter.ts";
 import { resetConversation, type WorkspaceState } from "./state.ts";
-import { resolveWorkspacePath } from "./workspace.ts";
+import { resolveInside, resolveWorkspacePath } from "./workspace.ts";
 import type { ApprovalQueue } from "./approvals.ts";
 
 type HandlerResult = { ok: true } & Record<string, unknown>;
@@ -131,6 +133,30 @@ async function dispatch(
       resetConversation(state);
       return { ok: true, session: { id: found.id, title: found.title } };
     }
+    case "session.fork": {
+      const { entryId } = payload as { entryId: string };
+      if (!adapter.fork) {
+        throw new Error("当前适配器不支持分叉");
+      }
+      const session = await adapter.fork(entryId);
+      return { ok: true, session: { id: session.id, title: session.title } };
+    }
+    case "tree.navigate": {
+      const { entryId } = payload as { entryId: string };
+      if (!adapter.navigate) {
+        throw new Error("当前适配器不支持树导航");
+      }
+      await adapter.navigate(entryId);
+      return { ok: true };
+    }
+    case "session.compact": {
+      const { instructions } = payload as { instructions?: string };
+      if (!adapter.compact) {
+        throw new Error("当前适配器不支持压缩");
+      }
+      await adapter.compact(instructions);
+      return { ok: true };
+    }
     case "agent.prompt": {
       const { text } = payload as { text: string };
       void adapter.prompt({ text });
@@ -197,6 +223,28 @@ async function dispatch(
       const { path } = payload as { path: string };
       const result = await readTextFile(state.cwd, path);
       return { ok: true, ...result };
+    }
+    case "fs.search": {
+      if (!state.cwd) {
+        throw new Error("请先打开工作区");
+      }
+      const { query } = payload as { query: string };
+      const hits = await searchFiles(state.cwd, query);
+      return { ok: true, hits };
+    }
+    case "artifact.restore": {
+      if (!state.cwd) {
+        throw new Error("请先打开工作区");
+      }
+      const { path } = payload as { path: string };
+      const snap = state.snapshots[path];
+      if (!snap || snap.before == null) {
+        throw new Error("没有可还原的快照");
+      }
+      const abs = resolveInside(state.cwd, path);
+      await writeFile(abs, snap.before, "utf8");
+      state.changes = state.changes.filter((item) => item.path !== path);
+      return { ok: true };
     }
   }
 }

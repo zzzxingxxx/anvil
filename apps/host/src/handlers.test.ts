@@ -71,4 +71,22 @@ describe("handleRequest", () => {
     const entries = (tree.payload as { entries: Array<{ name: string }> }).entries;
     expect(entries.some((entry) => entry.name === "README.md")).toBe(true);
   });
+
+  it("searches files after opening a workspace", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "anvil-search-ws-"));
+    await writeFile(join(dir, "开发计划.md"), "# plan\n", "utf8");
+    const state = createWorkspaceState();
+    const approvals = new ApprovalQueue();
+    const adapter = new FakePiAdapter(state, approvals);
+    await handleRequest(makeRequest("workspace.open", { path: dir }, "w2"), state, adapter, approvals);
+    const response = await handleRequest(
+      makeRequest("fs.search", { query: "开发计划" }, "s1"),
+      state,
+      adapter,
+      approvals,
+    );
+    expect(response.payload).toMatchObject({ ok: true });
+    const hits = (response.payload as { hits: Array<{ name: string }> }).hits;
+    expect(hits.some((hit) => hit.name.includes("开发计划"))).toBe(true);
+  });
 });

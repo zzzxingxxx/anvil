@@ -175,12 +175,55 @@ export const FsReadResultSchema = z.object({
 });
 export type FsReadResult = z.infer<typeof FsReadResultSchema>;
 
+export const SessionForkPayloadSchema = z.object({
+  entryId: z.string().min(1),
+});
+export type SessionForkPayload = z.infer<typeof SessionForkPayloadSchema>;
+
+export const SessionForkResultSchema = SessionNewResultSchema;
+export type SessionForkResult = z.infer<typeof SessionForkResultSchema>;
+
+export const TreeNavigatePayloadSchema = z.object({
+  entryId: z.string().min(1),
+});
+export type TreeNavigatePayload = z.infer<typeof TreeNavigatePayloadSchema>;
+
+export const SessionCompactPayloadSchema = z.object({
+  instructions: z.string().optional(),
+});
+export type SessionCompactPayload = z.infer<typeof SessionCompactPayloadSchema>;
+
+export const FsSearchPayloadSchema = z.object({
+  query: z.string().min(1),
+});
+export type FsSearchPayload = z.infer<typeof FsSearchPayloadSchema>;
+
+export const FsSearchHitSchema = z.object({
+  path: z.string(),
+  name: z.string(),
+});
+export type FsSearchHit = z.infer<typeof FsSearchHitSchema>;
+
+export const FsSearchResultSchema = z.object({
+  ok: z.literal(true),
+  hits: z.array(FsSearchHitSchema),
+});
+export type FsSearchResult = z.infer<typeof FsSearchResultSchema>;
+
+export const ArtifactRestorePayloadSchema = z.object({
+  path: z.string().min(1),
+});
+export type ArtifactRestorePayload = z.infer<typeof ArtifactRestorePayloadSchema>;
+
 export const CommandTypeSchema = z.enum([
   "workspace.open",
   "workspace.trust",
   "session.list",
   "session.new",
   "session.resume",
+  "session.fork",
+  "session.compact",
+  "tree.navigate",
   "agent.prompt",
   "agent.steer",
   "agent.followUp",
@@ -190,6 +233,8 @@ export const CommandTypeSchema = z.enum([
   "model.set",
   "fs.tree",
   "fs.read",
+  "fs.search",
+  "artifact.restore",
 ]);
 export type CommandType = z.infer<typeof CommandTypeSchema>;
 
@@ -199,6 +244,9 @@ export const CommandPayloadSchemas = {
   "session.list": SessionListPayloadSchema,
   "session.new": SessionNewPayloadSchema,
   "session.resume": SessionResumePayloadSchema,
+  "session.fork": SessionForkPayloadSchema,
+  "session.compact": SessionCompactPayloadSchema,
+  "tree.navigate": TreeNavigatePayloadSchema,
   "agent.prompt": AgentPromptPayloadSchema,
   "agent.steer": AgentSteerPayloadSchema,
   "agent.followUp": AgentFollowUpPayloadSchema,
@@ -208,6 +256,8 @@ export const CommandPayloadSchemas = {
   "model.set": ModelSetPayloadSchema,
   "fs.tree": FsTreePayloadSchema,
   "fs.read": FsReadPayloadSchema,
+  "fs.search": FsSearchPayloadSchema,
+  "artifact.restore": ArtifactRestorePayloadSchema,
 } as const;
 
 export const CommandResultSchemas = {
@@ -216,6 +266,9 @@ export const CommandResultSchemas = {
   "session.list": SessionListResultSchema,
   "session.new": SessionNewResultSchema,
   "session.resume": SessionResumeResultSchema,
+  "session.fork": SessionForkResultSchema,
+  "session.compact": AgentOkResultSchema,
+  "tree.navigate": AgentOkResultSchema,
   "agent.prompt": AgentOkResultSchema,
   "agent.steer": AgentOkResultSchema,
   "agent.followUp": AgentOkResultSchema,
@@ -225,4 +278,6 @@ export const CommandResultSchemas = {
   "model.set": ModelSetResultSchema,
   "fs.tree": FsTreeResultSchema,
   "fs.read": FsReadResultSchema,
+  "fs.search": FsSearchResultSchema,
+  "artifact.restore": AgentOkResultSchema,
 } as const;

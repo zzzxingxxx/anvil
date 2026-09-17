@@ -1,8 +1,9 @@
-import type { AnvilEvent, UiMessage } from "@anvil/protocol";
+import type { AnvilEvent, SessionSummary, UiMessage } from "@anvil/protocol";
 import { decideGate, previewArgs, riskFor } from "@anvil/pi-ext-gate";
 import type { ApprovalQueue } from "./approvals.ts";
 import type { PiAdapter, PromptInput } from "./pi-adapter.ts";
 import { upsertMessage, upsertTool, type WorkspaceState } from "./state.ts";
+import { buildTree, demoTree, pathIdsFrom } from "./tree.ts";
 
 function sleep(ms: number, signal: AbortSignal): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -129,6 +130,7 @@ export class FakePiAdapter implements PiAdapter {
           upsertTool(this.state, { callId, name: "bash", args, status: "success", output });
           this.emit({ type: "tool/update", callId, partial: output });
           this.emit({ type: "tool/end", callId, ok: true, result: output });
+          this.noteDemoChange();
           assistant.text += " 假循环结束，可以继续发消息。";
         }
       } else {
@@ -136,6 +138,7 @@ export class FakePiAdapter implements PiAdapter {
         upsertTool(this.state, { callId, name: "bash", args, status: "success", output });
         this.emit({ type: "tool/update", callId, partial: output });
         this.emit({ type: "tool/end", callId, ok: true, result: output });
+        this.noteDemoChange();
         assistant.text += " 假循环结束，可以继续发消息。";
       }
 
@@ -143,6 +146,7 @@ export class FakePiAdapter implements PiAdapter {
       assistant.streaming = false;
       this.emit({ type: "message/upsert", message: { ...assistant } });
       if (this.runAbort === run) {
+        this.refreshTree(assistant.id);
         this.finishIdle();
       }
     } catch (error) {
@@ -191,9 +195,78 @@ export class FakePiAdapter implements PiAdapter {
     this.finishIdle();
   }
 
+  async fork(entryId: string): Promise<SessionSummary> {
+    const found = this.state.messages.find((item) => item.id === entryId);
+    if (!found) {
+      throw new Error("找不到要分叉的节点");
+    }
+    const id = `sess-fork-${Date.now()}`;
+    const title = `分叉自 ${found.text.slice(0, 16)}`;
+    const session: SessionSummary = { id, title, mtime: Date.now(), tokens: 0 };
+    this.state.sessions.unshift(session);
+    this.state.sessionId = id;
+    this.state.sessionTitle = title;
+    const keep = new Set(pathIdsFrom(this.state.treeSeeds, entryId));
+    this.state.messages = this.state.messages.filter((item) => keep.has(item.id) || item.role === "system");
+    this.state.tools = [];
+    this.refreshTree(entryId);
+    this.emit({ type: "session/replaced", sessionId: id, title });
+    return session;
+  }
+
+  async navigate(entryId: string): Promise<void> {
+    if (this.state.agentStatus === "running") {
+      throw new Error("等当前轮结束再切换分支");
+    }
+    const keep = pathIdsFrom(this.state.treeSeeds, entryId);
+    if (keep.size === 0 && this.state.messages.every((item) => item.id !== entryId)) {
+      throw new Error("节点不存在");
+    }
+    this.state.currentEntryId = entryId;
+    this.refreshTree(entryId);
+  }
+
+  async compact(): Promise<void> {
+    const leaf = this.state.currentEntryId ?? this.state.messages.at(-1)?.id ?? null;
+    if (!leaf) {
+      return;
+    }
+    const seed = this.state.treeSeeds.find((item) => item.id === leaf);
+    if (seed) {
+      seed.status = "compressed";
+      seed.summary = `压缩：${seed.summary}`;
+    }
+    this.refreshTree(leaf);
+  }
+
   async dispose(): Promise<void> {
     this.runAbort?.abort();
     this.listeners.clear();
+  }
+
+  private noteDemoChange(): void {
+    const path = ".anvil/demo-diff.txt";
+    const before = "demo before\n";
+    const after = "demo after\n";
+    this.state.snapshots[path] = { before, after };
+    this.state.changes = [
+      {
+        path,
+        kind: "modified",
+        diff: `--- a/${path}\n+++ b/${path}\n-demo before\n+demo after`,
+      },
+    ];
+    this.emit({ type: "fs/changed", paths: [path], changes: this.state.changes });
+  }
+
+  private refreshTree(currentId: string | null): void {
+    const { tree, seeds } = demoTree(this.state.messages, currentId);
+    this.state.tree = tree ?? buildTree(this.state.treeSeeds, currentId);
+    this.state.treeSeeds = seeds.length ? seeds : this.state.treeSeeds;
+    this.state.currentEntryId = currentId;
+    if (this.state.tree) {
+      this.emit({ type: "tree/changed", root: this.state.tree });
+    }
   }
 
   private finishIdle(): void {

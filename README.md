@@ -2,7 +2,7 @@
 
 以 [Earendil Pi](https://pi.dev) 为引擎的本地优先 AI Agent 工作台。
 
-当前进度：**Phase 1 MVP 结对**。可打开本机仓库、走真 Pi SDK（或假循环）、审批危险工具、恢复会话。
+当前进度：**Phase 2 树与制品**。可打开本机仓库、审批、恢复会话；右侧能看会话树和本轮 Diff，`Ctrl+K` 搜文件/会话。
 
 - 产品：[docs/项目描述.md](docs/项目描述.md)
 - 计划：[docs/开发计划.md](docs/开发计划.md)

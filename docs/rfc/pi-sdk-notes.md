@@ -43,3 +43,10 @@ AgentSession 订阅的是 `AgentSessionEvent`，Anvil 映射：
 
 - 默认走 SDK。CI / 无密钥：`ANVIL_FAKE_PI=1`
 - 测试里 `useFakePi()` 在 `NODE_ENV=test` 或 `VITEST` 时也走假适配器
+
+## 树 / 分叉（Phase 2）
+
+- `runtime.fork(entryId, { position: "at" })` 会新建 session 文件
+- `session.navigateTree(entryId)` 留在同一 jsonl
+- `session.sessionManager.getEntries()` / `getLeafId()` / `getLabel()` 用来画树
+- `session.compact(instructions?)`

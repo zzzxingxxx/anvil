@@ -20,6 +20,7 @@ import { logError, logInfo } from "./log.ts";
 import type { PiAdapter } from "./pi-adapter.ts";
 import { SdkPiAdapter } from "./sdk-pi-adapter.ts";
 import { createWorkspaceState } from "./state.ts";
+import { messagesOnPath, pathIdsFrom } from "./tree.ts";
 
 const fake = useFakePi();
 const state = createWorkspaceState(fake ? "fake" : "sdk");
@@ -100,6 +101,10 @@ wss.on("connection", (socket) => {
       envelope.data.type === "workspace.trust" ||
       envelope.data.type === "session.new" ||
       envelope.data.type === "session.resume" ||
+      envelope.data.type === "session.fork" ||
+      envelope.data.type === "session.compact" ||
+      envelope.data.type === "tree.navigate" ||
+      envelope.data.type === "artifact.restore" ||
       envelope.data.type === "model.set"
     ) {
       broadcast("snapshot", snapshot());
@@ -139,7 +144,7 @@ function snapshot() {
     modelId: state.model?.id ?? null,
     modelLabel: state.model?.label ?? null,
     agentStatus: state.agentStatus,
-    messages: state.messages,
+    messages: visibleMessages(state),
     tools: state.tools,
     usage: state.usage,
     sessions: state.sessions,
@@ -147,6 +152,9 @@ function snapshot() {
     recentWorkspaces: state.recentWorkspaces,
     pendingApproval: state.pendingApproval,
     adapter: state.adapterKind,
+    tree: state.tree,
+    changes: state.changes,
+    currentEntryId: state.currentEntryId,
   });
 }
 
@@ -164,4 +172,11 @@ function send(socket: WebSocket, type: string, payload: unknown): void {
   if (socket.readyState === socket.OPEN) {
     socket.send(JSON.stringify(makeEvent(type, payload)));
   }
+}
+
+function visibleMessages(state: ReturnType<typeof createWorkspaceState>) {
+  if (!state.currentEntryId || state.treeSeeds.length === 0) {
+    return state.messages;
+  }
+  return messagesOnPath(state.messages, pathIdsFrom(state.treeSeeds, state.currentEntryId));
 }

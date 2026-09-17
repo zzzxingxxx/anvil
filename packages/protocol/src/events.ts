@@ -39,6 +39,7 @@ export const TreeNodeSchema: z.ZodType<TreeNode> = z.lazy(() =>
     parentId: z.string().nullable(),
     summary: z.string(),
     status: z.enum(["ok", "error", "compressed"]),
+    current: z.boolean().optional(),
     children: z.array(TreeNodeSchema),
   }),
 );
@@ -47,8 +48,16 @@ export type TreeNode = {
   parentId: string | null;
   summary: string;
   status: "ok" | "error" | "compressed";
+  current?: boolean;
   children: TreeNode[];
 };
+
+export const FileChangeSchema = z.object({
+  path: z.string(),
+  kind: z.enum(["added", "modified", "deleted"]),
+  diff: z.string().optional(),
+});
+export type FileChange = z.infer<typeof FileChangeSchema>;
 
 export const SessionReplacedEventSchema = z.object({
   type: z.literal("session/replaced"),
@@ -99,6 +108,7 @@ export const TreeChangedEventSchema = z.object({
 export const FsChangedEventSchema = z.object({
   type: z.literal("fs/changed"),
   paths: z.array(z.string()),
+  changes: z.array(FileChangeSchema).optional(),
 });
 
 export const AgentRunningEventSchema = z.object({
@@ -159,6 +169,9 @@ export const SnapshotEventSchema = z.object({
   recentWorkspaces: z.array(z.string()).optional(),
   pendingApproval: ApprovalRequestSchema.nullable().optional(),
   adapter: z.enum(["fake", "sdk"]).optional(),
+  tree: TreeNodeSchema.nullable().optional(),
+  changes: z.array(FileChangeSchema).optional(),
+  currentEntryId: z.string().nullable().optional(),
 });
 
 export const AnvilEventSchema = z.discriminatedUnion("type", [

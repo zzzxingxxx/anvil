@@ -23,7 +23,9 @@ import {
   toUiMessage,
   usageFromMessage,
 } from "./sdk-map.ts";
+import { captureAfter, captureBefore, toolPath } from "./artifacts.ts";
 import { resetConversation, upsertMessage, upsertTool, type WorkspaceState } from "./state.ts";
+import { buildTree, type TreeSeed } from "./tree.ts";
 
 export class SdkPiAdapter implements PiAdapter {
   readonly kind = "sdk" as const;
@@ -197,6 +199,55 @@ export class SdkPiAdapter implements PiAdapter {
     return info;
   }
 
+  async fork(entryId: string): Promise<SessionSummary> {
+    const runtime = this.runtime;
+    if (!runtime) {
+      throw new Error("请先打开工作区");
+    }
+    if (this.state.agentStatus === "running") {
+      throw new Error("等当前轮结束再分叉");
+    }
+    this.unsubscribe?.();
+    this.unsubscribe = null;
+    const result = await runtime.fork(entryId, { position: "at" });
+    if (result.cancelled) {
+      throw new Error("分叉被取消");
+    }
+    this.bindSession(runtime.session);
+    const session = runtime.session;
+    const summary: SessionSummary = {
+      id: session.sessionFile ?? session.sessionId,
+      title: session.sessionName ?? `分叉 ${entryId.slice(0, 8)}`,
+      mtime: Date.now(),
+    };
+    this.applySession(summary);
+    this.hydrateFromSession();
+    this.emit({ type: "session/replaced", sessionId: summary.id, title: summary.title });
+    await this.refreshSessions();
+    return summary;
+  }
+
+  async navigate(entryId: string): Promise<void> {
+    const session = await this.requireSession();
+    if (this.state.agentStatus === "running") {
+      throw new Error("等当前轮结束再切换分支");
+    }
+    const result = await session.navigateTree(entryId);
+    if (result.cancelled) {
+      throw new Error("导航被取消");
+    }
+    this.hydrateFromSession();
+  }
+
+  async compact(instructions?: string): Promise<void> {
+    const session = await this.requireSession();
+    if (this.state.agentStatus === "running") {
+      throw new Error("等当前轮结束再压缩");
+    }
+    await session.compact(instructions);
+    this.hydrateFromSession();
+  }
+
   async dispose(): Promise<void> {
     this.unsubscribe?.();
     this.unsubscribe = null;
@@ -303,6 +354,34 @@ export class SdkPiAdapter implements PiAdapter {
     if (session.model) {
       this.state.model = toModelInfo(session.model);
     }
+    this.refreshTreeFromSdk(session);
+  }
+
+  private refreshTreeFromSdk(session: AgentSession): void {
+    const entries = session.sessionManager.getEntries();
+    const seeds: TreeSeed[] = entries.map((entry) => {
+      const message = "message" in entry ? (entry as { message?: unknown }).message : undefined;
+      const summary =
+        session.sessionManager.getLabel(entry.id) ||
+        (typeof (entry as { summary?: string }).summary === "string"
+          ? (entry as { summary: string }).summary
+          : messageText(message) || entry.type);
+      const status: TreeSeed["status"] =
+        entry.type === "compaction" || entry.type === "branch_summary" ? "compressed" : "ok";
+      return {
+        id: entry.id,
+        parentId: entry.parentId,
+        summary: summary.slice(0, 48) || entry.type,
+        status,
+      };
+    });
+    const leaf = session.sessionManager.getLeafId();
+    this.state.treeSeeds = seeds;
+    this.state.currentEntryId = leaf;
+    this.state.tree = buildTree(seeds, leaf);
+    if (this.state.tree) {
+      this.emit({ type: "tree/changed", root: this.state.tree });
+    }
   }
 
   private async refreshSessions(): Promise<void> {
@@ -408,6 +487,10 @@ export class SdkPiAdapter implements PiAdapter {
         name: event.toolName,
         args: event.args,
       });
+      const path = toolPath(event.args);
+      if (path && (event.toolName === "write" || event.toolName === "edit")) {
+        void captureBefore(this.state, path);
+      }
     }
 
     if (event.type === "tool_execution_update") {
@@ -438,6 +521,16 @@ export class SdkPiAdapter implements PiAdapter {
         ok: !event.isError,
         result: output,
       });
+      const path = toolPath(this.state.tools.find((item) => item.callId === event.toolCallId)?.args);
+      if (!event.isError && path && (event.toolName === "write" || event.toolName === "edit")) {
+        void captureAfter(this.state, path).then(() => {
+          this.emit({
+            type: "fs/changed",
+            paths: [path],
+            changes: this.state.changes,
+          });
+        });
+      }
     }
 
     if (event.type === "agent_end") {
@@ -445,6 +538,9 @@ export class SdkPiAdapter implements PiAdapter {
       if (last?.streaming) {
         last.streaming = false;
         this.emit({ type: "message/upsert", message: { ...last } });
+      }
+      if (this.runtime) {
+        this.refreshTreeFromSdk(this.runtime.session);
       }
     }
   }

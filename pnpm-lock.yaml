@@ -10,6 +10,9 @@ importers:
 
   apps/host:
     dependencies:
+      '@anvil/pi-ext-artifact':
+        specifier: workspace:*
+        version: link:../../packages/pi-ext-artifact
       '@anvil/pi-ext-gate':
         specifier: workspace:*
         version: link:../../packages/pi-ext-gate
@@ -91,7 +94,17 @@ importers:
         specifier: ^7.3.0
         version: 7.3.6(@types/node@22.20.3)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.23.13)(yaml@2.9.0)
 
-  packages/pi-ext-artifact: {}
+  packages/pi-ext-artifact:
+    devDependencies:
+      '@types/node':
+        specifier: ^22.19.3
+        version: 22.20.3
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: ^3.2.4
+        version: 3.2.7(@types/node@22.20.3)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.23.13)(yaml@2.9.0)
 
   packages/pi-ext-delegate: {}
 

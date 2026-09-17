@@ -8,6 +8,9 @@ import {
 import { useUiStore } from "../store.ts";
 import { formatTokens } from "../lib/utils.ts";
 import { FileTree } from "./FileTree.tsx";
+import { SessionTree } from "./SessionTree.tsx";
+import { DiffPanel } from "./DiffPanel.tsx";
+import { client } from "../ws.ts";
 
 export function Inspector() {
   const { 
@@ -134,6 +137,41 @@ export function Inspector() {
                 <span className="text-[#7e7d77]">闭环成功</span>
                 <span className="font-semibold text-emerald-700">{successTools} 次</span>
               </div>
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <span className="text-[10.5px] font-semibold text-[#7e7d77] uppercase tracking-wider">
+                会话树
+              </span>
+              <button
+                type="button"
+                className="text-[10px] text-[#7e7d77] hover:text-[#1f1e1d]"
+                onClick={async () => {
+                  try {
+                    await client.request("session.compact", {});
+                  } catch (error) {
+                    useUiStore.setState({
+                      lastError: error instanceof Error ? error.message : String(error),
+                    });
+                  }
+                }}
+              >
+                压缩
+              </button>
+            </div>
+            <div className="rounded-xl border border-[#00000010] bg-[#ffffff] p-3 shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
+              <SessionTree />
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <span className="text-[10.5px] font-semibold text-[#7e7d77] uppercase tracking-wider">
+              本轮 Diff
+            </span>
+            <div className="rounded-xl border border-[#00000010] bg-[#ffffff] p-3 shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
+              <DiffPanel />
             </div>
           </div>
 

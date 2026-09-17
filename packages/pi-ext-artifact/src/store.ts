@@ -1,0 +1,73 @@
+import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
+import { dirname, join } from "node:path";
+
+export type SnapshotRecord = {
+  path: string;
+  before: string | null;
+  after: string | null;
+};
+
+const MAX_BYTES = 2 * 1024 * 1024;
+
+export class ArtifactStore {
+  constructor(private readonly cwd: string) {}
+
+  root(): string {
+    return join(this.cwd, ".anvil", "artifacts", "snapshots");
+  }
+
+  async snapshotWrite(relPath: string, nextContent: string | Buffer): Promise<SnapshotRecord> {
+    const abs = join(this.cwd, relPath);
+    let before: string | null = null;
+    try {
+      const info = await stat(abs);
+      if (info.size > MAX_BYTES) {
+        before = `<skipped ${(info.size / 1024).toFixed(0)}KB>`;
+      } else {
+        before = await readFile(abs, "utf8");
+      }
+    } catch {
+      before = null;
+    }
+    const after = typeof nextContent === "string" ? nextContent : nextContent.toString("utf8");
+    const turn = String(Date.now());
+    const dest = join(this.root(), turn, relPath);
+    await mkdir(dirname(dest), { recursive: true });
+    await writeFile(`${dest}.before`, before ?? "", "utf8");
+    await writeFile(`${dest}.after`, after, "utf8");
+    return { path: relPath.replace(/\\/g, "/"), before, after };
+  }
+
+  async restore(relPath: string, before: string | null): Promise<void> {
+    const abs = join(this.cwd, relPath);
+    if (before == null) {
+      return;
+    }
+    await mkdir(dirname(abs), { recursive: true });
+    await writeFile(abs, before, "utf8");
+  }
+}
+
+export function unifiedDiff(path: string, before: string | null, after: string | null): string {
+  const a = (before ?? "").split(/\r?\n/);
+  const b = (after ?? "").split(/\r?\n/);
+  const lines = [`--- a/${path}`, `+++ b/${path}`];
+  const max = Math.max(a.length, b.length);
+  for (let i = 0; i < max; i += 1) {
+    const left = a[i];
+    const right = b[i];
+    if (left === right) {
+      if (left !== undefined) {
+        lines.push(` ${left}`);
+      }
+      continue;
+    }
+    if (left !== undefined) {
+      lines.push(`-${left}`);
+    }
+    if (right !== undefined) {
+      lines.push(`+${right}`);
+    }
+  }
+  return lines.join("\n");
+}

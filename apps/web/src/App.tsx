@@ -9,6 +9,7 @@ import { MessageItem } from "./components/MessageItem.tsx";
 import { ToolItem } from "./components/ToolItem.tsx";
 import { Inspector } from "./components/Inspector.tsx";
 import { ApprovalCard } from "./components/ApprovalCard.tsx";
+import { CommandPalette } from "./components/CommandPalette.tsx";
 
 export function App() {
   const [sending, setSending] = useState(false);
@@ -19,6 +20,17 @@ export function App() {
   useEffect(() => {
     client.connect();
     return () => client.disconnect();
+  }, []);
+
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        useUiStore.getState().setCommandOpen(true);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
   }, []);
 
   useEffect(() => {
@@ -140,6 +152,7 @@ export function App() {
 
       {/* Global Status Footer */}
       <Footer />
+      <CommandPalette />
     </div>
   );
 }

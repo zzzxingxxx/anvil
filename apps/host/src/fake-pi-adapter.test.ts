@@ -27,6 +27,25 @@ describe("FakePiAdapter", () => {
     expect(state.messages.some((message) => message.role === "user")).toBe(true);
     expect(state.tools[0]?.name).toBe("bash");
     expect(state.tools[0]?.status).toBe("success");
+    expect(state.tree).toBeTruthy();
+    expect(state.changes.some((change) => change.path === ".anvil/demo-diff.txt")).toBe(true);
+  });
+
+  it("navigates and forks without mixing later messages", async () => {
+    const state = createWorkspaceState();
+    state.trust = "untrusted";
+    const adapter = new FakePiAdapter(state);
+    await adapter.prompt({ text: "第一句" });
+    const firstAssistant = state.messages.find((item) => item.role === "assistant")?.id;
+    await adapter.prompt({ text: "第二句" });
+    expect(state.messages.filter((item) => item.role === "user")).toHaveLength(2);
+    if (firstAssistant) {
+      await adapter.navigate(firstAssistant);
+      expect(state.currentEntryId).toBe(firstAssistant);
+      const forked = await adapter.fork(firstAssistant);
+      expect(forked.id.startsWith("sess-fork-")).toBe(true);
+      expect(state.messages.some((item) => item.text === "第二句")).toBe(false);
+    }
   });
 
   it("denies bash in untrusted workspaces", async () => {
