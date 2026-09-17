@@ -20,6 +20,7 @@ import { logError, logInfo } from "./log.ts";
 import type { PiAdapter } from "./pi-adapter.ts";
 import { SdkPiAdapter } from "./sdk-pi-adapter.ts";
 import { createWorkspaceState } from "./state.ts";
+import { TaskOrchestrator } from "./tasks.ts";
 import { messagesOnPath, pathIdsFrom } from "./tree.ts";
 
 const fake = useFakePi();
@@ -28,6 +29,7 @@ const approvals = new ApprovalQueue();
 const adapter: PiAdapter = fake
   ? new FakePiAdapter(state, approvals)
   : new SdkPiAdapter(state, approvals);
+const tasks = new TaskOrchestrator(state);
 const sockets = new Set<WebSocket>();
 
 const bootConfig = await loadConfig();
@@ -38,6 +40,10 @@ adapter.subscribe((event) => {
     broadcast("snapshot", snapshot());
     return;
   }
+  broadcast(event.type, event);
+});
+
+tasks.subscribe((event) => {
   broadcast(event.type, event);
 });
 
@@ -57,6 +63,10 @@ app.get("/health", (c) =>
     version: ANVIL_VERSION,
     adapter: adapter.kind,
     cwd: state.cwd,
+    metrics: {
+      tasks: state.tasks.length,
+      running: state.tasks.filter((item) => item.status === "running").length,
+    },
   }),
 );
 
@@ -92,7 +102,7 @@ wss.on("connection", (socket) => {
       logInfo("drop invalid envelope");
       return;
     }
-    const response = await handleRequest(envelope.data, state, adapter, approvals);
+    const response = await handleRequest(envelope.data, state, adapter, approvals, tasks);
     if (socket.readyState === socket.OPEN) {
       socket.send(JSON.stringify(response));
     }
@@ -105,6 +115,8 @@ wss.on("connection", (socket) => {
       envelope.data.type === "session.compact" ||
       envelope.data.type === "tree.navigate" ||
       envelope.data.type === "artifact.restore" ||
+      envelope.data.type === "task.delegate" ||
+      envelope.data.type === "task.cancel" ||
       envelope.data.type === "model.set"
     ) {
       broadcast("snapshot", snapshot());
@@ -155,6 +167,7 @@ function snapshot() {
     tree: state.tree,
     changes: state.changes,
     currentEntryId: state.currentEntryId,
+    tasks: state.tasks,
   });
 }
 

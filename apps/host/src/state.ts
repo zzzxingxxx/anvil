@@ -5,6 +5,7 @@ import type {
   ModelInfo,
   SessionSummary,
   ToolStatus,
+  TaskSummary,
   TreeNode,
   TrustLevel,
   UiMessage,
@@ -41,6 +42,7 @@ export type WorkspaceState = {
   currentEntryId: string | null;
   changes: FileChange[];
   snapshots: Record<string, { before: string | null; after: string | null }>;
+  tasks: TaskSummary[];
 };
 
 export function createWorkspaceState(kind: AdapterKind = "fake"): WorkspaceState {
@@ -85,6 +87,7 @@ export function createWorkspaceState(kind: AdapterKind = "fake"): WorkspaceState
     currentEntryId: null,
     changes: [],
     snapshots: {},
+    tasks: [],
   };
 }
 

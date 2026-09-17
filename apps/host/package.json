@@ -14,6 +14,7 @@
     "@anvil/protocol": "workspace:*",
     "@anvil/pi-ext-gate": "workspace:*",
     "@anvil/pi-ext-artifact": "workspace:*",
+    "@anvil/pi-ext-delegate": "workspace:*",
     "@earendil-works/pi-coding-agent": "0.85.1",
     "@hono/node-server": "^1.19.9",
     "hono": "^4.11.3",

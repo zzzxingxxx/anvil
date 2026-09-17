@@ -32,6 +32,9 @@ export function ApprovalCard() {
             <div className="flex items-center gap-2 text-xs font-medium text-[#1f1e1d]">
               <span>需要审批：{pendingApproval.toolName}</span>
               <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-800">{riskLabel}</span>
+              {pendingApproval.taskId ? (
+                <span className="text-[10px] text-[#7e7d77]">子任务 {pendingApproval.taskId}</span>
+              ) : null}
             </div>
             <pre className="mt-1.5 text-[11px] font-mono text-[#4f4e4a] whitespace-pre-wrap break-all max-h-24 overflow-y-auto">
               {pendingApproval.argsPreview}

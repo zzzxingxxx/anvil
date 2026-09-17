@@ -5,6 +5,7 @@ import type {
   ModelInfo,
   SessionSummary,
   ToolStatus,
+  TaskSummary,
   TreeNode,
   UiMessage,
   Usage,
@@ -51,6 +52,7 @@ export type UiState = {
   changes: FileChange[];
   currentEntryId: string | null;
   commandOpen: boolean;
+  tasks: TaskSummary[];
 
   activeTab: ActiveTab;
   sidebarOpen: boolean;
@@ -93,6 +95,7 @@ export const useUiStore = create<UiState & Actions>((set) => ({
   changes: [],
   currentEntryId: null,
   commandOpen: false,
+  tasks: [],
 
   activeTab: "chat",
   sidebarOpen: true,
@@ -134,6 +137,7 @@ export const useUiStore = create<UiState & Actions>((set) => ({
           tree: (event.tree as TreeNode | null) ?? null,
           changes: Array.isArray(event.changes) ? (event.changes as FileChange[]) : [],
           currentEntryId: (event.currentEntryId as string | null) ?? null,
+          tasks: Array.isArray(event.tasks) ? (event.tasks as TaskSummary[]) : [],
         });
         break;
       case "session/replaced":
@@ -206,6 +210,19 @@ export const useUiStore = create<UiState & Actions>((set) => ({
           set({ changes: event.changes as FileChange[] });
         }
         break;
+      case "task/upsert": {
+        const task = event.task as TaskSummary;
+        set((state) => {
+          const index = state.tasks.findIndex((item) => item.id === task.id);
+          if (index === -1) {
+            return { tasks: [task, ...state.tasks] };
+          }
+          const next = state.tasks.slice();
+          next[index] = task;
+          return { tasks: next };
+        });
+        break;
+      }
       case "usage/update":
         set({ usage: event.tokens as Usage });
         break;

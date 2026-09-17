@@ -6,6 +6,35 @@ export type TrustLevel = z.infer<typeof TrustLevelSchema>;
 export const AgentStatusSchema = z.enum(["idle", "running", "error"]);
 export type AgentStatus = z.infer<typeof AgentStatusSchema>;
 
+export const TaskStatusSchema = z.enum([
+  "queued",
+  "running",
+  "waiting_approval",
+  "succeeded",
+  "failed",
+  "cancelled",
+]);
+export type TaskStatus = z.infer<typeof TaskStatusSchema>;
+
+export const TaskPersonaSchema = z.enum(["architect", "implementer", "reviewer"]);
+export type TaskPersona = z.infer<typeof TaskPersonaSchema>;
+
+export const TaskSummarySchema = z.object({
+  id: z.string(),
+  parentSessionId: z.string().nullable(),
+  sessionId: z.string().nullable(),
+  persona: z.string(),
+  goal: z.string(),
+  status: TaskStatusSchema,
+  cwd: z.string().optional(),
+  error: z.string().optional(),
+  summary: z.string().optional(),
+  startedAt: z.number(),
+  endedAt: z.number().optional(),
+  costUsd: z.number().optional(),
+});
+export type TaskSummary = z.infer<typeof TaskSummarySchema>;
+
 export const WorkspaceOpenPayloadSchema = z.object({
   path: z.string().min(1),
   trust: TrustLevelSchema.optional(),
@@ -215,6 +244,35 @@ export const ArtifactRestorePayloadSchema = z.object({
 });
 export type ArtifactRestorePayload = z.infer<typeof ArtifactRestorePayloadSchema>;
 
+export const TaskDelegatePayloadSchema = z.object({
+  goal: z.string().min(1),
+  persona: z.enum(["architect", "implementer", "reviewer"]).default("implementer"),
+  cwd: z.string().optional(),
+  timeoutSec: z.number().optional(),
+  maxUsd: z.number().optional(),
+});
+export type TaskDelegatePayload = z.infer<typeof TaskDelegatePayloadSchema>;
+
+export const TaskCancelPayloadSchema = z.object({
+  id: z.string().min(1),
+});
+export type TaskCancelPayload = z.infer<typeof TaskCancelPayloadSchema>;
+
+export const TaskListPayloadSchema = z.object({}).strict();
+export type TaskListPayload = z.infer<typeof TaskListPayloadSchema>;
+
+export const TaskDelegateResultSchema = z.object({
+  ok: z.literal(true),
+  task: TaskSummarySchema,
+});
+export type TaskDelegateResult = z.infer<typeof TaskDelegateResultSchema>;
+
+export const TaskListResultSchema = z.object({
+  ok: z.literal(true),
+  tasks: z.array(TaskSummarySchema),
+});
+export type TaskListResult = z.infer<typeof TaskListResultSchema>;
+
 export const CommandTypeSchema = z.enum([
   "workspace.open",
   "workspace.trust",
@@ -235,6 +293,9 @@ export const CommandTypeSchema = z.enum([
   "fs.read",
   "fs.search",
   "artifact.restore",
+  "task.delegate",
+  "task.cancel",
+  "task.list",
 ]);
 export type CommandType = z.infer<typeof CommandTypeSchema>;
 
@@ -258,6 +319,9 @@ export const CommandPayloadSchemas = {
   "fs.read": FsReadPayloadSchema,
   "fs.search": FsSearchPayloadSchema,
   "artifact.restore": ArtifactRestorePayloadSchema,
+  "task.delegate": TaskDelegatePayloadSchema,
+  "task.cancel": TaskCancelPayloadSchema,
+  "task.list": TaskListPayloadSchema,
 } as const;
 
 export const CommandResultSchemas = {
@@ -280,4 +344,7 @@ export const CommandResultSchemas = {
   "fs.read": FsReadResultSchema,
   "fs.search": FsSearchResultSchema,
   "artifact.restore": AgentOkResultSchema,
+  "task.delegate": TaskDelegateResultSchema,
+  "task.cancel": AgentOkResultSchema,
+  "task.list": TaskListResultSchema,
 } as const;

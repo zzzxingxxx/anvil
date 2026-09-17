@@ -15,6 +15,7 @@ import type { PiAdapter } from "./pi-adapter.ts";
 import { resetConversation, type WorkspaceState } from "./state.ts";
 import { resolveInside, resolveWorkspacePath } from "./workspace.ts";
 import type { ApprovalQueue } from "./approvals.ts";
+import type { TaskOrchestrator } from "./tasks.ts";
 
 type HandlerResult = { ok: true } & Record<string, unknown>;
 
@@ -23,6 +24,7 @@ export async function handleRequest(
   state: WorkspaceState,
   adapter: PiAdapter,
   approvals: ApprovalQueue,
+  tasks?: TaskOrchestrator,
 ): Promise<Envelope> {
   const parsedType = CommandTypeSchema.safeParse(envelope.type);
   if (!parsedType.success) {
@@ -44,7 +46,7 @@ export async function handleRequest(
   }
 
   try {
-    const result = await dispatch(type, payloadParsed.data, state, adapter, approvals);
+    const result = await dispatch(type, payloadParsed.data, state, adapter, approvals, tasks);
     logInfo("command", { type, ok: true });
     return makeResponse(envelope.id, type, result);
   } catch (error) {
@@ -65,6 +67,7 @@ async function dispatch(
   state: WorkspaceState,
   adapter: PiAdapter,
   approvals: ApprovalQueue,
+  tasks?: TaskOrchestrator,
 ): Promise<HandlerResult> {
   switch (type) {
     case "workspace.open": {
@@ -245,6 +248,29 @@ async function dispatch(
       await writeFile(abs, snap.before, "utf8");
       state.changes = state.changes.filter((item) => item.path !== path);
       return { ok: true };
+    }
+    case "task.delegate": {
+      if (!tasks) {
+        throw new Error("任务编排未启动");
+      }
+      const payloadIn = payload as {
+        goal: string;
+        persona?: "architect" | "implementer" | "reviewer";
+        cwd?: string;
+      };
+      const task = await tasks.delegate(payloadIn);
+      return { ok: true, task };
+    }
+    case "task.cancel": {
+      if (!tasks) {
+        throw new Error("任务编排未启动");
+      }
+      const { id } = payload as { id: string };
+      tasks.cancel(id);
+      return { ok: true };
+    }
+    case "task.list": {
+      return { ok: true, tasks: state.tasks };
     }
   }
 }

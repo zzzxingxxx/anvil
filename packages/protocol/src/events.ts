@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { AgentStatusSchema, TrustLevelSchema } from "./commands.ts";
+import { AgentStatusSchema, TaskSummarySchema, TrustLevelSchema } from "./commands.ts";
 
 export const UsageSchema = z.object({
   inputTokens: z.number(),
@@ -30,6 +30,7 @@ export const ApprovalRequestSchema = z.object({
   toolName: z.string(),
   argsPreview: z.string(),
   risk: z.enum(["low", "medium", "high"]),
+  taskId: z.string().optional(),
 });
 export type ApprovalRequest = z.infer<typeof ApprovalRequestSchema>;
 
@@ -124,6 +125,11 @@ export const AgentErrorEventSchema = z.object({
   error: z.string().optional(),
 });
 
+export const TaskUpsertEventSchema = z.object({
+  type: z.literal("task/upsert"),
+  task: TaskSummarySchema,
+});
+
 export const HeartbeatEventSchema = z.object({
   type: z.literal("heartbeat"),
   ts: z.number(),
@@ -172,6 +178,7 @@ export const SnapshotEventSchema = z.object({
   tree: TreeNodeSchema.nullable().optional(),
   changes: z.array(FileChangeSchema).optional(),
   currentEntryId: z.string().nullable().optional(),
+  tasks: z.array(TaskSummarySchema).optional(),
 });
 
 export const AnvilEventSchema = z.discriminatedUnion("type", [
@@ -187,6 +194,7 @@ export const AnvilEventSchema = z.discriminatedUnion("type", [
   AgentRunningEventSchema,
   AgentIdleEventSchema,
   AgentErrorEventSchema,
+  TaskUpsertEventSchema,
   HeartbeatEventSchema,
   SnapshotEventSchema,
 ]);

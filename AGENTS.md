@@ -16,7 +16,7 @@
 - 前后端共享类型只放 `packages/protocol`。协议变更必须改该包，并让 host / web 双边 `pnpm check` 通过。
 - 端口写死在 protocol：Host `127.0.0.1:4317`，Web `127.0.0.1:5173`，WS 路径 `/ws`。不要抢 3080 或 4310（4310 常被 QQ 占用）。
 
-## Phase 2 现状
+## Phase 3 现状
 
 - 默认 `SdkPiAdapter`（`@earendil-works/pi-coding-agent@0.85.1`）。
 - `ANVIL_FAKE_PI=1` 或测试环境走 `FakePiAdapter`。

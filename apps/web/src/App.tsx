@@ -10,6 +10,7 @@ import { ToolItem } from "./components/ToolItem.tsx";
 import { Inspector } from "./components/Inspector.tsx";
 import { ApprovalCard } from "./components/ApprovalCard.tsx";
 import { CommandPalette } from "./components/CommandPalette.tsx";
+import { TaskTray } from "./components/TaskTray.tsx";
 
 export function App() {
   const [sending, setSending] = useState(false);
@@ -129,6 +130,7 @@ export function App() {
             </div>
           </div>
 
+          <TaskTray />
           <ApprovalCard />
           <Composer onSend={handleSend} sending={sending} />
 

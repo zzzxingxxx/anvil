@@ -8,6 +8,12 @@ interface ComposerProps {
   sending: boolean;
 }
 
+function expandAgentMention(text: string): string {
+  return text.replace(/@agent:(\S+)/g, (_match, role: string) => {
+    return `请委派给「${role}」处理：`;
+  });
+}
+
 export function Composer({ onSend, sending }: ComposerProps) {
   const [draft, setDraft] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -24,7 +30,7 @@ export function Composer({ onSend, sending }: ComposerProps) {
   const handleSubmit = (e?: React.FormEvent) => {
     e?.preventDefault();
     if (!draft.trim() || sending || connection !== "open" || isRunning) return;
-    onSend(draft.trim());
+    onSend(expandAgentMention(draft.trim()));
     setDraft("");
   };
 
@@ -35,7 +41,10 @@ export function Composer({ onSend, sending }: ComposerProps) {
       return;
     }
     if (e.key === "@") {
-      useUiStore.getState().setCommandOpen(true);
+      const next = `${draft}@`;
+      if (!next.includes("@agent:")) {
+        useUiStore.getState().setCommandOpen(true);
+      }
     }
     if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
       e.preventDefault();

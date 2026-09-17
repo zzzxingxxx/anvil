@@ -7,6 +7,7 @@ import { ApprovalQueue } from "./approvals.ts";
 import { FakePiAdapter } from "./fake-pi-adapter.ts";
 import { handleRequest } from "./handlers.ts";
 import { createWorkspaceState } from "./state.ts";
+import { TaskOrchestrator } from "./tasks.ts";
 
 describe("handleRequest", () => {
   const previousHome = process.env.ANVIL_HOME;
@@ -88,5 +89,28 @@ describe("handleRequest", () => {
     expect(response.payload).toMatchObject({ ok: true });
     const hits = (response.payload as { hits: Array<{ name: string }> }).hits;
     expect(hits.some((hit) => hit.name.includes("开发计划"))).toBe(true);
+  });
+
+  it("rejects writable delegate in untrusted workspace", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "anvil-task-"));
+    const state = createWorkspaceState();
+    const approvals = new ApprovalQueue();
+    const adapter = new FakePiAdapter(state, approvals);
+    const tasks = new TaskOrchestrator(state);
+    await handleRequest(
+      makeRequest("workspace.open", { path: dir }, "w3"),
+      state,
+      adapter,
+      approvals,
+      tasks,
+    );
+    const response = await handleRequest(
+      makeRequest("task.delegate", { goal: "改文件", persona: "implementer" }, "d1"),
+      state,
+      adapter,
+      approvals,
+      tasks,
+    );
+    expect(response.payload).toMatchObject({ ok: false });
   });
 });
