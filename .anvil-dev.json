@@ -1,0 +1,6 @@
+{
+  "hostPort": 4317,
+  "webPort": 5173,
+  "wsPath": "/ws",
+  "note": "4310 is often taken by QQ on Windows, so Host uses 4317."
+}

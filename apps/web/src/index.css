@@ -1,0 +1,86 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    /* 高级纸感与暖石灰体系 (Refined Warm Stone & Fine Paper) */
+    --bg-app: #faf9f5;         /* 整体画布底色：极细腻的微暖米白 */
+    --bg-sidebar: #f5f4ef;     /* 侧边栏：沉稳低饱和暖灰 */
+    --bg-card: #ffffff;        /* 主卡片/面板：纯净纸白 */
+    --bg-card-hover: #fcfbf9;  /* 卡片微悬浮高光 */
+    --bg-badge: #edece6;       /* 次级标签/小胶囊底色 */
+    --bg-badge-hover: #e5e4dc;
+
+    /* 亚像素精致分割线 */
+    --border-subtle: rgba(0, 0, 0, 0.05);
+    --border-card: rgba(0, 0, 0, 0.08);
+    --border-strong: rgba(0, 0, 0, 0.14);
+    --border-focus: rgba(50, 48, 44, 0.35);
+
+    /* 细腻文字灰阶 */
+    --text-primary: #1f1e1d;   /* 深炭黑，主标题与正文 */
+    --text-secondary: #4f4e4a; /* 次级正文与说明 */
+    --text-muted: #7e7d77;     /* 辅助说明 */
+    --text-faint: #abaaa2;     /* 微弱标识/提示 */
+
+    /* 细腻高级微投影 (Multiple layered subtle box-shadows) */
+    --shadow-sm: 0 1px 2px -0.5px rgba(0, 0, 0, 0.04), 0 1px 3px 0 rgba(0, 0, 0, 0.02);
+    --shadow-card: 0 2px 5px -1px rgba(0, 0, 0, 0.04), 0 1px 3px 0 rgba(0, 0, 0, 0.02);
+    --shadow-float: 0 8px 24px -4px rgba(0, 0, 0, 0.06), 0 3px 8px -2px rgba(0, 0, 0, 0.03);
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    background-color: var(--bg-app);
+    color: var(--text-primary);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    font-size: 13.5px;
+    line-height: 1.6;
+    letter-spacing: -0.012em;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+}
+
+/* 现代工业级无感微滚动条 */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.12);
+  border-radius: 99px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.22);
+}
+
+/* 呼吸微光标 */
+@keyframes breathing-cursor {
+  0%, 100% { opacity: 0.95; transform: scaleY(1); }
+  50% { opacity: 0.2; transform: scaleY(0.85); }
+}
+
+.streaming-dot {
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  margin-left: 5px;
+  vertical-align: 1px;
+  border-radius: 50%;
+  background-color: #2b2a28;
+  animation: breathing-cursor 1.1s infinite cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* 玻璃质感微反光 */
+.glass-subtle {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}

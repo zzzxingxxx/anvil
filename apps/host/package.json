@@ -1,0 +1,28 @@
+{
+  "name": "host",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "tsx src/index.ts",
+    "check": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run",
+    "build": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@anvil/protocol": "workspace:*",
+    "@anvil/pi-ext-gate": "workspace:*",
+    "@earendil-works/pi-coding-agent": "0.85.1",
+    "@hono/node-server": "^1.19.9",
+    "hono": "^4.11.3",
+    "ws": "^8.18.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22.19.3",
+    "@types/ws": "^8.18.1",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
+  }
+}
