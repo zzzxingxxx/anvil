@@ -62,8 +62,10 @@ function TaskRow({ task }: { task: TaskSummary }) {
     if (!task.sessionId) return;
     try {
       await client.request("session.resume", { id: task.sessionId });
-    } catch {
-      /* fake child ids are not Pi jsonl */
+    } catch (error) {
+      useUiStore.setState({
+        lastError: error instanceof Error ? error.message : String(error),
+      });
     }
   };
   const cancel = async () => {

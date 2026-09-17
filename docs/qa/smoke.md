@@ -14,7 +14,7 @@
 8. `pnpm check && pnpm test` 绿。
 9. **需密钥：** 真模型改一个 md；官方 `pi` resume 同一 jsonl。
 
-当前本机：已装 `pi`，`~/.pi/agent` 存在，但环境里没有模型密钥，第 9 步未跑通。
+当前本机：已装 `pi`，`~/.pi/agent` 存在。`pnpm --filter host compat` 用 SessionManager 打开了 5 个真实 jsonl（version 3）。环境里没有模型密钥，第 9 步（真改文件）未跑通。
 
 ## Phase 2
 
@@ -30,6 +30,8 @@
 2. 子任务不能再委派。
 3. 两个实现者抢同一文件，第二个失败。
 4. 未信任不能派出可写子 Agent。
+5. 子任务卡片能 resume 到一份 `.jsonl`。
+6. `pnpm --filter host compat` 能打开本机最多 5 个真实 session。
 
 ## Phase 4
 

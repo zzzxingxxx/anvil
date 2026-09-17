@@ -1,4 +1,8 @@
+import { mkdtemp } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { SessionManager } from "@earendil-works/pi-coding-agent";
 import { createWorkspaceState } from "./state.ts";
 import { TaskOrchestrator } from "./tasks.ts";
 
@@ -32,15 +36,22 @@ describe("TaskOrchestrator", () => {
     expect(second.ok).toBe(false);
   });
 
-  it("completes two read-only children", async () => {
+  it("completes two read-only children as real Pi jsonl", async () => {
+    const cwd = await mkdtemp(join(tmpdir(), "anvil-child-sess-"));
+    const sessionDir = join(cwd, "sessions");
     const state = createWorkspaceState();
-    state.cwd = "C:\\repo";
+    state.cwd = cwd;
     state.trust = "trusted";
-    const tasks = new TaskOrchestrator(state);
+    const tasks = new TaskOrchestrator(state, sessionDir);
     const a = await tasks.delegate({ goal: "拆前端文案", persona: "architect" });
     const b = await tasks.delegate({ goal: "审查改动", persona: "reviewer" });
-    await new Promise((resolve) => setTimeout(resolve, 120));
+    await new Promise((resolve) => setTimeout(resolve, 160));
     expect(state.tasks.find((item) => item.id === a.id)?.status).toBe("succeeded");
     expect(state.tasks.find((item) => item.id === b.id)?.status).toBe("succeeded");
+    expect(a.sessionId?.endsWith(".jsonl")).toBe(true);
+    const opened = SessionManager.open(a.sessionId!);
+    expect(opened.getHeader()?.type).toBe("session");
+    expect(opened.getEntries().length).toBeGreaterThan(0);
+    expect(b.sessionId).not.toBe(a.sessionId);
   });
 });

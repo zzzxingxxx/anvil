@@ -1,4 +1,8 @@
+import { mkdtemp } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { SessionManager } from "@earendil-works/pi-coding-agent";
 import type { AnvilEvent } from "@anvil/protocol";
 import { ApprovalQueue } from "./approvals.ts";
 import { FakePiAdapter } from "./fake-pi-adapter.ts";
@@ -56,5 +60,19 @@ describe("FakePiAdapter", () => {
     await adapter.prompt({ text: "列出文件" });
     expect(state.tools[0]?.status).toBe("error");
     expect(state.tools[0]?.output).toMatch(/未信任/);
+  });
+
+  it("writes a Pi jsonl that SessionManager can reopen", async () => {
+    const cwd = await mkdtemp(join(tmpdir(), "anvil-fake-sess-"));
+    const state = createWorkspaceState();
+    state.cwd = cwd;
+    const adapter = new FakePiAdapter(state);
+    const session = await adapter.newSession("假循环落盘");
+    expect(session.id.endsWith(".jsonl")).toBe(true);
+    const opened = SessionManager.open(session.id);
+    expect(opened.getHeader()?.type).toBe("session");
+    expect(opened.getEntries().length).toBeGreaterThan(0);
+    const resumed = await adapter.resumeSession(session.id);
+    expect(resumed.id).toBe(session.id);
   });
 });

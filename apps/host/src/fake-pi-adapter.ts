@@ -1,8 +1,10 @@
+import { SessionManager } from "@earendil-works/pi-coding-agent";
 import type { AnvilEvent, SessionSummary, UiMessage } from "@anvil/protocol";
 import { decideGate, previewArgs, riskFor } from "@anvil/pi-ext-gate";
 import type { ApprovalQueue } from "./approvals.ts";
 import type { PiAdapter, PromptInput } from "./pi-adapter.ts";
-import { upsertMessage, upsertTool, type WorkspaceState } from "./state.ts";
+import { persistPiSession } from "./session-persist.ts";
+import { resetConversation, upsertMessage, upsertTool, type WorkspaceState } from "./state.ts";
 import { buildTree, demoTree, pathIdsFrom } from "./tree.ts";
 
 function sleep(ms: number, signal: AbortSignal): Promise<void> {
@@ -193,6 +195,51 @@ export class FakePiAdapter implements PiAdapter {
     this.approvals?.rejectAll();
     this.state.pendingApproval = null;
     this.finishIdle();
+  }
+
+  async newSession(title?: string): Promise<SessionSummary> {
+    const label = title ?? `假循环 ${this.state.sessions.length + 1}`;
+    let id = `sess-fake-${Date.now()}`;
+    if (this.state.cwd) {
+      id = persistPiSession({
+        cwd: this.state.cwd,
+        title: label,
+        userText: "Anvil 假循环新建的会话。官方 pi --session 应能打开。",
+        assistantText: "假循环已落盘。没有模型密钥时也能被 SessionManager 读取。",
+      });
+    }
+    const session: SessionSummary = { id, title: label, mtime: Date.now(), tokens: 0 };
+    this.state.sessions.unshift(session);
+    this.state.sessionId = session.id;
+    this.state.sessionTitle = session.title;
+    resetConversation(this.state);
+    this.emit({ type: "session/replaced", sessionId: session.id, title: session.title });
+    return session;
+  }
+
+  async resumeSession(id: string): Promise<SessionSummary> {
+    const found = this.state.sessions.find((item) => item.id === id);
+    if (id.endsWith(".jsonl")) {
+      const opened = SessionManager.open(id);
+      const title = opened.getSessionName() ?? found?.title ?? "已恢复";
+      const session: SessionSummary = { id, title, mtime: Date.now(), tokens: opened.getEntries().length };
+      this.state.sessionId = id;
+      this.state.sessionTitle = title;
+      if (!found) {
+        this.state.sessions.unshift(session);
+      }
+      resetConversation(this.state);
+      this.emit({ type: "session/replaced", sessionId: id, title });
+      return session;
+    }
+    if (!found) {
+      throw new Error("会话不存在");
+    }
+    this.state.sessionId = found.id;
+    this.state.sessionTitle = found.title;
+    resetConversation(this.state);
+    this.emit({ type: "session/replaced", sessionId: found.id, title: found.title });
+    return found;
   }
 
   async fork(entryId: string): Promise<SessionSummary> {

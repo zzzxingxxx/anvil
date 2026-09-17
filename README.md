@@ -99,8 +99,9 @@ docs/
 
 ## 已知问题
 
-- 本机没有模型密钥时，真 Pi dogfood / 官方 resume 抽检未跑。
-- 子任务编排目前是 Host 假循环；真 SDK 子 runtime 未接完。
+- 本机没有模型密钥时，真模型改文件的 dogfood 未跑。
+- 子任务会写合法 Pi jsonl，但子 Agent 推理仍是 Host 编排摘要，不是再拉一个计费 runtime。
+- 桌面安装包、Docker 沙箱、人用 PTY 按计划减载，未打包。
 - 人用 PTY 终端按 Phase 2 减载推迟。
 - 桌面壳只有说明，没有安装包。
 - Docker 沙箱未验证。

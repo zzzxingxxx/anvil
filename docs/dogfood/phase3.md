@@ -9,4 +9,6 @@
 3. 未信任派出 implementer 被拒。
 4. 同一文件第二次 write 报锁冲突。
 
+子任务现在会 `SessionManager.create` 写出 jsonl（带 parentSession），侧栏可 resume。
+
 真模型拆前端文案 + Host 实现 + 审查还没跑（本机无密钥）。

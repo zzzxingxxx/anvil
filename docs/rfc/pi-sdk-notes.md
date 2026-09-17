@@ -50,3 +50,8 @@ AgentSession 订阅的是 `AgentSessionEvent`，Anvil 映射：
 - `session.navigateTree(entryId)` 留在同一 jsonl
 - `session.sessionManager.getEntries()` / `getLeafId()` / `getLabel()` 用来画树
 - `session.compact(instructions?)`
+
+## 落盘时机
+
+- `SessionManager` 在出现第一条 assistant 消息之前**不写文件**。
+- Anvil 子任务 / 兼容抽检必须写 user + assistant 对，官方 `pi --session` 才能打开。

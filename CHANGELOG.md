@@ -4,4 +4,5 @@
 
 - Phase 0–3：假循环、真 SDK 结对、会话树、Diff、委派托盘。
 - Phase 4：看板、设置、RPC sidecar 开关、安全回归测试、`anvil.cmd`。
+- 子任务与假循环新建会话会写出官方 Pi jsonl（需 assistant 消息才落盘）。
 - 已知问题见 README。

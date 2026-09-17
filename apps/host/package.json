@@ -8,6 +8,7 @@
     "start": "tsx src/index.ts",
     "check": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run",
+    "compat": "node scripts/compat-sessions.mjs",
     "build": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {

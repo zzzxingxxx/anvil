@@ -7,7 +7,9 @@ import {
   type PersonaId,
 } from "@anvil/pi-ext-delegate";
 import type { AnvilEvent, TaskSummary } from "@anvil/protocol";
+import { appendPiAssistant, persistPiSession } from "./session-persist.ts";
 import type { WorkspaceState } from "./state.ts";
+import { resolveInside } from "./workspace.ts";
 
 export type DelegateInput = {
   goal: string;
@@ -26,7 +28,10 @@ export class TaskOrchestrator {
   private pumping = false;
   private pumpAgain = false;
 
-  constructor(private readonly state: WorkspaceState) {}
+  constructor(
+    private readonly state: WorkspaceState,
+    private readonly sessionDir?: string,
+  ) {}
 
   subscribe(cb: (event: AnvilEvent) => void): () => void {
     this.listeners.add(cb);
@@ -57,7 +62,7 @@ export class TaskOrchestrator {
     const task: TaskSummary = {
       id: `task-${Date.now()}-${Math.random().toString(16).slice(2, 6)}`,
       parentSessionId: this.state.sessionId,
-      sessionId: `child:${this.state.sessionId ?? "none"}:${Date.now()}`,
+      sessionId: this.persistChildSession(persona, input.goal, input.cwd),
       persona,
       goal: input.goal,
       status: shouldQueue(this.runningCount()) ? "queued" : "running",
@@ -92,6 +97,33 @@ export class TaskOrchestrator {
     this.finish(task, "cancelled", { error: "用户取消" });
     void this.pump();
     return task;
+  }
+
+  private persistChildSession(persona: PersonaId, goal: string, relativeCwd?: string): string {
+    const fallback = `child:${this.state.sessionId ?? "none"}:${Date.now()}`;
+    if (!this.state.cwd) {
+      return fallback;
+    }
+    try {
+      const childCwd = relativeCwd ? resolveInside(this.state.cwd, relativeCwd) : this.state.cwd;
+      const spec = PERSONAS[persona] ?? PERSONAS.implementer;
+      const file = persistPiSession({
+        cwd: childCwd,
+        sessionDir: this.sessionDir,
+        parentSession: this.state.sessionId ?? undefined,
+        title: `${spec.label}: ${goal.slice(0, 40)}`,
+        userText: `${spec.system}\n\n目标：${goal}\n禁止再委派。`,
+        assistantText: "子任务已创建。官方 pi 可用 --session 打开本文件。",
+      });
+      this.state.sessions.unshift({
+        id: file,
+        title: `${spec.label} · ${goal.slice(0, 24)}`,
+        mtime: Date.now(),
+      });
+      return file;
+    } catch {
+      return fallback;
+    }
   }
 
   private runningCount(): number {
@@ -180,6 +212,13 @@ export class TaskOrchestrator {
     Object.assign(task, extra);
     this.emitTask(task);
     if (status === "succeeded" && extra.summary) {
+      if (task.sessionId?.endsWith(".jsonl")) {
+        try {
+          appendPiAssistant(task.sessionId, extra.summary);
+        } catch {
+          /* keep Host running even if the child jsonl cannot be appended */
+        }
+      }
       const message = {
         id: `task-summary-${task.id}`,
         role: "system" as const,
