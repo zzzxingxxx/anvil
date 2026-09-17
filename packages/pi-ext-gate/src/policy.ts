@@ -8,6 +8,8 @@ export type GateInput = {
   trust: TrustLevel;
   cwd?: string | null;
   protectedPaths?: string[];
+  bashPolicy?: "ask" | "allowlist";
+  bashAllowlist?: string[];
 };
 
 const WRITE_TOOLS = new Set(["write", "edit", "bash", "powershell"]);
@@ -68,6 +70,14 @@ export function decideGate(input: GateInput): { decision: GateDecision; reason: 
   }
 
   if (name === "bash" || name === "powershell") {
+    if (input.bashPolicy === "allowlist") {
+      const command = preview.trim();
+      const allowed = (input.bashAllowlist ?? []).some((item) => command === item || command.startsWith(`${item} `));
+      if (!allowed) {
+        return { decision: "ask", reason: "不在 bash 白名单，需要审批" };
+      }
+      return { decision: "allow", reason: "白名单命令放行" };
+    }
     return { decision: "ask", reason: "shell 命令默认需要审批" };
   }
 

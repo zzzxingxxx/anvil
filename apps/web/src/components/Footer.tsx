@@ -1,5 +1,6 @@
 import { useUiStore } from "../store.ts";
 import { formatTokens } from "../lib/utils.ts";
+import { UsageExport } from "./UsageExport.tsx";
 
 export function Footer() {
   const { cwd, sessionId, usage, agentStatus } = useUiStore();
@@ -17,6 +18,7 @@ export function Footer() {
           <span>↑{formatTokens(usage.inputTokens)}</span>
           <span>↓{formatTokens(usage.outputTokens)}</span>
           <span>${(usage.costUsd ?? 0.00).toFixed(4)}</span>
+          <UsageExport />
         </div>
 
         <span className="text-[#00000018]">·</span>

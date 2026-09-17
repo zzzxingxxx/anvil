@@ -6,9 +6,15 @@ import type { TrustLevel } from "@anvil/protocol";
 export type AnvilConfig = {
   recentWorkspaces: string[];
   trustedWorkspaces: string[];
+  settings: {
+    trustDefault?: "trusted" | "untrusted";
+    bashPolicy?: "ask" | "allowlist";
+    bashAllowlist?: string[];
+    defaultModel?: string;
+  };
 };
 
-const EMPTY: AnvilConfig = { recentWorkspaces: [], trustedWorkspaces: [] };
+const EMPTY: AnvilConfig = { recentWorkspaces: [], trustedWorkspaces: [], settings: {} };
 
 export function anvilHome(): string {
   return process.env.ANVIL_HOME?.trim() || join(homedir(), ".anvil");
@@ -29,9 +35,10 @@ export async function loadConfig(): Promise<AnvilConfig> {
       trustedWorkspaces: Array.isArray(parsed.trustedWorkspaces)
         ? parsed.trustedWorkspaces.filter((item): item is string => typeof item === "string")
         : [],
+      settings: parsed.settings && typeof parsed.settings === "object" ? parsed.settings : {},
     };
   } catch {
-    return { ...EMPTY, recentWorkspaces: [], trustedWorkspaces: [] };
+    return { ...EMPTY, recentWorkspaces: [], trustedWorkspaces: [], settings: {} };
   }
 }
 
@@ -48,11 +55,15 @@ export function rememberWorkspace(config: AnvilConfig, path: string, trust: Trus
   } else {
     trusted.delete(path);
   }
-  return { recentWorkspaces, trustedWorkspaces: [...trusted] };
+  return { recentWorkspaces, trustedWorkspaces: [...trusted], settings: config.settings ?? {} };
 }
 
 export function trustFor(config: AnvilConfig, path: string): TrustLevel {
   return config.trustedWorkspaces.includes(path) ? "trusted" : "untrusted";
+}
+
+export function useRpcPi(): boolean {
+  return process.env.ANVIL_PI_MODE === "rpc";
 }
 
 export function useFakePi(): boolean {

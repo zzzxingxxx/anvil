@@ -32,6 +32,7 @@ export const TaskSummarySchema = z.object({
   startedAt: z.number(),
   endedAt: z.number().optional(),
   costUsd: z.number().optional(),
+  column: z.enum(["todo", "doing", "blocked", "done"]).optional(),
 });
 export type TaskSummary = z.infer<typeof TaskSummarySchema>;
 
@@ -273,6 +274,30 @@ export const TaskListResultSchema = z.object({
 });
 export type TaskListResult = z.infer<typeof TaskListResultSchema>;
 
+export const BoardColumnSchema = z.enum(["todo", "doing", "blocked", "done"]);
+export type BoardColumn = z.infer<typeof BoardColumnSchema>;
+
+export const BoardMovePayloadSchema = z.object({
+  id: z.string().min(1),
+  column: BoardColumnSchema,
+});
+export type BoardMovePayload = z.infer<typeof BoardMovePayloadSchema>;
+
+export const SettingsSchema = z.object({
+  trustDefault: TrustLevelSchema.optional(),
+  bashPolicy: z.enum(["ask", "allowlist"]).optional(),
+  bashAllowlist: z.array(z.string()).optional(),
+  defaultModel: z.string().optional(),
+});
+export type Settings = z.infer<typeof SettingsSchema>;
+
+export const SettingsGetPayloadSchema = z.object({}).strict();
+export const SettingsSetPayloadSchema = SettingsSchema;
+export const SettingsResultSchema = z.object({
+  ok: z.literal(true),
+  settings: SettingsSchema,
+});
+
 export const CommandTypeSchema = z.enum([
   "workspace.open",
   "workspace.trust",
@@ -296,6 +321,9 @@ export const CommandTypeSchema = z.enum([
   "task.delegate",
   "task.cancel",
   "task.list",
+  "board.move",
+  "settings.get",
+  "settings.set",
 ]);
 export type CommandType = z.infer<typeof CommandTypeSchema>;
 
@@ -322,6 +350,9 @@ export const CommandPayloadSchemas = {
   "task.delegate": TaskDelegatePayloadSchema,
   "task.cancel": TaskCancelPayloadSchema,
   "task.list": TaskListPayloadSchema,
+  "board.move": BoardMovePayloadSchema,
+  "settings.get": SettingsGetPayloadSchema,
+  "settings.set": SettingsSetPayloadSchema,
 } as const;
 
 export const CommandResultSchemas = {
@@ -347,4 +378,7 @@ export const CommandResultSchemas = {
   "task.delegate": TaskDelegateResultSchema,
   "task.cancel": AgentOkResultSchema,
   "task.list": TaskListResultSchema,
+  "board.move": AgentOkResultSchema,
+  "settings.get": SettingsResultSchema,
+  "settings.set": SettingsResultSchema,
 } as const;

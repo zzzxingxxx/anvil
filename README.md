@@ -2,7 +2,7 @@
 
 以 [Earendil Pi](https://pi.dev) 为引擎的本地优先 AI Agent 工作台。
 
-当前进度：**Phase 3 多 Agent**。可委派最多 2 个子任务、文件锁、任务托盘。真模型 dogfood 仍需密钥。
+当前进度：**Phase 4 演示版**。看板、设置、RPC sidecar 开关、`anvil.cmd` 一键启动。真模型 dogfood 仍需密钥。
 
 - 产品：[docs/项目描述.md](docs/项目描述.md)
 - 计划：[docs/开发计划.md](docs/开发计划.md)
@@ -20,8 +20,10 @@
 
 ```bash
 pnpm install
-pnpm dev
+pnpm start
 ```
+
+或双击仓库根目录 `anvil.cmd`。Windows 未签名，SmartScreen 可能提示。
 
 打开 **http://127.0.0.1:5173**。
 
@@ -51,6 +53,12 @@ F:\adfadda\demo2342\demooo
 ```bash
 # Windows PowerShell
 $env:ANVIL_FAKE_PI="1"; pnpm --filter host dev
+```
+
+未信任仓库可切 RPC sidecar：
+
+```bash
+$env:ANVIL_PI_MODE="rpc"; pnpm --filter host dev
 ```
 
 测试默认走假适配器，不连网。
@@ -88,3 +96,11 @@ docs/
 **刷新后对话还在吗？** Host 进程还在就会推 snapshot。Host 重启后运行态丢失，但 Pi session 文件仍在，可从左侧列表 resume。
 
 **官方 pi 打得开吗？** 可以。不要改 session 格式；Anvil 的会话 id 就是 jsonl 路径。
+
+## 已知问题
+
+- 本机没有模型密钥时，真 Pi dogfood / 官方 resume 抽检未跑。
+- 子任务编排目前是 Host 假循环；真 SDK 子 runtime 未接完。
+- 人用 PTY 终端按 Phase 2 减载推迟。
+- 桌面壳只有说明，没有安装包。
+- Docker 沙箱未验证。

@@ -272,5 +272,29 @@ async function dispatch(
     case "task.list": {
       return { ok: true, tasks: state.tasks };
     }
+    case "board.move": {
+      if (!tasks) {
+        throw new Error("任务编排未启动");
+      }
+      const { id, column } = payload as { id: string; column: "todo" | "doing" | "blocked" | "done" };
+      tasks.move(id, column);
+      return { ok: true };
+    }
+    case "settings.get": {
+      const config = await loadConfig();
+      return { ok: true, settings: config.settings ?? {} };
+    }
+    case "settings.set": {
+      const nextSettings = payload as {
+        trustDefault?: "trusted" | "untrusted";
+        bashPolicy?: "ask" | "allowlist";
+        bashAllowlist?: string[];
+        defaultModel?: string;
+      };
+      const config = await loadConfig();
+      config.settings = { ...config.settings, ...nextSettings };
+      await saveConfig(config);
+      return { ok: true, settings: config.settings };
+    }
   }
 }

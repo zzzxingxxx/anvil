@@ -42,4 +42,16 @@ describe("decideGate", () => {
       "allow",
     );
   });
+
+  it("asks for commands outside the bash allowlist", () => {
+    expect(
+      decideGate({
+        toolName: "bash",
+        args: { command: "rm -rf tmp" },
+        trust: "trusted",
+        bashPolicy: "allowlist",
+        bashAllowlist: ["git status"],
+      }).decision,
+    ).toBe("ask");
+  });
 });

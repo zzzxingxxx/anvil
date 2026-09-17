@@ -61,12 +61,23 @@ export class TaskOrchestrator {
       persona,
       goal: input.goal,
       status: shouldQueue(this.runningCount()) ? "queued" : "running",
+      column: shouldQueue(this.runningCount()) ? "todo" : "doing",
       cwd: input.cwd,
       startedAt: Date.now(),
     };
     this.state.tasks = [task, ...this.state.tasks];
     this.emitTask(task);
     void this.pump();
+    return task;
+  }
+
+  move(id: string, column: NonNullable<TaskSummary["column"]>): TaskSummary {
+    const task = this.state.tasks.find((item) => item.id === id);
+    if (!task) {
+      throw new Error("任务不存在");
+    }
+    task.column = column;
+    this.emitTask(task);
     return task;
   }
 
@@ -109,6 +120,7 @@ export class TaskOrchestrator {
             break;
           }
           next.status = "running";
+          next.column = "doing";
           this.emitTask(next);
           starters.push(this.run(next));
         }
@@ -163,6 +175,8 @@ export class TaskOrchestrator {
   ): void {
     task.status = status;
     task.endedAt = Date.now();
+    if (status === "succeeded") task.column = "done";
+    if (status === "failed" || status === "cancelled") task.column = "blocked";
     Object.assign(task, extra);
     this.emitTask(task);
     if (status === "succeeded" && extra.summary) {

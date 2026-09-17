@@ -6,7 +6,7 @@ export type PromptInput = {
   text: string;
 };
 
-export type AdapterKind = "fake" | "sdk";
+export type AdapterKind = "fake" | "sdk" | "rpc";
 
 export interface PiAdapter {
   readonly kind: AdapterKind;

@@ -27,6 +27,8 @@ export function Header() {
     inspectorOpen,
     toggleInspector,
     adapter,
+    setActiveTab,
+    activeTab,
   } = useUiStore();
   const [openModels, setOpenModels] = useState(false);
 
@@ -72,6 +74,11 @@ export function Header() {
             {adapter === "fake" ? (
               <span className="text-[10px] font-medium text-[#7e7d77] bg-[#edece6] px-1.5 py-0.5 rounded">
                 假循环
+              </span>
+            ) : null}
+            {adapter === "rpc" ? (
+              <span className="text-[10px] font-medium text-[#7e7d77] bg-[#edece6] px-1.5 py-0.5 rounded">
+                RPC
               </span>
             ) : null}
           </div>
@@ -163,6 +170,21 @@ export function Header() {
           <span className="hidden md:inline">
             {connection === "open" ? "就绪" : connection === "connecting" ? "连接中" : "离线"}
           </span>
+        </div>
+
+        <div className="hidden sm:flex items-center gap-1 text-[11px]">
+          {(["chat", "board", "settings"] as const).map((tab) => (
+            <button
+              key={tab}
+              type="button"
+              onClick={() => setActiveTab(tab)}
+              className={`px-2 py-0.5 rounded-md ${
+                activeTab === tab ? "bg-[#1f1e1d] text-white" : "text-[#7e7d77] hover:bg-[#edece6]"
+              }`}
+            >
+              {tab === "chat" ? "对话" : tab === "board" ? "看板" : "设置"}
+            </button>
+          ))}
         </div>
 
         <button

@@ -13,9 +13,9 @@ describe("protocol envelope", () => {
     expect(EnvelopeSchema.parse(ev).kind).toBe("ev");
   });
 
-  it("covers the phase-3 commands", () => {
+  it("covers the phase-4 commands", () => {
     const types = CommandTypeSchema.options;
-    expect(types).toHaveLength(22);
+    expect(types).toHaveLength(25);
     for (const type of types) {
       expect(CommandPayloadSchemas[type]).toBeDefined();
     }

@@ -11,12 +11,14 @@ import { Inspector } from "./components/Inspector.tsx";
 import { ApprovalCard } from "./components/ApprovalCard.tsx";
 import { CommandPalette } from "./components/CommandPalette.tsx";
 import { TaskTray } from "./components/TaskTray.tsx";
+import { Board } from "./components/Board.tsx";
+import { SettingsPage } from "./components/SettingsPage.tsx";
 
 export function App() {
   const [sending, setSending] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
   const stickToBottom = useRef(true);
-  const { messages, tools, lastError, cwd, sessions } = useUiStore();
+  const { messages, tools, lastError, cwd, sessions, activeTab } = useUiStore();
 
   useEffect(() => {
     client.connect();
@@ -68,7 +70,10 @@ export function App() {
 
         {/* Central Workspace Stage */}
         <main className="flex min-h-0 flex-1 flex-col bg-[#faf9f5] relative overflow-hidden">
-          {/* Scrollable Message & Tool Timeline */}
+          {activeTab === "board" ? <Board /> : null}
+          {activeTab === "settings" ? <SettingsPage /> : null}
+          {activeTab === "chat" ? (
+          <>
           <div
             ref={listRef}
             className="min-h-0 flex-1 overflow-y-auto px-4 py-8 select-text flex flex-col items-center"
@@ -133,6 +138,8 @@ export function App() {
           <TaskTray />
           <ApprovalCard />
           <Composer onSend={handleSend} sending={sending} />
+          </>
+          ) : null}
 
           {/* Toast / Error Banner */}
           {lastError && (

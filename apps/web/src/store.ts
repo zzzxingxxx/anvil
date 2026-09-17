@@ -13,7 +13,7 @@ import type {
 import { create } from "zustand";
 
 export type ConnectionStatus = "connecting" | "open" | "closed";
-export type ActiveTab = "chat" | "tree" | "files" | "artifacts";
+export type ActiveTab = "chat" | "board" | "settings";
 
 export type ToolCard = {
   callId: string;
@@ -46,7 +46,7 @@ export type UiState = {
   lastError: string | null;
   recentWorkspaces: string[];
   pendingApproval: ApprovalRequest | null;
-  adapter: "fake" | "sdk" | null;
+  adapter: "fake" | "sdk" | "rpc" | null;
   preview: FilePreview | null;
   tree: TreeNode | null;
   changes: FileChange[];
@@ -133,7 +133,7 @@ export const useUiStore = create<UiState & Actions>((set) => ({
             ? (event.recentWorkspaces as string[])
             : [],
           pendingApproval: (event.pendingApproval as ApprovalRequest | null) ?? null,
-          adapter: (event.adapter as "fake" | "sdk" | null) ?? null,
+          adapter: (event.adapter as "fake" | "sdk" | "rpc" | null) ?? null,
           tree: (event.tree as TreeNode | null) ?? null,
           changes: Array.isArray(event.changes) ? (event.changes as FileChange[]) : [],
           currentEntryId: (event.currentEntryId as string | null) ?? null,

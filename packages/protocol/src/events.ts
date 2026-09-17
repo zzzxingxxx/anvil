@@ -174,7 +174,7 @@ export const SnapshotEventSchema = z.object({
     .optional(),
   recentWorkspaces: z.array(z.string()).optional(),
   pendingApproval: ApprovalRequestSchema.nullable().optional(),
-  adapter: z.enum(["fake", "sdk"]).optional(),
+  adapter: z.enum(["fake", "sdk", "rpc"]).optional(),
   tree: TreeNodeSchema.nullable().optional(),
   changes: z.array(FileChangeSchema).optional(),
   currentEntryId: z.string().nullable().optional(),

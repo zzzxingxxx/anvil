@@ -13,22 +13,26 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { WebSocketServer, type WebSocket } from "ws";
 import { ApprovalQueue } from "./approvals.ts";
-import { loadConfig, useFakePi } from "./config.ts";
+import { loadConfig, useFakePi, useRpcPi } from "./config.ts";
 import { FakePiAdapter } from "./fake-pi-adapter.ts";
 import { handleRequest } from "./handlers.ts";
 import { logError, logInfo } from "./log.ts";
 import type { PiAdapter } from "./pi-adapter.ts";
+import { RpcPiAdapter } from "./rpc-pi-adapter.ts";
 import { SdkPiAdapter } from "./sdk-pi-adapter.ts";
 import { createWorkspaceState } from "./state.ts";
 import { TaskOrchestrator } from "./tasks.ts";
 import { messagesOnPath, pathIdsFrom } from "./tree.ts";
 
 const fake = useFakePi();
-const state = createWorkspaceState(fake ? "fake" : "sdk");
+const rpc = !fake && useRpcPi();
+const state = createWorkspaceState(fake ? "fake" : rpc ? "rpc" : "sdk");
 const approvals = new ApprovalQueue();
 const adapter: PiAdapter = fake
   ? new FakePiAdapter(state, approvals)
-  : new SdkPiAdapter(state, approvals);
+  : rpc
+    ? new RpcPiAdapter(state)
+    : new SdkPiAdapter(state, approvals);
 const tasks = new TaskOrchestrator(state);
 const sockets = new Set<WebSocket>();
 
@@ -117,6 +121,8 @@ wss.on("connection", (socket) => {
       envelope.data.type === "artifact.restore" ||
       envelope.data.type === "task.delegate" ||
       envelope.data.type === "task.cancel" ||
+      envelope.data.type === "board.move" ||
+      envelope.data.type === "settings.set" ||
       envelope.data.type === "model.set"
     ) {
       broadcast("snapshot", snapshot());
