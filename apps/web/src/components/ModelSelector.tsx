@@ -1,9 +1,12 @@
 import { Check, ChevronDown, Cpu, Settings2 } from "lucide-react";
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { findModel, groupedModels } from "../lib/models.ts";
 import { cn } from "../lib/utils.ts";
 import { useUiStore } from "../store.ts";
 import { client } from "../ws.ts";
+
+type MenuBox = { top: number; left: number; width: number };
 
 export function ModelSelector({ compact = false }: { compact?: boolean }) {
   const models = useUiStore((state) => state.models);
@@ -12,6 +15,7 @@ export function ModelSelector({ compact = false }: { compact?: boolean }) {
   const busy = useUiStore((state) => state.agentStatus) === "running";
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(0);
+  const [menuBox, setMenuBox] = useState<MenuBox | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const activeRef = useRef(0);
@@ -40,16 +44,39 @@ export function ModelSelector({ compact = false }: { compact?: boolean }) {
     }
   }, [modelId]);
 
+  const placeMenu = useCallback(() => {
+    const button = rootRef.current?.querySelector("button");
+    if (!button) {
+      return;
+    }
+    const rect = button.getBoundingClientRect();
+    const padding = 16;
+    const vw = window.innerWidth;
+    const width = Math.min(352, Math.max(220, vw - padding * 2));
+    let left = rect.right - width;
+    if (left < padding) {
+      left = padding;
+    }
+    if (left + width > vw - padding) {
+      left = Math.max(padding, vw - padding - width);
+    }
+    setMenuBox({ top: Math.round(rect.bottom + 4), left: Math.round(left), width: Math.round(width) });
+  }, []);
+
   useEffect(() => {
     if (!open) {
+      setMenuBox(null);
       return;
     }
     const selectedIndex = flat.findIndex((model) => model.id === modelId);
     setActive(selectedIndex >= 0 ? selectedIndex : 0);
+    placeMenu();
     const onPointer = (event: MouseEvent) => {
-      if (!rootRef.current?.contains(event.target as Node)) {
-        setOpen(false);
+      const target = event.target as Node;
+      if (rootRef.current?.contains(target) || listRef.current?.contains(target)) {
+        return;
       }
+      setOpen(false);
     };
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
@@ -80,11 +107,13 @@ export function ModelSelector({ compact = false }: { compact?: boolean }) {
     };
     window.addEventListener("mousedown", onPointer);
     window.addEventListener("keydown", onKey);
+    window.addEventListener("resize", placeMenu);
     return () => {
       window.removeEventListener("mousedown", onPointer);
       window.removeEventListener("keydown", onKey);
+      window.removeEventListener("resize", placeMenu);
     };
-  }, [open, flat, modelId, handleModel]);
+  }, [open, flat, modelId, handleModel, placeMenu]);
 
   useEffect(() => {
     if (!open) {
@@ -93,6 +122,78 @@ export function ModelSelector({ compact = false }: { compact?: boolean }) {
     const node = listRef.current?.querySelector<HTMLElement>(`[data-model-index="${active}"]`);
     node?.scrollIntoView({ block: "nearest" });
   }, [active, open]);
+
+  const menu =
+    open && menuBox
+      ? createPortal(
+          <div
+            id={listId}
+            ref={listRef}
+            role="listbox"
+            aria-labelledby={buttonId}
+            style={{ top: menuBox.top, left: menuBox.left, width: menuBox.width }}
+            className="fixed z-50 max-h-80 overflow-y-auto rounded-xl border border-[#00000014] bg-white shadow-[var(--shadow-float)] p-1"
+          >
+            {models.length === 0 ? (
+              <div className="px-3 py-3 space-y-2">
+                <p className="text-[11px] text-[#7e7d77] leading-relaxed">
+                  没有可用模型。到设置页添加接口，或在终端运行 pi 登录。
+                </p>
+                <button
+                  type="button"
+                  className="flex items-center gap-1.5 text-[11px] text-[#1f1e1d] hover:underline"
+                  onClick={() => {
+                    setOpen(false);
+                    useUiStore.getState().setActiveTab("settings");
+                  }}
+                >
+                  <Settings2 className="w-3 h-3" />
+                  打开设置
+                </button>
+              </div>
+            ) : (
+              groups.map((group) => (
+                <div key={group.provider} className="pb-1">
+                  <div className="px-2.5 pt-1.5 pb-0.5 text-[10px] uppercase tracking-wider text-[#abaaa2]">
+                    {group.provider}
+                  </div>
+                  {group.models.map((model) => {
+                    const index = flat.findIndex((item) => item.id === model.id);
+                    const isSelected = model.id === modelId;
+                    const isActive = index === active;
+                    return (
+                      <button
+                        key={model.id}
+                        type="button"
+                        role="option"
+                        aria-selected={isSelected}
+                        data-model-index={index}
+                        onMouseEnter={() => setActive(index)}
+                        onClick={() => void handleModel(model.id)}
+                        className={cn(
+                          "w-full text-left px-2.5 py-1.5 rounded-lg text-xs flex items-start gap-2",
+                          isSelected
+                            ? "bg-[#edece6] text-[#1f1e1d]"
+                            : isActive
+                              ? "bg-[#f5f4ef] text-[#4f4e4a]"
+                              : "text-[#4f4e4a] hover:bg-[#f5f4ef]",
+                        )}
+                      >
+                        <Check className={cn("w-3.5 h-3.5 mt-0.5 shrink-0", isSelected ? "opacity-100" : "opacity-0")} />
+                        <span className="min-w-0">
+                          <span className="block font-medium truncate">{model.label}</span>
+                          <span className="block text-[10px] text-[#abaaa2] font-mono truncate">{model.id}</span>
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              ))
+            )}
+          </div>,
+          document.body,
+        )
+      : null;
 
   return (
     <div ref={rootRef} className="relative min-w-0">
@@ -134,72 +235,7 @@ export function ModelSelector({ compact = false }: { compact?: boolean }) {
         </span>
         <ChevronDown className={cn("w-3 h-3 text-[#abaaa2] shrink-0 transition", open && "rotate-180")} />
       </button>
-      {open ? (
-        <div
-          id={listId}
-          ref={listRef}
-          role="listbox"
-          aria-labelledby={buttonId}
-          className="z-40 max-h-80 overflow-y-auto rounded-xl border border-[#00000014] bg-white shadow-[var(--shadow-float)] p-1 max-sm:fixed max-sm:left-4 max-sm:right-4 max-sm:top-12 max-sm:w-auto sm:absolute sm:right-0 sm:mt-1 sm:w-[min(22rem,calc(100vw-2rem))]"
-        >
-          {models.length === 0 ? (
-            <div className="px-3 py-3 space-y-2">
-              <p className="text-[11px] text-[#7e7d77] leading-relaxed">
-                没有可用模型。到设置页添加接口，或在终端运行 pi 登录。
-              </p>
-              <button
-                type="button"
-                className="flex items-center gap-1.5 text-[11px] text-[#1f1e1d] hover:underline"
-                onClick={() => {
-                  setOpen(false);
-                  useUiStore.getState().setActiveTab("settings");
-                }}
-              >
-                <Settings2 className="w-3 h-3" />
-                打开设置
-              </button>
-            </div>
-          ) : (
-            groups.map((group) => (
-              <div key={group.provider} className="pb-1">
-                <div className="px-2.5 pt-1.5 pb-0.5 text-[10px] uppercase tracking-wider text-[#abaaa2]">
-                  {group.provider}
-                </div>
-                {group.models.map((model) => {
-                  const index = flat.findIndex((item) => item.id === model.id);
-                  const isSelected = model.id === modelId;
-                  const isActive = index === active;
-                  return (
-                    <button
-                      key={model.id}
-                      type="button"
-                      role="option"
-                      aria-selected={isSelected}
-                      data-model-index={index}
-                      onMouseEnter={() => setActive(index)}
-                      onClick={() => void handleModel(model.id)}
-                      className={cn(
-                        "w-full text-left px-2.5 py-1.5 rounded-lg text-xs flex items-start gap-2",
-                        isSelected
-                          ? "bg-[#edece6] text-[#1f1e1d]"
-                          : isActive
-                            ? "bg-[#f5f4ef] text-[#4f4e4a]"
-                            : "text-[#4f4e4a] hover:bg-[#f5f4ef]",
-                      )}
-                    >
-                      <Check className={cn("w-3.5 h-3.5 mt-0.5 shrink-0", isSelected ? "opacity-100" : "opacity-0")} />
-                      <span className="min-w-0">
-                        <span className="block font-medium truncate">{model.label}</span>
-                        <span className="block text-[10px] text-[#abaaa2] font-mono truncate">{model.id}</span>
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            ))
-          )}
-        </div>
-      ) : null}
+      {menu}
     </div>
   );
 }
