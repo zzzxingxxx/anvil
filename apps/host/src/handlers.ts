@@ -191,6 +191,9 @@ async function dispatch(
       return { ok: true };
     }
     case "agent.prompt": {
+      if (state.agentStatus === "running") {
+        throw new Error("等当前轮结束再发送，或先点插入方向 / 结束后做");
+      }
       const { text } = payload as { text: string };
       void adapter.prompt({ text });
       return { ok: true };

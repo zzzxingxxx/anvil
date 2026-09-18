@@ -48,6 +48,28 @@ describe("handleRequest", () => {
     await adapter.abort();
   });
 
+  it("rejects a second prompt while a turn is running", async () => {
+    const state = createWorkspaceState();
+    const approvals = new ApprovalQueue();
+    const adapter = new FakePiAdapter(state, approvals);
+    const first = await handleRequest(
+      makeRequest("agent.prompt", { text: "第一轮" }, "p-busy-1"),
+      state,
+      adapter,
+      approvals,
+    );
+    expect(first.payload).toMatchObject({ ok: true });
+    const second = await handleRequest(
+      makeRequest("agent.prompt", { text: "第二轮" }, "p-busy-2"),
+      state,
+      adapter,
+      approvals,
+    );
+    expect(second.payload).toMatchObject({ ok: false });
+    expect(String((second.payload as { error?: string }).error)).toMatch(/等当前轮结束/);
+    await adapter.abort();
+  });
+
   it("rejects opening another workspace while a turn is running", async () => {
     const dir = await mkdtemp(join(tmpdir(), "anvil-busy-ws-"));
     const state = createWorkspaceState();

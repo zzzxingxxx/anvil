@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { ToolCard } from "../store.ts";
+import { useUiStore } from "../store.ts";
 import { formatElapsed } from "../lib/utils.ts";
 
 interface ToolItemProps {
@@ -35,9 +36,17 @@ export function ToolItem({ tool }: ToolItemProps) {
       : (tool.endedAt ?? (tool.status === "running" ? now : tool.startedAt)) - tool.startedAt;
 
   const copyOutput = () => {
-    navigator.clipboard.writeText(tool.output);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
+    void navigator.clipboard.writeText(tool.output).then(
+      () => {
+        setCopied(true);
+        window.setTimeout(() => setCopied(false), 1500);
+      },
+      (error) => {
+        useUiStore.setState({
+          lastError: error instanceof Error ? error.message : "复制失败",
+        });
+      },
+    );
   };
 
   const command =

@@ -5,6 +5,7 @@ import {
 import { useState } from "react";
 import type { UiMessage } from "@anvil/protocol";
 import { formatTime, isSafeHref, parseSafeMarkdown } from "../lib/utils.ts";
+import { useUiStore } from "../store.ts";
 
 interface MessageItemProps {
   message: UiMessage;
@@ -22,9 +23,17 @@ export function MessageItem({ message }: MessageItemProps) {
   const shown = collapsed ? `${lines.slice(0, COLLAPSE_LINES).join("\n")}\n…` : message.text;
 
   const copyContent = () => {
-    navigator.clipboard.writeText(message.text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
+    void navigator.clipboard.writeText(message.text).then(
+      () => {
+        setCopied(true);
+        window.setTimeout(() => setCopied(false), 1500);
+      },
+      (error) => {
+        useUiStore.setState({
+          lastError: error instanceof Error ? error.message : "复制失败",
+        });
+      },
+    );
   };
 
   if (isSystem) {

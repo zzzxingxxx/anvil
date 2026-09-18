@@ -85,8 +85,9 @@ export function Sidebar() {
             <button
               type="button"
               onClick={() => handleOpen(pathDraft)}
-              className="px-2 rounded-lg bg-[#1f1e1d] text-white"
-              title="打开"
+              disabled={busy}
+              className="px-2 rounded-lg bg-[#1f1e1d] text-white disabled:opacity-40"
+              title={busy ? "等当前轮结束再打开工作区" : "打开"}
             >
               <FolderOpen className="w-3.5 h-3.5" />
             </button>
@@ -97,11 +98,13 @@ export function Sidebar() {
                 <button
                   key={item}
                   type="button"
+                  disabled={busy}
+                  title={busy ? "等当前轮结束再打开工作区" : undefined}
                   onClick={() => {
                     setPathDraft(item);
                     void handleOpen(item);
                   }}
-                  className="w-full text-left truncate px-2 py-1 rounded-md text-[10.5px] text-[#7e7d77] hover:bg-[#edece6] hover:text-[#1f1e1d]"
+                  className="w-full text-left truncate px-2 py-1 rounded-md text-[10.5px] text-[#7e7d77] hover:bg-[#edece6] hover:text-[#1f1e1d] disabled:opacity-40"
                 >
                   {item}
                 </button>
