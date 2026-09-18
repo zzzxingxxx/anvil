@@ -39,6 +39,7 @@ AgentSession 订阅的是 `AgentSessionEvent`，Anvil 映射：
 - `session.modelRuntime.getAvailable()`
 - `session.setModel(model)`
 - Anvil 模型 id 格式：`provider/modelId`
+- `model.import`：用 OpenAI 兼容 URL + Key 拉 `/models`，写入 `~/.pi/agent/models.json`，再 `modelRuntime.refresh()`
 
 ## 切换
 

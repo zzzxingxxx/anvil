@@ -179,6 +179,21 @@ export const ModelSetResultSchema = z.object({
 });
 export type ModelSetResult = z.infer<typeof ModelSetResultSchema>;
 
+export const ModelImportPayloadSchema = z.object({
+  url: z.string().min(1),
+  apiKey: z.string().min(1),
+  provider: z.string().min(1).optional(),
+});
+export type ModelImportPayload = z.infer<typeof ModelImportPayloadSchema>;
+
+export const ModelImportResultSchema = z.object({
+  ok: z.literal(true),
+  provider: z.string(),
+  imported: z.number(),
+  models: z.array(ModelInfoSchema),
+});
+export type ModelImportResult = z.infer<typeof ModelImportResultSchema>;
+
 export const FsTreePayloadSchema = z.object({
   path: z.string().optional(),
 });
@@ -348,6 +363,7 @@ export const CommandTypeSchema = z.enum([
   "approval.respond",
   "model.list",
   "model.set",
+  "model.import",
   "fs.tree",
   "fs.read",
   "fs.search",
@@ -379,6 +395,7 @@ export const CommandPayloadSchemas = {
   "approval.respond": ApprovalRespondPayloadSchema,
   "model.list": ModelListPayloadSchema,
   "model.set": ModelSetPayloadSchema,
+  "model.import": ModelImportPayloadSchema,
   "fs.tree": FsTreePayloadSchema,
   "fs.read": FsReadPayloadSchema,
   "fs.search": FsSearchPayloadSchema,
@@ -409,6 +426,7 @@ export const CommandResultSchemas = {
   "approval.respond": AgentOkResultSchema,
   "model.list": ModelListResultSchema,
   "model.set": ModelSetResultSchema,
+  "model.import": ModelImportResultSchema,
   "fs.tree": FsTreeResultSchema,
   "fs.read": FsReadResultSchema,
   "fs.search": FsSearchResultSchema,

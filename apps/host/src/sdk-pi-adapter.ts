@@ -198,6 +198,15 @@ export class SdkPiAdapter implements PiAdapter {
     return this.state.models;
   }
 
+  async reloadModels(): Promise<ModelInfo[]> {
+    const session = this.runtime?.session;
+    if (session) {
+      await session.modelRuntime.refresh();
+    }
+    await this.refreshModels();
+    return this.state.models;
+  }
+
   async setModel(id: string): Promise<ModelInfo> {
     const session = await this.requireSession();
     const { provider, id: modelId } = parseModelKey(id);

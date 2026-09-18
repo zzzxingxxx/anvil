@@ -131,6 +131,10 @@ export class RpcPiAdapter implements PiAdapter {
     return this.state.models;
   }
 
+  async reloadModels(): Promise<ModelInfo[]> {
+    return this.listModels();
+  }
+
   async setModel(id: string): Promise<ModelInfo> {
     const slash = id.indexOf("/");
     const provider = slash > 0 ? id.slice(0, slash) : "unknown";

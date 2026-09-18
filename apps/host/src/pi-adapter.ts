@@ -22,6 +22,7 @@ export interface PiAdapter {
   resumeSession?(id: string): Promise<SessionSummary>;
   listModels?(): Promise<ModelInfo[]>;
   setModel?(id: string): Promise<ModelInfo>;
+  reloadModels?(): Promise<ModelInfo[]>;
   fork?(entryId: string): Promise<SessionSummary>;
   navigate?(entryId: string): Promise<void>;
   compact?(instructions?: string): Promise<void>;

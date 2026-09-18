@@ -22,6 +22,7 @@ import { ArtifactStore } from "@anvil/pi-ext-artifact";
 import { listTree, readTextFile } from "./fs-ops.ts";
 import { searchFiles } from "./search.ts";
 import { logInfo } from "./log.ts";
+import { importOpenAiModels } from "./pi-models.ts";
 import type { PiAdapter } from "./pi-adapter.ts";
 import { resetConversation, type WorkspaceState } from "./state.ts";
 import { resolveInside, resolveWorkspacePath } from "./workspace.ts";
@@ -230,6 +231,39 @@ async function dispatch(
       const models = adapter.listModels ? await adapter.listModels() : state.models;
       state.models = models;
       return { ok: true, models, currentId: state.model?.id ?? null };
+    }
+    case "model.import": {
+      if (state.agentStatus === "running") {
+        throw new Error("等当前轮结束再导入模型");
+      }
+      const { url, apiKey, provider } = payload as { url: string; apiKey: string; provider?: string };
+      const imported = await importOpenAiModels({ url, apiKey, provider });
+      const listed = adapter.reloadModels
+        ? await adapter.reloadModels()
+        : adapter.listModels
+          ? await adapter.listModels()
+          : state.models;
+      const merged = [...listed];
+      for (const model of imported.models) {
+        if (!merged.some((item) => item.id === model.id)) {
+          merged.push(model);
+        }
+      }
+      state.models = merged;
+      if (!state.model && imported.models[0] && adapter.setModel) {
+        try {
+          const current = await adapter.setModel(imported.models[0].id);
+          state.model = current;
+        } catch {
+          state.model = imported.models[0];
+        }
+      }
+      return {
+        ok: true,
+        provider: imported.provider,
+        imported: imported.models.length,
+        models: state.models,
+      };
     }
     case "model.set": {
       if (state.agentStatus === "running") {

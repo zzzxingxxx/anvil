@@ -17,6 +17,9 @@ export function SettingsPage() {
   const [settings, setSettings] = useState<Settings>({ bashPolicy: "ask" });
   const [allowlist, setAllowlist] = useState("git status");
   const [notice, setNotice] = useState<string | null>(null);
+  const [importUrl, setImportUrl] = useState("");
+  const [importKey, setImportKey] = useState("");
+  const [importing, setImporting] = useState(false);
 
   useEffect(() => {
     void client
@@ -34,6 +37,29 @@ export function SettingsPage() {
         });
       });
   }, [cwd]);
+
+  const importModels = async () => {
+    if (!importUrl.trim() || !importKey.trim() || busy || importing) {
+      return;
+    }
+    setImporting(true);
+    try {
+      const response = await client.request("model.import", {
+        url: importUrl.trim(),
+        apiKey: importKey.trim(),
+      });
+      const payload = response.payload as { imported?: number; provider?: string };
+      setImportKey("");
+      setNotice(`已从 ${payload.provider ?? "自定义接口"} 导入 ${payload.imported ?? 0} 个模型。密钥只写本机 Pi 配置。`);
+    } catch (error) {
+      setNotice(null);
+      useUiStore.setState({
+        lastError: error instanceof Error ? error.message : String(error),
+      });
+    } finally {
+      setImporting(false);
+    }
+  };
 
   const save = async () => {
     try {
@@ -99,6 +125,36 @@ export function SettingsPage() {
           className="w-full rounded-lg border border-[#00000014] bg-white px-2 py-1.5 font-mono text-[12px] disabled:opacity-40"
         />
       </label>
+      <div className="space-y-2 rounded-xl border border-[#00000010] bg-white p-3">
+        <div className="text-[11px] text-[#7e7d77]">从接口拉取模型</div>
+        <p className="text-[11px] text-[#abaaa2] leading-relaxed">
+          填写 OpenAI 兼容地址和密钥，Host 会请求 `/models` 并写入本机 `~/.pi/agent/models.json`。密钥不进 Anvil 仓库，也不会出现在 snapshot。
+        </p>
+        <input
+          value={importUrl}
+          disabled={busy || importing}
+          onChange={(event) => setImportUrl(event.target.value)}
+          placeholder="https://example.com/v1"
+          className="w-full rounded-lg border border-[#00000014] bg-white px-2 py-1.5 disabled:opacity-40"
+        />
+        <input
+          type="password"
+          value={importKey}
+          disabled={busy || importing}
+          onChange={(event) => setImportKey(event.target.value)}
+          placeholder="API Key"
+          autoComplete="off"
+          className="w-full rounded-lg border border-[#00000014] bg-white px-2 py-1.5 disabled:opacity-40"
+        />
+        <button
+          type="button"
+          onClick={() => void importModels()}
+          disabled={busy || importing || !importUrl.trim() || !importKey.trim()}
+          className="px-3 py-1.5 rounded-lg border border-[#00000014] bg-[#faf9f5] text-xs disabled:opacity-40"
+        >
+          {importing ? "正在拉取…" : "拉取并保存"}
+        </button>
+      </div>
       <label className="block space-y-1">
         <span className="text-[11px] text-[#7e7d77]">默认模型</span>
         {models.length > 0 ? (

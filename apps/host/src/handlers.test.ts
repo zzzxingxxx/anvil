@@ -12,6 +12,7 @@ import { TaskOrchestrator } from "./tasks.ts";
 
 describe("handleRequest", () => {
   const previousHome = process.env.ANVIL_HOME;
+  const previousPiDir = process.env.PI_CODING_AGENT_DIR;
 
   beforeEach(async () => {
     process.env.ANVIL_HOME = await mkdtemp(join(tmpdir(), "anvil-home-"));
@@ -22,6 +23,11 @@ describe("handleRequest", () => {
       delete process.env.ANVIL_HOME;
     } else {
       process.env.ANVIL_HOME = previousHome;
+    }
+    if (previousPiDir === undefined) {
+      delete process.env.PI_CODING_AGENT_DIR;
+    } else {
+      process.env.PI_CODING_AGENT_DIR = previousPiDir;
     }
   });
 
@@ -193,6 +199,36 @@ describe("handleRequest", () => {
     expect(response.payload).toMatchObject({ ok: true });
     expect(state.settings.bashPolicy).toBe("allowlist");
     expect(state.settings.bashAllowlist).toEqual(["git status"]);
+  });
+
+  it("imports OpenAI-compatible models from a URL and key", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "anvil-pi-import-"));
+    process.env.PI_CODING_AGENT_DIR = dir;
+    const previousFetch = globalThis.fetch;
+    globalThis.fetch = (async () =>
+      new Response(JSON.stringify({ data: [{ id: "gemini-flash", name: "Gemini Flash" }] }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      })) as typeof fetch;
+    const state = createWorkspaceState();
+    const approvals = new ApprovalQueue();
+    const adapter = new FakePiAdapter(state, approvals);
+    try {
+      const response = await handleRequest(
+        makeRequest("model.import", { url: "https://example.test/v1", apiKey: "sk-test" }, "import-1"),
+        state,
+        adapter,
+        approvals,
+      );
+      expect(response.payload).toMatchObject({ ok: true, imported: 1, provider: "example-test" });
+      expect(state.models.some((item) => item.id === "example-test/gemini-flash")).toBe(true);
+      const written = JSON.parse(await readFile(join(dir, "models.json"), "utf8")) as {
+        providers: Record<string, { baseUrl?: string }>;
+      };
+      expect(written.providers["example-test"]?.baseUrl).toBe("https://example.test/v1");
+    } finally {
+      globalThis.fetch = previousFetch;
+    }
   });
 
   it("applies defaultModel to the fake adapter", async () => {

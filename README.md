@@ -46,7 +46,7 @@ F:\adfadda\demo2342\demooo
 
 ## 真 Pi 与假循环
 
-默认使用 `@earendil-works/pi-coding-agent@0.85.1`。没有配置模型时，顶栏会显示中文空状态。设置页可从已探测模型里选默认模型。
+默认使用 `@earendil-works/pi-coding-agent@0.85.1`。没有配置模型时，顶栏会显示中文空状态。设置页可从已探测模型里选默认模型，也可填 OpenAI 兼容 URL + Key 拉取模型（写入本机 `~/.pi/agent/models.json`，不进仓库）。
 
 强制假循环（CI / 没密钥）：
 
@@ -93,7 +93,7 @@ docs/
 
 **工具被拒绝？** 未信任仓库禁止 bash/write。先点顶栏切到信任模式，再在审批卡点「允许一次」。
 
-**没有模型？** 设置 `ANTHROPIC_API_KEY` / `DEEPSEEK_API_KEY`，或在终端运行 `pi` 登录后重启 Host。临时演示可 `ANVIL_FAKE_PI=1`。
+**没有模型？** 设置页填 OpenAI 兼容 URL + Key 拉取；或设 `ANTHROPIC_API_KEY` / `DEEPSEEK_API_KEY`，或在终端运行 `pi` 登录后重启 Host。临时演示可 `ANVIL_FAKE_PI=1`。
 
 **刷新后对话还在吗？** Host 进程还在就会推 snapshot。Host 重启后运行态丢失，但 Pi session 文件仍在，可从左侧列表 resume。
 

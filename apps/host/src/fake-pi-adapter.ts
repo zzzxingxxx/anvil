@@ -309,6 +309,10 @@ export class FakePiAdapter implements PiAdapter {
     return this.state.models;
   }
 
+  async reloadModels(): Promise<ModelInfo[]> {
+    return this.state.models;
+  }
+
   async setModel(id: string): Promise<ModelInfo> {
     const found = this.state.models.find((item) => item.id === id);
     const model = found ?? { id, label: id, provider: id.includes("/") ? id.split("/")[0]! : "fake" };
