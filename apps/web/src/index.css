@@ -88,20 +88,28 @@
   box-shadow: var(--shadow-card);
 }
 
-/* 现代工业级无感微滚动条 */
+/* 统一优雅明确的滑动条 */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.22) transparent;
+}
+
 ::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
+  width: 7px;
+  height: 7px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.12);
+  background: rgba(0, 0, 0, 0.2);
   border-radius: 99px;
+  border: 1.5px solid transparent;
+  background-clip: content-box;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.22);
+  background: rgba(0, 0, 0, 0.4);
+  background-clip: content-box;
 }
 
 /* 呼吸微光标 */

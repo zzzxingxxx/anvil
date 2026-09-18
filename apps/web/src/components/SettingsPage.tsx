@@ -172,7 +172,7 @@ export function SettingsPage() {
   const grouped = groupedModels(models);
 
   return (
-    <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain bg-[var(--bg-app)]">
+    <div className="flex-1 min-h-0 h-full w-full overflow-y-auto overscroll-contain bg-[var(--bg-app)] [scrollbar-gutter:stable]">
       <div className="max-w-3xl mx-auto px-4 sm:px-8 py-8 space-y-8 select-text">
         {/* 页面标题 */}
         <div className="border-b border-[#0000000a] pb-4">
