@@ -63,6 +63,49 @@ export function pathIdsFrom(seeds: TreeSeed[], leafId: string | null): Set<strin
   return ids;
 }
 
+export type RpcTreeNode = {
+  entry?: {
+    id?: string;
+    parentId?: string | null;
+    type?: string;
+    summary?: string;
+    message?: unknown;
+  };
+  children?: RpcTreeNode[];
+  label?: string;
+};
+
+export function seedsFromRpcTree(nodes: RpcTreeNode[]): TreeSeed[] {
+  const seeds: TreeSeed[] = [];
+  const walk = (list: RpcTreeNode[]) => {
+    for (const node of list) {
+      const entry = node.entry;
+      const id = entry?.id;
+      if (!id) {
+        continue;
+      }
+      const summary = clip(
+        node.label ||
+          (typeof entry.summary === "string" ? entry.summary : "") ||
+          messageish(entry.message) ||
+          entry.type ||
+          id,
+      );
+      seeds.push({
+        id,
+        parentId: entry.parentId ?? null,
+        summary,
+        status: entry.type === "compaction" || entry.type === "branch_summary" ? "compressed" : "ok",
+      });
+      if (node.children?.length) {
+        walk(node.children);
+      }
+    }
+  };
+  walk(nodes);
+  return seeds;
+}
+
 export function demoTree(messages: UiMessage[], currentId: string | null): {
   tree: TreeNode | null;
   seeds: TreeSeed[];
@@ -81,4 +124,23 @@ export function demoTree(messages: UiMessage[], currentId: string | null): {
 function clip(text: string): string {
   const line = text.split(/\r?\n/).find((item) => item.trim())?.trim() ?? "（空）";
   return line.length > 42 ? `${line.slice(0, 42)}…` : line;
+}
+
+function messageish(message: unknown): string {
+  if (!message || typeof message !== "object") {
+    return "";
+  }
+  const value = message as { text?: unknown; content?: unknown };
+  if (typeof value.text === "string" && value.text.trim()) {
+    return value.text;
+  }
+  if (typeof value.content === "string") {
+    return value.content;
+  }
+  if (Array.isArray(value.content)) {
+    return value.content
+      .map((part) => (part && typeof part === "object" && "text" in part ? String((part as { text?: unknown }).text ?? "") : ""))
+      .join("");
+  }
+  return "";
 }

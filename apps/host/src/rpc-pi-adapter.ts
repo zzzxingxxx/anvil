@@ -1,9 +1,10 @@
-import { RpcClient } from "@earendil-works/pi-coding-agent";
+import { RpcClient, SessionManager } from "@earendil-works/pi-coding-agent";
 import type { AnvilEvent, ModelInfo, SessionSummary, UiMessage } from "@anvil/protocol";
 import type { PiAdapter, PromptInput } from "./pi-adapter.ts";
 import { resetConversation, upsertMessage, type WorkspaceState } from "./state.ts";
 import { applyPiSessionEvent } from "./sdk-events.ts";
-import { toModelInfo, toUiMessage } from "./sdk-map.ts";
+import { toModelInfo, toSessionSummary, toUiMessage } from "./sdk-map.ts";
+import { buildTree, pathIdsFrom, seedsFromRpcTree } from "./tree.ts";
 
 /**
  * Sidecar adapter: official Pi RPC client.
@@ -96,6 +97,12 @@ export class RpcPiAdapter implements PiAdapter {
       throw new Error("等当前轮结束再压缩");
     }
     await (await this.requireClient()).compact(instructions);
+    await this.refreshTreeFromRpc();
+  }
+
+  async listSessions(): Promise<SessionSummary[]> {
+    await this.refreshSessions();
+    return this.state.sessions;
   }
 
   async listModels(): Promise<ModelInfo[]> {
@@ -155,6 +162,22 @@ export class RpcPiAdapter implements PiAdapter {
     return this.hydrateFromRpc(`分叉 ${entryId.slice(0, 8)}`);
   }
 
+  async navigate(entryId: string): Promise<void> {
+    if (this.state.agentStatus === "running") {
+      throw new Error("等当前轮结束再切换分支");
+    }
+    await this.refreshTreeFromRpc();
+    const keep = pathIdsFrom(this.state.treeSeeds, entryId);
+    if (keep.size === 0) {
+      throw new Error("节点不存在");
+    }
+    this.state.currentEntryId = entryId;
+    this.state.tree = buildTree(this.state.treeSeeds, entryId);
+    if (this.state.tree) {
+      this.emit({ type: "tree/changed", root: this.state.tree });
+    }
+  }
+
   async dispose(): Promise<void> {
     await this.client?.stop();
     this.client = null;
@@ -179,7 +202,11 @@ export class RpcPiAdapter implements PiAdapter {
       await this.client.start();
       this.restarts = 0;
       this.client.onEvent((event) => {
-        applyPiSessionEvent(this.state, event as { type: string } & Record<string, unknown>, (mapped) => this.emit(mapped));
+        applyPiSessionEvent(this.state, event as { type: string } & Record<string, unknown>, (mapped) => this.emit(mapped), {
+          onAgentEnd: () => {
+            void this.refreshTreeFromRpc();
+          },
+        });
       });
     } catch (error) {
       this.restarts += 1;
@@ -224,8 +251,42 @@ export class RpcPiAdapter implements PiAdapter {
     if (!this.state.sessions.some((item) => item.id === summary.id)) {
       this.state.sessions.unshift(summary);
     }
+    await this.refreshTreeFromRpc();
+    await this.refreshSessions();
     this.emit({ type: "session/replaced", sessionId: summary.id, title: summary.title });
     return summary;
+  }
+
+  private async refreshSessions(): Promise<void> {
+    const cwd = this.state.cwd;
+    if (!cwd) {
+      return;
+    }
+    try {
+      const listed = await SessionManager.list(cwd);
+      this.state.sessions = listed.map(toSessionSummary).sort((a, b) => b.mtime - a.mtime);
+    } catch {
+      /* keep the locally tracked session list if sidecar listing fails */
+    }
+  }
+
+  private async refreshTreeFromRpc(): Promise<void> {
+    const client = this.client;
+    if (!client) {
+      return;
+    }
+    try {
+      const { tree, leafId } = await client.getTree();
+      const seeds = seedsFromRpcTree(tree);
+      this.state.treeSeeds = seeds;
+      this.state.currentEntryId = leafId;
+      this.state.tree = buildTree(seeds, leafId);
+      if (this.state.tree) {
+        this.emit({ type: "tree/changed", root: this.state.tree });
+      }
+    } catch {
+      /* empty tree is still a valid new session */
+    }
   }
 
   async recoverFromCrash(): Promise<void> {

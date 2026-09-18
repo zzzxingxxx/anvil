@@ -238,9 +238,11 @@ export const useUiStore = create<UiState & Actions>((set, get) => ({
       case "approval/needed":
         set({ pendingApproval: event.request as ApprovalRequest });
         break;
-      case "tree/changed":
-        set({ tree: event.root as TreeNode });
+      case "tree/changed": {
+        const root = event.root as TreeNode;
+        set({ tree: root, currentEntryId: currentTreeId(root) ?? get().currentEntryId });
         break;
+      }
       case "fs/changed":
         if (Array.isArray(event.changes)) {
           set({ changes: event.changes as FileChange[] });
@@ -281,3 +283,19 @@ export const useUiStore = create<UiState & Actions>((set, get) => ({
     }
   },
 }));
+
+function currentTreeId(node: TreeNode | null): string | null {
+  if (!node) {
+    return null;
+  }
+  if (node.current) {
+    return node.id;
+  }
+  for (const child of node.children) {
+    const found = currentTreeId(child);
+    if (found) {
+      return found;
+    }
+  }
+  return null;
+}

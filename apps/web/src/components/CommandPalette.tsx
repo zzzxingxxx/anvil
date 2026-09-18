@@ -96,7 +96,12 @@ export function CommandPalette() {
       } else if (id === "/new") {
         await client.request("session.new", { title: "命令面板新建" });
       } else {
-        await client.request("agent.abort", {});
+        const response = await client.request("agent.abort", {});
+        const restored = (response.payload as { restoredDraft?: string }).restoredDraft;
+        useUiStore.getState().consumeRestoredDraft();
+        if (restored) {
+          useUiStore.setState({ restoredDraft: restored });
+        }
       }
       useUiStore.getState().setCommandOpen(false);
     } catch (error) {

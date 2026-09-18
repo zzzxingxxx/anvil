@@ -7,6 +7,7 @@ import { client } from "../ws.ts";
 export function FileTree() {
   const cwd = useUiStore((state) => state.cwd);
   const preview = useUiStore((state) => state.preview);
+  const changes = useUiStore((state) => state.changes);
   const [entries, setEntries] = useState<FsEntry[]>([]);
   const [path, setPath] = useState<string | null>(null);
 
@@ -18,6 +19,13 @@ export function FileTree() {
     }
     void load(cwd);
   }, [cwd]);
+
+  useEffect(() => {
+    if (!cwd || !path) {
+      return;
+    }
+    void load(path);
+  }, [changes]);
 
   const load = async (next: string) => {
     try {

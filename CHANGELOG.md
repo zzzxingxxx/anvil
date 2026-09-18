@@ -34,4 +34,5 @@
 - Composer `/compact` 带保留指令；Ctrl+K 可用方向键/回车；忙时拒绝新建或切换会话。
 - RPC 支持 resume/fork 并回灌消息；助手消息渲染斜体。
 - RPC sidecar 流式事件映射到消息/工具卡（与 SDK 共用 applyPiSessionEvent）。
+- RPC 列出本机 Pi 会话并回灌会话树；Ctrl+K `/abort` 把队列草稿还回输入框；文件树在 fs/changed 后刷新。
 - 已知问题见 README。

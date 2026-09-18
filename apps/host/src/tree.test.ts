@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildTree, pathIdsFrom } from "./tree.ts";
+import { buildTree, pathIdsFrom, seedsFromRpcTree } from "./tree.ts";
 
 describe("session tree", () => {
   it("builds a 10-node tree with a current leaf", () => {
@@ -28,5 +28,26 @@ describe("session tree", () => {
     ];
     const ids = pathIdsFrom(seeds, "b");
     expect([...ids]).toEqual(["b", "a"]);
+  });
+});
+
+describe("seedsFromRpcTree", () => {
+  it("flattens sidecar tree nodes into Anvil seeds", () => {
+    const seeds = seedsFromRpcTree([
+      {
+        entry: { id: "root", parentId: null, type: "message", message: { text: "开始" } },
+        children: [
+          {
+            entry: { id: "leaf", parentId: "root", type: "compaction", summary: "压缩过" },
+            label: "保留结论",
+            children: [],
+          },
+        ],
+      },
+    ]);
+    expect(seeds).toEqual([
+      { id: "root", parentId: null, summary: "开始", status: "ok" },
+      { id: "leaf", parentId: "root", summary: "保留结论", status: "compressed" },
+    ]);
   });
 });
