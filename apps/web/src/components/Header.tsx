@@ -102,7 +102,7 @@ export function Header() {
         </div>
       </div>
 
-      <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+      <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 min-w-0 overflow-x-auto [scrollbar-width:none]">
         <TrustControl compact />
         <ModelSelector compact />
 
@@ -124,7 +124,7 @@ export function Header() {
           </span>
         </div>
 
-        <nav className="hidden sm:flex items-center gap-0.5 text-[11px] p-0.5 rounded-lg bg-[#00000006]" aria-label="工作区视图">
+        <nav className="flex items-center gap-0.5 text-[11px] p-0.5 rounded-lg bg-[#00000006]" aria-label="工作区视图">
           {TABS.map((tab) => {
             const Icon = tab.icon;
             const selected = activeTab === tab.id;
@@ -134,8 +134,10 @@ export function Header() {
                 type="button"
                 onClick={() => setActiveTab(tab.id)}
                 aria-current={selected ? "page" : undefined}
+                aria-label={tab.label}
+                title={tab.label}
                 className={cn(
-                  "flex items-center gap-1 px-2 py-1 rounded-md transition",
+                  "flex items-center gap-1 px-1.5 sm:px-2 py-1 rounded-md transition",
                   selected ? "bg-[#1f1e1d] text-white shadow-[var(--shadow-sm)]" : "text-[#7e7d77] hover:bg-[#edece6]",
                 )}
               >
@@ -149,8 +151,9 @@ export function Header() {
         <button
           type="button"
           title="命令面板 Ctrl+K"
+          aria-label="打开命令面板"
           onClick={() => useUiStore.getState().setCommandOpen(true, "search")}
-          className="hidden sm:flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-[#00000006] border border-[#0000000a] text-[#4f4e4a] text-[11px] hover:bg-[#edece6]"
+          className="flex items-center gap-1.5 px-1.5 sm:px-2 py-0.5 rounded-md bg-[#00000006] border border-[#0000000a] text-[#4f4e4a] text-[11px] hover:bg-[#edece6]"
         >
           <Search className="w-3 h-3" />
           <span className="hidden lg:inline">Ctrl+K</span>

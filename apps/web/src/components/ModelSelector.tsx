@@ -19,7 +19,8 @@ export function ModelSelector({ compact = false }: { compact?: boolean }) {
   const listId = useId();
   const groups = useMemo(() => groupedModels(models), [models]);
   const selected = findModel(models, modelId);
-  const provider = selected?.provider ?? models[0]?.provider ?? "模型";
+  const confirmed = Boolean(modelId || modelLabel);
+  const provider = selected?.provider ?? (confirmed ? "已选" : "模型");
   const label = selected?.label ?? modelLabel ?? modelId ?? "选择模型";
   const flat = useMemo(() => groups.flatMap((group) => group.models), [groups]);
 

@@ -78,7 +78,11 @@ export function App() {
         <Sidebar />
 
         <main className="flex min-h-0 flex-1 flex-col bg-[#faf9f5] relative overflow-hidden">
-          {activeTab === "board" ? <Board /> : null}
+          {activeTab === "board" ? (
+            <div className="min-h-0 flex-1 overflow-hidden">
+              <Board />
+            </div>
+          ) : null}
           {activeTab === "settings" ? (
             <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
               <SettingsPage />
@@ -176,12 +180,12 @@ export function App() {
             </>
           ) : null}
 
-          {lastError ? <ErrorBanner message={lastError} /> : null}
         </main>
 
         <Inspector />
       </div>
 
+      {lastError ? <ErrorBanner message={lastError} /> : null}
       <Footer />
       <CommandPalette />
     </div>
@@ -195,7 +199,7 @@ function ErrorBanner({ message }: { message: string }) {
   return (
     <div
       role="alert"
-      className="absolute bottom-24 left-1/2 -translate-x-1/2 z-40 px-3.5 py-2 bg-[#ffffff] border border-rose-200 text-rose-800 text-xs rounded-xl shadow-[var(--shadow-float)] flex items-start gap-3 max-w-[min(32rem,calc(100vw-2rem))]"
+      className="fixed bottom-10 left-1/2 -translate-x-1/2 z-50 px-3.5 py-2 bg-[#ffffff] border border-rose-200 text-rose-800 text-xs rounded-xl shadow-[var(--shadow-float)] flex items-start gap-3 max-w-[min(32rem,calc(100vw-2rem))]"
     >
       <div className="min-w-0">
         <div className="font-medium mb-0.5">出错了</div>

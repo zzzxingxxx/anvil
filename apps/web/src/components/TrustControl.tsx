@@ -6,11 +6,11 @@ import { cn } from "../lib/utils.ts";
 export function TrustControl({ compact = false }: { compact?: boolean }) {
   const cwd = useUiStore((state) => state.cwd);
   const trust = useUiStore((state) => state.trust);
-  const busy = useUiStore((state) => state.agentStatus) === "running";
+  const idle = useUiStore((state) => state.agentStatus) !== "running";
   const trusted = trust === "trusted";
 
   const handleTrust = async () => {
-    if (!cwd || busy) {
+    if (!cwd || !idle) {
       return;
     }
     try {
@@ -27,7 +27,7 @@ export function TrustControl({ compact = false }: { compact?: boolean }) {
   const label = !cwd ? "未打开" : trusted ? "已信任" : "沙箱";
   const title = !cwd
     ? "先打开工作区再切换信任"
-    : busy
+    : !idle
       ? "等当前轮结束再改信任"
       : trusted
         ? "当前工作区已信任。bash / write 仍会询问。点此改回沙箱。"
@@ -37,7 +37,7 @@ export function TrustControl({ compact = false }: { compact?: boolean }) {
     <button
       type="button"
       onClick={() => void handleTrust()}
-      disabled={busy || !cwd}
+      disabled={!idle || !cwd}
       title={title}
       aria-label={`工作区信任：${label}。${!cwd ? "先打开工作区。" : trusted ? "已信任，工具仍会询问。" : "沙箱模式，禁止 bash 和 write。"}`}
       aria-pressed={cwd ? trusted : undefined}

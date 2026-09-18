@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import { client } from "../ws.ts";
 import { useUiStore } from "../store.ts";
 import { groupedModels } from "../lib/models.ts";
-import { TrustControl } from "./TrustControl.tsx";
 
 type Settings = {
   trustDefault?: "trusted" | "untrusted";
@@ -136,14 +135,15 @@ export function SettingsPage() {
   };
 
   const setModelNow = async (id: string) => {
-    setSettings((prev) => ({ ...prev, defaultModel: id || undefined }));
     if (!id) {
       return;
     }
     try {
       await client.request("model.set", { id });
+      setSettings((prev) => ({ ...prev, defaultModel: id }));
       setNotice("已切换当前模型，立即生效。");
     } catch (error) {
+      setNotice(null);
       useUiStore.setState({
         lastError: error instanceof Error ? error.message : String(error),
       });
@@ -170,21 +170,9 @@ export function SettingsPage() {
       <div className="space-y-1">
         <h2 className="text-base font-semibold tracking-tight">设置</h2>
         <p className="text-[12px] text-[#7e7d77] leading-relaxed">
-          模型接口和当前模型在这里立刻生效。工作区信任在对话顶栏切换；高级 bash 选项默认收起。
+          模型接口和当前模型在这里立刻生效。工作区信任只在顶栏切换（需已打开仓库且空闲）。高级 bash 选项默认收起。
         </p>
       </div>
-
-      <section className="rounded-2xl border border-[#00000010] bg-white p-4 space-y-3 shadow-[var(--shadow-card)]">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <h3 className="text-xs font-semibold text-[#1f1e1d]">工作区信任</h3>
-            <p className="text-[11px] text-[#7e7d77] mt-0.5 leading-relaxed">
-              未信任时禁止 bash / write。已信任后工具仍会询问。
-            </p>
-          </div>
-          <TrustControl />
-        </div>
-      </section>
 
       <section className="rounded-2xl border border-[#00000010] bg-white p-4 space-y-3 shadow-[var(--shadow-card)]">
         <div className="flex items-center gap-2">
@@ -262,7 +250,7 @@ export function SettingsPage() {
           <label className="block space-y-1">
             <span className="text-[11px] text-[#7e7d77]">立刻切换，按接口分组</span>
             <select
-              value={modelId ?? settings.defaultModel ?? ""}
+              value={modelId ?? ""}
               disabled={busy}
               onChange={(event) => void setModelNow(event.target.value)}
               className="w-full rounded-lg border border-[#00000014] bg-white px-2.5 py-2 disabled:opacity-40 outline-none focus:border-[#00000030]"
@@ -279,9 +267,8 @@ export function SettingsPage() {
                   ))}
                 </optgroup>
               ))}
-              {(modelId ?? settings.defaultModel) &&
-              !models.some((model) => model.id === (modelId ?? settings.defaultModel)) ? (
-                <option value={modelId ?? settings.defaultModel}>{modelId ?? settings.defaultModel}（当前）</option>
+              {modelId && !models.some((model) => model.id === modelId) ? (
+                <option value={modelId}>{modelId}（当前）</option>
               ) : null}
             </select>
           </label>
