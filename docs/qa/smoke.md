@@ -20,7 +20,7 @@
 
 1. 假会话里能看到树节点，单击历史节点后刷新会只显示该路径消息。右键可 Fork / 从这里继续 / 复制节点 id。运行中切换分支会提示「等当前轮结束」。
 2. 对同一用户消息 Fork 两次，两条分支互不覆盖。
-3. 假循环结束后 Diff 面板出现 `.anvil/demo-diff.txt`；点还原走 `artifact.restore`（不会改 README）。有 git 时优先显示 `git diff`。
+3. 假循环结束后 Diff 面板出现 `.anvil/demo-diff.txt`；点还原走 `artifact.restore`（不会改 README），该路径从 Diff 消失。有 git 时优先显示 `git diff`。
 4. 检查器点「压缩」后树节点标 compressed，对话里出现摘要。
 5. `Ctrl+K` 打开即列出 `/compact` `/new` `/abort` 和最近会话，方向键/回车可选中；也能搜到 `docs/开发计划.md` 并预览。Composer 输入 `@开发计划` 选中后路径插入输入框。设置页可改新工作区默认信任。运行中点压缩、新建或切换会话会提示「等当前轮结束」。
 6. 人用终端（node-pty）按计划减载，本阶段不做。
@@ -40,7 +40,7 @@
 
 ## Phase 4
 
-1. 顶栏切到看板，委派后卡片出现在「进行/完成」。可拖到其他列，只改 Host 元数据。
+1. 顶栏切到看板，委派后卡片出现在「进行/完成」。可拖到其他列，只改 Host 元数据。点卡片标题会 resume 子会话并回到对话。
 2. 设置页保存 bash 白名单，保存后有成功提示。已打开工作区时写入项目 `.anvil/settings.json`；下次打开该仓库会覆盖全局。有探测到的模型时默认模型用下拉选择。底栏出错时显示「出错」而不是「就绪」。
 3. `anvil.cmd` 或 `pnpm start` 打开 http://127.0.0.1:5173。
 4. `ANVIL_PI_MODE=rpc` 时 Host 日志显示 adapter rpc（需本机 pi）。`auto` 且信任默认不是 trusted 时同样走 RPC。RPC 下新建/恢复/分叉/压缩会回灌 sidecar 消息、会话树和用量；一轮对话会推 message/upsert 和工具卡。写/改文件会进 Diff。左侧会话列表来自 `SessionManager.list`。打开工作区会恢复最近一次官方 Pi 会话（没有才新建）。RPC 顶栏徽章提示不走 Anvil 闸门。单击会话树不应把对话滤空。

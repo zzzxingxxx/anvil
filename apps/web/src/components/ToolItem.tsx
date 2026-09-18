@@ -42,8 +42,13 @@ export function ToolItem({ tool }: ToolItemProps) {
 
   const command =
     typeof tool.args === "object" && tool.args && "command" in tool.args
-      ? (tool.args as { command: string }).command
+      ? String((tool.args as { command: unknown }).command ?? "")
       : null;
+  const path =
+    typeof tool.args === "object" && tool.args && "path" in tool.args
+      ? String((tool.args as { path: unknown }).path ?? "")
+      : null;
+  const summary = command || path;
 
   return (
     <div className="rounded-xl border border-[#00000012] bg-[#ffffff] shadow-[0_1px_3px_rgba(0,0,0,0.02)] overflow-hidden my-3.5 text-xs transition-all">
@@ -62,11 +67,11 @@ export function ToolItem({ tool }: ToolItemProps) {
             <span>{tool.name}</span>
           </div>
 
-          {command && (
+          {summary ? (
             <span className="font-mono text-xs text-[#4f4e4a] truncate max-w-md bg-[#ffffff] px-2 py-0.5 rounded-md border border-[#0000000f] shadow-inner">
-              {command}
+              {summary}
             </span>
-          )}
+          ) : null}
         </div>
 
         <div className="flex items-center gap-2 text-xs">
@@ -95,7 +100,7 @@ export function ToolItem({ tool }: ToolItemProps) {
       {/* Output Content */}
       {expanded && (
         <div className="p-3 bg-[#faf9f5]/50 space-y-2.5">
-          {!command && tool.args != null ? (
+          {!summary && tool.args != null ? (
             <div className="space-y-1">
               <pre className="p-2.5 rounded-lg bg-[#ffffff] font-mono text-[#4f4e4a] overflow-x-auto text-[11.5px] border border-[#0000000a]">
                 {typeof tool.args === "string" ? tool.args : JSON.stringify(tool.args, null, 2)}

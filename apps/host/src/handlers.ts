@@ -266,8 +266,9 @@ async function dispatch(
       }
       const abs = resolveInside(state.cwd, path);
       await writeFile(abs, snap.before, "utf8");
+      state.snapshots[path] = { before: snap.before, after: snap.before };
       state.changes = state.changes.filter((item) => item.path !== path);
-      return { ok: true };
+      return { ok: true, path };
     }
     case "artifact.list": {
       if (!state.cwd) {

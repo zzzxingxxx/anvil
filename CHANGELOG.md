@@ -42,4 +42,5 @@
 - Composer `/` 菜单可用方向键/回车；侧栏会话显示相对时间；Diff 着色；链接只认 http(s)。
 - SDK 父会话的子任务走独立 SdkPiAdapter，审批卡带 taskId；假循环/RPC 子任务仍用 Fake。
 - SDK 子任务按 persona 限制工具；文件树对本轮变更标「改」。
+- Diff 还原后清掉该路径；看板卡片可打开子会话；工具卡显示 write/edit 路径。
 - 已知问题见 README。

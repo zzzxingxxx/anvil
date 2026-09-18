@@ -125,6 +125,29 @@ describe("handleRequest", () => {
     expect(hits.some((hit) => hit.name.includes("开发计划"))).toBe(true);
   });
 
+  it("restores a snapshot and drops that path from Diff", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "anvil-restore-ws-"));
+    const file = join(dir, "notes.md");
+    await writeFile(file, "before\n", "utf8");
+    const state = createWorkspaceState();
+    const approvals = new ApprovalQueue();
+    const adapter = new FakePiAdapter(state, approvals);
+    await handleRequest(makeRequest("workspace.open", { path: dir }, "w-restore"), state, adapter, approvals);
+    state.snapshots["notes.md"] = { before: "before\n", after: "after\n" };
+    state.changes = [{ path: "notes.md", kind: "modified", diff: "-before\n+after\n" }];
+    await writeFile(file, "after\n", "utf8");
+    const response = await handleRequest(
+      makeRequest("artifact.restore", { path: "notes.md" }, "r1"),
+      state,
+      adapter,
+      approvals,
+    );
+    expect(response.payload).toMatchObject({ ok: true, path: "notes.md" });
+    expect(await readFile(file, "utf8")).toBe("before\n");
+    expect(state.changes.some((item) => item.path === "notes.md")).toBe(false);
+    expect(state.snapshots["notes.md"]?.after).toBe("before\n");
+  });
+
   it("lists artifact snapshots after a fake write", async () => {
     const dir = await mkdtemp(join(tmpdir(), "anvil-art-ws-"));
     const state = createWorkspaceState();
