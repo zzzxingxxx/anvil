@@ -49,6 +49,15 @@ export function persistPiSession(input: PersistInput): string {
   return file;
 }
 
+export function appendPiUser(file: string, text: string): void {
+  const manager = SessionManager.open(file);
+  manager.appendMessage({
+    role: "user",
+    content: text,
+    timestamp: Date.now(),
+  });
+}
+
 export function appendPiAssistant(file: string, text: string): void {
   const manager = SessionManager.open(file);
   manager.appendMessage({
@@ -61,4 +70,34 @@ export function appendPiAssistant(file: string, text: string): void {
     stopReason: "stop",
     timestamp: Date.now(),
   });
+}
+
+export function hydrateUiFromPi(file: string): {
+  title: string;
+  messages: Array<{ id: string; role: "user" | "assistant" | "system"; text: string; createdAt: number }>;
+} {
+  const opened = SessionManager.open(file);
+  const title = opened.getSessionName() ?? "已恢复";
+  const messages: Array<{ id: string; role: "user" | "assistant" | "system"; text: string; createdAt: number }> = [];
+  for (const entry of opened.getEntries()) {
+    if (entry.type !== "message") continue;
+    const message = entry.message as { role?: string; content?: unknown; timestamp?: number };
+    const role = message.role === "assistant" ? "assistant" : message.role === "user" ? "user" : null;
+    if (!role) continue;
+    const text =
+      typeof message.content === "string"
+        ? message.content
+        : Array.isArray(message.content)
+          ? message.content
+              .map((part) => (part && typeof part === "object" && "text" in part ? String(part.text) : ""))
+              .join("")
+          : "";
+    messages.push({
+      id: entry.id,
+      role,
+      text,
+      createdAt: typeof message.timestamp === "number" ? message.timestamp : Date.parse(entry.timestamp),
+    });
+  }
+  return { title, messages };
 }

@@ -36,7 +36,9 @@ describe("FakePiAdapter", () => {
   });
 
   it("navigates and forks without mixing later messages", async () => {
+    const cwd = await mkdtemp(join(tmpdir(), "anvil-fake-fork-"));
     const state = createWorkspaceState();
+    state.cwd = cwd;
     state.trust = "untrusted";
     const adapter = new FakePiAdapter(state);
     await adapter.prompt({ text: "第一句" });
@@ -47,7 +49,7 @@ describe("FakePiAdapter", () => {
       await adapter.navigate(firstAssistant);
       expect(state.currentEntryId).toBe(firstAssistant);
       const forked = await adapter.fork(firstAssistant);
-      expect(forked.id.startsWith("sess-fork-")).toBe(true);
+      expect(forked.id.endsWith(".jsonl")).toBe(true);
       expect(state.messages.some((item) => item.text === "第二句")).toBe(false);
     }
   });
@@ -92,5 +94,23 @@ describe("FakePiAdapter", () => {
     expect(opened.getEntries().length).toBeGreaterThan(0);
     const resumed = await adapter.resumeSession(session.id);
     expect(resumed.id).toBe(session.id);
+  });
+
+  it("hydrates messages from a persisted jsonl on resume", async () => {
+    const cwd = await mkdtemp(join(tmpdir(), "anvil-fake-resume-"));
+    const state = createWorkspaceState();
+    state.cwd = cwd;
+    state.trust = "untrusted";
+    const adapter = new FakePiAdapter(state);
+    await adapter.prompt({ text: "解释这个仓库" });
+    expect(state.sessionId?.endsWith(".jsonl")).toBe(true);
+    const file = state.sessionId!;
+    const opened = SessionManager.open(file);
+    expect(opened.getEntries().some((entry) => entry.type === "message")).toBe(true);
+    const other = createWorkspaceState();
+    other.cwd = cwd;
+    const restorer = new FakePiAdapter(other);
+    await restorer.resumeSession(file);
+    expect(other.messages.some((item) => item.text.includes("解释这个仓库"))).toBe(true);
   });
 });

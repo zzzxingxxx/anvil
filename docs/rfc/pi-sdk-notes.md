@@ -54,4 +54,5 @@ AgentSession 订阅的是 `AgentSessionEvent`，Anvil 映射：
 ## 落盘时机
 
 - `SessionManager` 在出现第一条 assistant 消息之前**不写文件**。
-- Anvil 子任务 / 兼容抽检必须写 user + assistant 对，官方 `pi --session` 才能打开。
+- Anvil 子任务 / 假循环 prompt / 兼容抽检必须写 user + assistant 对，官方 `pi --session` 才能打开。
+- 假循环 `resumeSession` 用 `hydrateUiFromPi` 把 jsonl 消息灌回 UI。

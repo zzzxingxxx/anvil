@@ -3,7 +3,7 @@ import type { AnvilEvent, SessionSummary, UiMessage } from "@anvil/protocol";
 import { decideGate, previewArgs, riskFor } from "@anvil/pi-ext-gate";
 import type { ApprovalQueue } from "./approvals.ts";
 import type { PiAdapter, PromptInput } from "./pi-adapter.ts";
-import { persistPiSession } from "./session-persist.ts";
+import { appendPiAssistant, appendPiUser, hydrateUiFromPi, persistPiSession } from "./session-persist.ts";
 import { resetConversation, upsertMessage, upsertTool, type WorkspaceState } from "./state.ts";
 import { buildTree, demoTree, pathIdsFrom } from "./tree.ts";
 
@@ -56,6 +56,14 @@ export class FakePiAdapter implements PiAdapter {
     const chunks = ["收到。", "这是假 Agent 循环：先流式回复，再跑一张 bash 工具卡。"];
 
     upsertMessage(this.state, userMessage);
+    const created = this.ensureSessionFile(input.text);
+    if (!created && this.state.sessionId?.endsWith(".jsonl")) {
+      try {
+        appendPiUser(this.state.sessionId, input.text);
+      } catch {
+        /* keep the fake loop even if jsonl append fails */
+      }
+    }
     this.state.tools = [];
     this.state.agentStatus = "running";
     this.state.usage = {
@@ -149,6 +157,13 @@ export class FakePiAdapter implements PiAdapter {
       await sleep(70, signal);
       assistant.streaming = false;
       this.emit({ type: "message/upsert", message: { ...assistant } });
+      if (this.state.sessionId?.endsWith(".jsonl") && assistant.text) {
+        try {
+          appendPiAssistant(this.state.sessionId, assistant.text);
+        } catch {
+          /* ignore persist errors in the demo loop */
+        }
+      }
       if (this.runAbort === run) {
         this.refreshTree(assistant.id);
         this.finishIdle();
@@ -222,16 +237,22 @@ export class FakePiAdapter implements PiAdapter {
   async resumeSession(id: string): Promise<SessionSummary> {
     const found = this.state.sessions.find((item) => item.id === id);
     if (id.endsWith(".jsonl")) {
-      const opened = SessionManager.open(id);
-      const title = opened.getSessionName() ?? found?.title ?? "已恢复";
-      const session: SessionSummary = { id, title, mtime: Date.now(), tokens: opened.getEntries().length };
+      const hydrated = hydrateUiFromPi(id);
+      const session: SessionSummary = {
+        id,
+        title: hydrated.title,
+        mtime: Date.now(),
+        tokens: hydrated.messages.length,
+      };
       this.state.sessionId = id;
-      this.state.sessionTitle = title;
+      this.state.sessionTitle = hydrated.title;
       if (!found) {
         this.state.sessions.unshift(session);
       }
       resetConversation(this.state);
-      this.emit({ type: "session/replaced", sessionId: id, title });
+      this.state.messages = hydrated.messages;
+      this.refreshTree(hydrated.messages.at(-1)?.id ?? null);
+      this.emit({ type: "session/replaced", sessionId: id, title: hydrated.title });
       return session;
     }
     if (!found) {
@@ -249,15 +270,27 @@ export class FakePiAdapter implements PiAdapter {
     if (!found) {
       throw new Error("找不到要分叉的节点");
     }
-    const id = `sess-fork-${Date.now()}`;
     const title = `分叉自 ${found.text.slice(0, 16)}`;
+    const keep = new Set(pathIdsFrom(this.state.treeSeeds, entryId));
+    this.state.messages = this.state.messages.filter((item) => keep.has(item.id) || item.role === "system");
+    this.state.tools = [];
+    let id = `sess-fork-${Date.now()}`;
+    if (this.state.cwd) {
+      const userText = this.state.messages.find((item) => item.role === "user")?.text ?? found.text;
+      const assistantText =
+        this.state.messages.find((item) => item.role === "assistant")?.text ?? "分叉后的假循环会话。";
+      id = persistPiSession({
+        cwd: this.state.cwd,
+        parentSession: this.state.sessionId?.endsWith(".jsonl") ? this.state.sessionId : undefined,
+        title,
+        userText,
+        assistantText,
+      });
+    }
     const session: SessionSummary = { id, title, mtime: Date.now(), tokens: 0 };
     this.state.sessions.unshift(session);
     this.state.sessionId = id;
     this.state.sessionTitle = title;
-    const keep = new Set(pathIdsFrom(this.state.treeSeeds, entryId));
-    this.state.messages = this.state.messages.filter((item) => keep.has(item.id) || item.role === "system");
-    this.state.tools = [];
     this.refreshTree(entryId);
     this.emit({ type: "session/replaced", sessionId: id, title });
     return session;
@@ -316,6 +349,27 @@ export class FakePiAdapter implements PiAdapter {
     if (this.state.tree) {
       this.emit({ type: "tree/changed", root: this.state.tree });
     }
+  }
+
+  private ensureSessionFile(firstUserText: string): boolean {
+    if (!this.state.cwd || this.state.sessionId?.endsWith(".jsonl")) {
+      return false;
+    }
+    const title = this.state.sessionTitle ?? "假循环";
+    const id = persistPiSession({
+      cwd: this.state.cwd,
+      title,
+      userText: firstUserText,
+      assistantText: "假循环会话已落盘。",
+    });
+    this.state.sessionId = id;
+    const existing = this.state.sessions.find((item) => item.title === title);
+    if (existing) {
+      existing.id = id;
+    } else {
+      this.state.sessions.unshift({ id, title, mtime: Date.now(), tokens: 0 });
+    }
+    return true;
   }
 
   private finishIdle(): void {
