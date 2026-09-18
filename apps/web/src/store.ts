@@ -171,6 +171,7 @@ export const useUiStore = create<UiState & Actions>((set, get) => ({
           tasks: Array.isArray(event.tasks) ? (event.tasks as TaskSummary[]) : [],
           settings: (event.settings as UiState["settings"]) ?? {},
           docker: (event.docker as UiState["docker"]) ?? null,
+          preview: null,
         });
         break;
       case "session/replaced":

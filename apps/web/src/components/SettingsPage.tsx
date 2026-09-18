@@ -25,13 +25,14 @@ export function SettingsPage() {
         const next = payload.settings ?? {};
         setSettings(next);
         setAllowlist((next.bashAllowlist ?? ["git status"]).join("\n"));
+        setNotice(null);
       })
       .catch((error) => {
         useUiStore.setState({
           lastError: error instanceof Error ? error.message : String(error),
         });
       });
-  }, []);
+  }, [cwd]);
 
   const save = async () => {
     try {

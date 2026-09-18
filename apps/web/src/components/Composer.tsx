@@ -251,7 +251,7 @@ export function Composer({ onSend, sending }: ComposerProps) {
       ) : null}
 
       <div className="rounded-2xl border border-[#00000018] bg-[#ffffff] shadow-[0_4px_20px_rgba(0,0,0,0.04)] overflow-hidden focus-within:border-[#00000030] transition-all relative">
-        {slashOpen || draft.startsWith("/") ? (
+        {(slashOpen || draft.startsWith("/")) && visibleSlash.length > 0 ? (
           <div className="absolute bottom-full left-0 right-0 mb-1 rounded-xl border border-[#00000012] bg-white shadow-[0_8px_24px_rgba(0,0,0,0.08)] p-1">
             {visibleSlash.map((item, index) => (
                 <button

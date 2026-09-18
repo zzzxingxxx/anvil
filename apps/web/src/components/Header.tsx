@@ -9,7 +9,7 @@ import {
   ShieldCheck,
   ShieldAlert,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useUiStore } from "../store.ts";
 import { client } from "../ws.ts";
 
@@ -31,6 +31,15 @@ export function Header() {
     activeTab,
   } = useUiStore();
   const [openModels, setOpenModels] = useState(false);
+
+  useEffect(() => {
+    if (!openModels) {
+      return;
+    }
+    const close = () => setOpenModels(false);
+    window.addEventListener("click", close);
+    return () => window.removeEventListener("click", close);
+  }, [openModels]);
 
   const handleTrust = async () => {
     try {
@@ -131,7 +140,10 @@ export function Header() {
         <div className="relative">
           <button
             type="button"
-            onClick={() => setOpenModels((open) => !open)}
+            onClick={(event) => {
+              event.stopPropagation();
+              setOpenModels((open) => !open);
+            }}
             className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#ffffff] hover:bg-[#fcfbf9] text-[#1f1e1d] text-xs font-mono border border-[#00000014] shadow-[0_1px_2px_rgba(0,0,0,0.03)]"
           >
             <Cpu className="w-3.5 h-3.5 text-[#7e7d77]" />
@@ -141,7 +153,10 @@ export function Header() {
             <ChevronDown className="w-3 h-3 text-[#abaaa2]" />
           </button>
           {openModels ? (
-            <div className="absolute right-0 mt-1 w-64 max-h-72 overflow-y-auto rounded-xl border border-[#00000014] bg-white shadow-[0_8px_24px_rgba(0,0,0,0.08)] z-30 p-1">
+            <div
+              className="absolute right-0 mt-1 w-64 max-h-72 overflow-y-auto rounded-xl border border-[#00000014] bg-white shadow-[0_8px_24px_rgba(0,0,0,0.08)] z-30 p-1"
+              onClick={(event) => event.stopPropagation()}
+            >
               {models.length === 0 ? (
                 <div className="px-3 py-3 text-[11px] text-[#7e7d77] leading-relaxed">
                   没有可用模型。请设置 ANTHROPIC_API_KEY / DEEPSEEK_API_KEY，或在终端运行 pi 登录。

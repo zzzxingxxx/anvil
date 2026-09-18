@@ -62,6 +62,11 @@ export function Board() {
             {column.title}
           </div>
           <div className="space-y-1.5 min-h-16">
+            {tasks.filter((task) => (task.column ?? columnFromStatus(task)) === column.id).length === 0 ? (
+              <div className="text-[10.5px] text-[#abaaa2] px-1 py-3">
+                {column.id === "todo" ? "还没有排队的子任务。" : column.id === "doing" ? "没有进行中的子任务。" : column.id === "done" ? "还没有完成项。" : "没有阻塞项。"}
+              </div>
+            ) : null}
             {tasks
               .filter((task) => (task.column ?? columnFromStatus(task)) === column.id)
               .map((task) => (
