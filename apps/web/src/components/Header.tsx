@@ -115,7 +115,7 @@ export function Header() {
           </span>
         </div>
 
-        <nav className="flex items-center gap-0.5 text-[11px] p-0.5 rounded-lg bg-[#00000006]" aria-label="工作区视图">
+        <nav className="hidden sm:flex items-center gap-0.5 text-[11px] p-0.5 rounded-lg bg-[#00000006]" aria-label="工作区视图">
           {TABS.map((tab) => {
             const Icon = tab.icon;
             const selected = activeTab === tab.id;
@@ -144,7 +144,7 @@ export function Header() {
           title="命令面板 Ctrl+K"
           aria-label="打开命令面板"
           onClick={() => useUiStore.getState().setCommandOpen(true, "search")}
-          className="flex items-center gap-1.5 px-1.5 sm:px-2 py-0.5 rounded-md bg-[#00000006] border border-[#0000000a] text-[#4f4e4a] text-[11px] hover:bg-[#edece6]"
+          className="hidden sm:flex items-center gap-1.5 px-1.5 sm:px-2 py-0.5 rounded-md bg-[#00000006] border border-[#0000000a] text-[#4f4e4a] text-[11px] hover:bg-[#edece6]"
         >
           <Search className="w-3 h-3" />
           <span className="hidden lg:inline">Ctrl+K</span>

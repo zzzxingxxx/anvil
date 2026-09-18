@@ -1,4 +1,4 @@
-import { SquarePen, GitBranch, Compass, FolderOpen, X } from "lucide-react";
+import { SquarePen, GitBranch, Compass, FolderOpen, X, LayoutGrid, MessageSquare, Settings2, Search } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useUiStore } from "../store.ts";
 import { formatRelativeTime } from "../lib/utils.ts";
@@ -6,7 +6,7 @@ import { client } from "../ws.ts";
 import { EmptyState } from "./EmptyState.tsx";
 
 export function Sidebar() {
-  const { sessionId, sessions, sidebarOpen, cwd, recentWorkspaces, agentStatus, toggleSidebar } =
+  const { sessionId, sessions, sidebarOpen, cwd, recentWorkspaces, agentStatus, toggleSidebar, activeTab, setActiveTab } =
     useUiStore();
   const busy = agentStatus === "running";
   const [pathDraft, setPathDraft] = useState(cwd ?? "");
@@ -169,6 +169,45 @@ export function Sidebar() {
                 <span className="text-xs">新建会话</span>
               </span>
             </button>
+            <div className="grid grid-cols-4 gap-1 sm:hidden">
+              {(
+                [
+                  { id: "chat", label: "对话", icon: MessageSquare },
+                  { id: "board", label: "看板", icon: LayoutGrid },
+                  { id: "settings", label: "设置", icon: Settings2 },
+                ] as const
+              ).map((tab) => {
+                const Icon = tab.icon;
+                const selected = activeTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => {
+                      setActiveTab(tab.id);
+                      closeIfNarrow();
+                    }}
+                    className={`flex flex-col items-center gap-0.5 py-1.5 rounded-lg text-[10px] ${
+                      selected ? "bg-[#1f1e1d] text-white" : "text-[#7e7d77] hover:bg-[#edece6]"
+                    }`}
+                  >
+                    <Icon className="w-3.5 h-3.5" />
+                    {tab.label}
+                  </button>
+                );
+              })}
+              <button
+                type="button"
+                onClick={() => {
+                  useUiStore.getState().setCommandOpen(true, "search");
+                  closeIfNarrow();
+                }}
+                className="flex flex-col items-center gap-0.5 py-1.5 rounded-lg text-[10px] text-[#7e7d77] hover:bg-[#edece6]"
+              >
+                <Search className="w-3.5 h-3.5" />
+                搜索
+              </button>
+            </div>
           </div>
 
           <div className="flex-1 overflow-y-auto overscroll-contain px-2.5 py-3 space-y-5">
