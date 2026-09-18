@@ -19,6 +19,7 @@ import { probeDocker } from "./docker.ts";
 import { FakePiAdapter } from "./fake-pi-adapter.ts";
 import { handleRequest } from "./handlers.ts";
 import { logError, logInfo } from "./log.ts";
+import { listConfiguredModels } from "./pi-models.ts";
 import type { PiAdapter } from "./pi-adapter.ts";
 import { RpcPiAdapter } from "./rpc-pi-adapter.ts";
 import { SdkPiAdapter } from "./sdk-pi-adapter.ts";
@@ -43,6 +44,18 @@ const sockets = new Set<WebSocket>();
 
 state.recentWorkspaces = bootConfig.recentWorkspaces;
 state.settings = bootConfig.settings ?? {};
+state.models = await listConfiguredModels();
+if (state.settings.defaultModel) {
+  const preferred = state.models.find((item) => item.id === state.settings.defaultModel);
+  state.model =
+    preferred ?? {
+      id: state.settings.defaultModel,
+      label: state.settings.defaultModel,
+      provider: state.settings.defaultModel.split("/")[0] ?? "custom",
+    };
+} else if (state.models[0]) {
+  state.model = state.models[0];
+}
 state.docker = await probeDocker();
 
 adapter.subscribe((event) => {

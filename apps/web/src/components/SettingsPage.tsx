@@ -19,6 +19,7 @@ export function SettingsPage() {
   const docker = useUiStore((state) => state.docker);
   const cwd = useUiStore((state) => state.cwd);
   const models = useUiStore((state) => state.models);
+  const modelId = useUiStore((state) => state.modelId);
   const busy = useUiStore((state) => state.agentStatus) === "running";
   const [settings, setSettings] = useState<Settings>({ bashPolicy: "ask" });
   const [allowlist, setAllowlist] = useState("git status");
@@ -204,34 +205,39 @@ export function SettingsPage() {
         </button>
       </div>
       <label className="block space-y-1">
-        <span className="text-[11px] text-[#7e7d77]">默认模型</span>
+        <span className="text-[11px] text-[#7e7d77]">当前模型</span>
         {models.length > 0 ? (
           <select
-            value={settings.defaultModel ?? ""}
+            value={modelId ?? settings.defaultModel ?? ""}
             disabled={busy}
-            onChange={(event) =>
-              setSettings((prev) => ({ ...prev, defaultModel: event.target.value || undefined }))
-            }
+            onChange={(event) => {
+              const id = event.target.value;
+              setSettings((prev) => ({ ...prev, defaultModel: id || undefined }));
+              if (id) {
+                void client.request("model.set", { id }).catch((error) => {
+                  useUiStore.setState({
+                    lastError: error instanceof Error ? error.message : String(error),
+                  });
+                });
+              }
+            }}
             className="w-full rounded-lg border border-[#00000014] bg-white px-2 py-1.5 disabled:opacity-40"
           >
-            <option value="">未指定（用当前会话模型）</option>
+            <option value="" disabled>
+              选择要使用的模型
+            </option>
             {models.map((model) => (
               <option key={model.id} value={model.id}>
                 {model.label}（{model.id}）
               </option>
             ))}
-            {settings.defaultModel && !models.some((model) => model.id === settings.defaultModel) ? (
-              <option value={settings.defaultModel}>{settings.defaultModel}（已保存）</option>
+            {(modelId ?? settings.defaultModel) &&
+            !models.some((model) => model.id === (modelId ?? settings.defaultModel)) ? (
+              <option value={modelId ?? settings.defaultModel}>{modelId ?? settings.defaultModel}（当前）</option>
             ) : null}
           </select>
         ) : (
-          <input
-            value={settings.defaultModel ?? ""}
-            disabled={busy}
-            onChange={(event) => setSettings((prev) => ({ ...prev, defaultModel: event.target.value }))}
-            placeholder="provider/model，例如 anthropic/claude-sonnet-4-5"
-            className="w-full rounded-lg border border-[#00000014] bg-white px-2 py-1.5 disabled:opacity-40"
-          />
+          <p className="text-[12px] text-[#7e7d77]">先在上面添加接口，再在这里或对话顶栏选择模型。</p>
         )}
       </label>
       <div className="flex items-center gap-2">

@@ -207,6 +207,39 @@ export async function listPiEndpoints(): Promise<ModelEndpointSummary[]> {
   return listEndpoints(await readPiModelsFile());
 }
 
+export function modelsFromPiFile(file: PiModelsFile): ModelInfo[] {
+  const models: ModelInfo[] = [];
+  for (const [provider, config] of Object.entries(file.providers)) {
+    for (const model of config.models ?? []) {
+      if (!model.id?.trim()) {
+        continue;
+      }
+      models.push({
+        id: `${provider}/${model.id}`,
+        label: model.name ?? model.id,
+        provider,
+      });
+    }
+  }
+  return models;
+}
+
+export async function listConfiguredModels(): Promise<ModelInfo[]> {
+  return modelsFromPiFile(await readPiModelsFile());
+}
+
+export function mergeModelLists(...lists: ModelInfo[][]): ModelInfo[] {
+  const map = new Map<string, ModelInfo>();
+  for (const list of lists) {
+    for (const model of list) {
+      if (!map.has(model.id)) {
+        map.set(model.id, model);
+      }
+    }
+  }
+  return [...map.values()].sort((a, b) => a.provider.localeCompare(b.provider) || a.label.localeCompare(b.label));
+}
+
 export async function removePiProvider(provider: string): Promise<ModelEndpointSummary[]> {
   const path = join(getAgentDir(), "models.json");
   const current = await readPiModels(path);

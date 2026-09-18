@@ -22,7 +22,13 @@ import { ArtifactStore } from "@anvil/pi-ext-artifact";
 import { listTree, readTextFile } from "./fs-ops.ts";
 import { searchFiles } from "./search.ts";
 import { logInfo } from "./log.ts";
-import { importOpenAiModels, listPiEndpoints, removePiProvider } from "./pi-models.ts";
+import {
+  importOpenAiModels,
+  listConfiguredModels,
+  listPiEndpoints,
+  mergeModelLists,
+  removePiProvider,
+} from "./pi-models.ts";
 import type { PiAdapter } from "./pi-adapter.ts";
 import { resetConversation, type WorkspaceState } from "./state.ts";
 import { resolveInside, resolveWorkspacePath } from "./workspace.ts";
@@ -228,9 +234,9 @@ async function dispatch(
       return { ok: true };
     }
     case "model.list": {
-      const models = adapter.listModels ? await adapter.listModels() : state.models;
-      state.models = models;
-      return { ok: true, models, currentId: state.model?.id ?? null };
+      const listed = adapter.listModels ? await adapter.listModels() : state.models;
+      state.models = mergeModelLists(listed, await listConfiguredModels());
+      return { ok: true, models: state.models, currentId: state.model?.id ?? null };
     }
     case "model.import": {
       if (state.agentStatus === "running") {
@@ -243,20 +249,10 @@ async function dispatch(
         : adapter.listModels
           ? await adapter.listModels()
           : state.models;
-      const merged = [...listed];
-      for (const model of imported.models) {
-        if (!merged.some((item) => item.id === model.id)) {
-          merged.push(model);
-        }
-      }
-      state.models = merged;
-      if (!state.model && imported.models[0] && adapter.setModel) {
-        try {
-          const current = await adapter.setModel(imported.models[0].id);
-          state.model = current;
-        } catch {
-          state.model = imported.models[0];
-        }
+      state.models = mergeModelLists(listed, imported.models, await listConfiguredModels());
+      const first = imported.models[0];
+      if (first) {
+        await applySelectedModel(state, adapter, first.id, first);
       }
       return {
         ok: true,
@@ -280,15 +276,13 @@ async function dispatch(
         : adapter.listModels
           ? await adapter.listModels()
           : state.models;
-      state.models = listed.filter((item) => item.provider !== provider);
+      state.models = mergeModelLists(listed, await listConfiguredModels()).filter((item) => item.provider !== provider);
       if (state.model?.provider === provider) {
-        state.model = state.models[0] ?? null;
-        if (state.model && adapter.setModel) {
-          try {
-            await adapter.setModel(state.model.id);
-          } catch {
-            /* keep the remaining list even if the adapter cannot switch */
-          }
+        const next = state.models[0] ?? null;
+        if (next) {
+          await applySelectedModel(state, adapter, next.id, next);
+        } else {
+          state.model = null;
         }
       }
       return { ok: true, provider, models: state.models, endpoints };
@@ -298,16 +292,13 @@ async function dispatch(
         throw new Error("等当前轮结束再切换模型");
       }
       const { id } = payload as { id: string };
-      if (adapter.setModel) {
-        const model = await adapter.setModel(id);
-        state.model = model;
-        return { ok: true, model };
-      }
-      const model = state.models.find((item) => item.id === id);
-      if (!model) {
+      const configured = await listConfiguredModels();
+      state.models = mergeModelLists(state.models, configured);
+      const found = state.models.find((item) => item.id === id);
+      if (!found) {
         throw new Error("模型不存在");
       }
-      state.model = model;
+      const model = await applySelectedModel(state, adapter, id, found);
       return { ok: true, model };
     }
     case "fs.tree": {
@@ -421,12 +412,18 @@ async function dispatch(
       } else {
         state.settings = { ...config.settings };
       }
-      if (nextSettings.defaultModel && adapter.setModel) {
-        try {
-          await adapter.setModel(nextSettings.defaultModel);
-        } catch {
-          /* settings persist even if the current adapter cannot switch models */
-        }
+      if (nextSettings.defaultModel) {
+        const found = state.models.find((item) => item.id === nextSettings.defaultModel);
+        await applySelectedModel(
+          state,
+          adapter,
+          nextSettings.defaultModel,
+          found ?? {
+            id: nextSettings.defaultModel,
+            label: nextSettings.defaultModel,
+            provider: nextSettings.defaultModel.split("/")[0] ?? "custom",
+          },
+        );
       }
       return { ok: true, settings: state.settings };
     }
@@ -435,4 +432,29 @@ async function dispatch(
       return { ok: true, ...exported };
     }
   }
+}
+
+async function applySelectedModel(
+  state: WorkspaceState,
+  adapter: PiAdapter,
+  id: string,
+  fallback: { id: string; label: string; provider: string },
+): Promise<{ id: string; label: string; provider: string }> {
+  let model = fallback;
+  if (adapter.setModel) {
+    try {
+      model = await adapter.setModel(id);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (state.cwd || !/请先打开|尚未配置|模型不存在/.test(message)) {
+        throw error;
+      }
+    }
+  }
+  state.model = model;
+  state.settings = { ...state.settings, defaultModel: model.id };
+  const config = await loadConfig();
+  config.settings = { ...config.settings, defaultModel: model.id };
+  await saveConfig(config);
+  return model;
 }

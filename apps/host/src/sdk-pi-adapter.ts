@@ -208,16 +208,30 @@ export class SdkPiAdapter implements PiAdapter {
   }
 
   async setModel(id: string): Promise<ModelInfo> {
-    const session = await this.requireSession();
     const { provider, id: modelId } = parseModelKey(id);
-    const found = session.modelRuntime.getModel(provider, modelId);
+    const info = this.state.models.find((item) => item.id === id) ?? {
+      id,
+      label: modelId,
+      provider,
+    };
+    this.state.model = info;
+    this.state.settings = { ...this.state.settings, defaultModel: id };
+    const session = this.runtime?.session;
+    if (!session) {
+      return info;
+    }
+    let found = session.modelRuntime.getModel(provider, modelId);
+    if (!found) {
+      await session.modelRuntime.refresh();
+      found = session.modelRuntime.getModel(provider, modelId);
+    }
     if (!found) {
       throw new Error("模型不存在或尚未配置");
     }
     await session.setModel(found);
-    const info = toModelInfo(found);
-    this.state.model = info;
-    return info;
+    const applied = toModelInfo(found);
+    this.state.model = applied;
+    return applied;
   }
 
   async fork(entryId: string): Promise<SessionSummary> {
@@ -345,7 +359,7 @@ export class SdkPiAdapter implements PiAdapter {
   }
 
   private async applyPreferredModel(): Promise<void> {
-    const preferred = this.state.settings.defaultModel?.trim();
+    const preferred = this.state.model?.id?.trim() || this.state.settings.defaultModel?.trim();
     if (!preferred || !this.runtime) {
       return;
     }
@@ -446,11 +460,15 @@ export class SdkPiAdapter implements PiAdapter {
   private async refreshModels(): Promise<void> {
     const runtime = this.runtime;
     if (!runtime) {
-      this.state.models = [];
       return;
     }
     const available = await runtime.session.modelRuntime.getAvailable();
-    this.state.models = available.map(toModelInfo);
+    const live = available.map(toModelInfo);
+    const map = new Map(this.state.models.map((item) => [item.id, item]));
+    for (const item of live) {
+      map.set(item.id, item);
+    }
+    this.state.models = [...map.values()];
     if (!this.state.model && runtime.session.model) {
       this.state.model = toModelInfo(runtime.session.model);
     }

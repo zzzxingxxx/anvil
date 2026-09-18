@@ -226,6 +226,17 @@ describe("handleRequest", () => {
         providers: Record<string, { baseUrl?: string }>;
       };
       expect(written.providers["example-test-v1"]?.baseUrl).toBe("https://example.test/v1");
+      const selected = await handleRequest(
+        makeRequest("model.set", { id: "example-test-v1/gemini-flash" }, "select-1"),
+        state,
+        adapter,
+        approvals,
+      );
+      expect(selected.payload).toMatchObject({
+        ok: true,
+        model: { id: "example-test-v1/gemini-flash" },
+      });
+      expect(state.model?.id).toBe("example-test-v1/gemini-flash");
     } finally {
       globalThis.fetch = previousFetch;
     }

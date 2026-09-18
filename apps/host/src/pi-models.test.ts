@@ -3,6 +3,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import {
+  listConfiguredModels,
+  mergeModelLists,
   modelsUrl,
   normalizeOpenAiBaseUrl,
   providerIdFromUrl,
@@ -46,5 +48,25 @@ describe("pi-models", () => {
     };
     expect(parsed.providers["xywxing-xyz"]?.baseUrl).toBe("https://xywxing.xyz/v1");
     expect(parsed.providers["xywxing-xyz"]?.models?.[0]?.id).toBe("gemini-3.8-flash-high");
+    const listed = await listConfiguredModels();
+    expect(listed).toEqual([
+      {
+        id: "xywxing-xyz/gemini-3.8-flash-high",
+        label: "gemini-3.8-flash-high",
+        provider: "xywxing-xyz",
+      },
+    ]);
+  });
+
+  it("merges configured models without dropping either list", () => {
+    expect(
+      mergeModelLists(
+        [{ id: "a/one", label: "one", provider: "a" }],
+        [
+          { id: "a/one", label: "one", provider: "a" },
+          { id: "b/two", label: "two", provider: "b" },
+        ],
+      ).map((item) => item.id),
+    ).toEqual(["a/one", "b/two"]);
   });
 });

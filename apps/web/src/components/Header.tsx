@@ -168,14 +168,14 @@ export function Header() {
             className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#ffffff] hover:bg-[#fcfbf9] text-[#1f1e1d] text-xs font-mono border border-[#00000014] shadow-[0_1px_2px_rgba(0,0,0,0.03)] disabled:opacity-40"
           >
             <Cpu className="w-3.5 h-3.5 text-[#7e7d77]" />
-            <span className="font-medium max-w-[160px] truncate">
-              {modelLabel ?? modelId ?? "未配置模型"}
+            <span className="font-medium max-w-[180px] truncate">
+              {modelLabel ?? modelId ?? "选择模型"}
             </span>
             <ChevronDown className="w-3 h-3 text-[#abaaa2]" />
           </button>
           {openModels ? (
             <div
-              className="absolute right-0 mt-1 w-64 max-h-72 overflow-y-auto rounded-xl border border-[#00000014] bg-white shadow-[0_8px_24px_rgba(0,0,0,0.08)] z-30 p-1"
+              className="absolute right-0 mt-1 w-80 max-h-80 overflow-y-auto rounded-xl border border-[#00000014] bg-white shadow-[0_8px_24px_rgba(0,0,0,0.08)] z-30 p-1"
               onClick={(event) => event.stopPropagation()}
             >
               {models.length === 0 ? (
@@ -266,13 +266,15 @@ export function Header() {
 
 function groupedModels(models: ModelInfo[]): Array<{ provider: string; models: ModelInfo[] }> {
   const groups: Array<{ provider: string; models: ModelInfo[] }> = [];
+  const index = new Map<string, number>();
   for (const model of models) {
-    const last = groups.at(-1);
-    if (last && last.provider === model.provider) {
-      last.models.push(model);
+    const existing = index.get(model.provider);
+    if (existing === undefined) {
+      index.set(model.provider, groups.length);
+      groups.push({ provider: model.provider, models: [model] });
       continue;
     }
-    groups.push({ provider: model.provider, models: [model] });
+    groups[existing]?.models.push(model);
   }
   return groups;
 }
