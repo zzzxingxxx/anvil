@@ -1,6 +1,7 @@
 import type { TaskSummary } from "@anvil/protocol";
 import { useUiStore } from "../store.ts";
 import { client } from "../ws.ts";
+import { formatElapsed } from "../lib/utils.ts";
 
 const COLUMNS = [
   { id: "todo", title: "待办" },
@@ -54,7 +55,10 @@ export function Board() {
                   className="rounded-lg border border-[#00000010] p-2 bg-[#faf9f5] cursor-grab active:cursor-grabbing"
                 >
                   <div className="text-[11px] font-medium text-[#1f1e1d] truncate">{task.goal}</div>
-                  <div className="text-[10px] text-[#abaaa2] mt-0.5">{task.persona}</div>
+                  <div className="text-[10px] text-[#abaaa2] mt-0.5">
+                    {task.persona}
+                    {task.startedAt ? ` · ${formatElapsed((task.endedAt ?? Date.now()) - task.startedAt)}` : ""}
+                  </div>
                   <div className="flex flex-wrap gap-1 mt-1.5">
                     {COLUMNS.filter((item) => item.id !== column.id).map((item) => (
                       <button

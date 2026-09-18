@@ -28,4 +28,5 @@
 - 会话树右键：Fork / 从这里继续 / 复制节点 id；状态栏显示 cache tokens；长错误可折叠详情。
 - 刷新 snapshot 带工具已用时；闲时把卡住的 running 收成结束，避免永久转圈。
 - Ctrl+K 列出 `/compact` `/new` `/abort` 与最近会话；假循环忙时拒绝压缩。
+- 子任务托盘显示耗时；完成/失败弹出横幅，不打断 Composer。
 - 已知问题见 README。
