@@ -62,7 +62,7 @@ export function messageText(message: unknown): string {
   return extractContent(value?.content);
 }
 
-export function toUiMessage(message: unknown, streaming = false): UiMessage | null {
+export function toUiMessage(message: unknown, streaming = false, entryId?: string): UiMessage | null {
   const value = message as LooseMessage;
   const role = normalizeRole(value?.role);
   if (!role) {
@@ -70,9 +70,10 @@ export function toUiMessage(message: unknown, streaming = false): UiMessage | nu
   }
   const text = messageText(value);
   const id =
-    typeof value?.id === "string" && value.id
+    entryId ||
+    (typeof value?.id === "string" && value.id
       ? value.id
-      : `${role}-${hashish(text)}-${String(value?.timestamp ?? "")}`;
+      : `${role}-${hashish(text)}-${String(value?.timestamp ?? "")}`);
   const createdAt = toEpoch(value?.timestamp);
   return { id, role, text, createdAt, streaming: streaming || undefined };
 }

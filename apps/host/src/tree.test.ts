@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildTree, pathIdsFrom, seedsFromRpcTree } from "./tree.ts";
+import { buildTree, messagesOnPath, pathIdsFrom, seedsFromRpcTree } from "./tree.ts";
 
 describe("session tree", () => {
   it("builds a 10-node tree with a current leaf", () => {
@@ -28,6 +28,15 @@ describe("session tree", () => {
     ];
     const ids = pathIdsFrom(seeds, "b");
     expect([...ids]).toEqual(["b", "a"]);
+  });
+
+  it("keeps the transcript when message ids do not match tree entry ids", () => {
+    const messages = [
+      { id: "msg-1", role: "user" as const, text: "你好", createdAt: 1 },
+      { id: "msg-2", role: "assistant" as const, text: "在", createdAt: 2 },
+    ];
+    const kept = messagesOnPath(messages, new Set(["entry-a", "entry-b"]));
+    expect(kept).toEqual(messages);
   });
 });
 

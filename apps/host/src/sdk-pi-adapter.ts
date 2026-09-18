@@ -351,8 +351,11 @@ export class SdkPiAdapter implements PiAdapter {
       return;
     }
     resetConversation(this.state);
-    for (const message of session.messages) {
-      const ui = toUiMessage(message, false);
+    for (const entry of session.sessionManager.getEntries()) {
+      if (entry.type !== "message") {
+        continue;
+      }
+      const ui = toUiMessage(entry.message, false, entry.id);
       if (ui) {
         upsertMessage(this.state, ui);
       }
@@ -362,6 +365,22 @@ export class SdkPiAdapter implements PiAdapter {
       this.state.model = toModelInfo(session.model);
     }
     this.refreshTreeFromSdk(session);
+  }
+
+  private alignMessagesToEntries(session: AgentSession): void {
+    const next: UiMessage[] = [];
+    for (const entry of session.sessionManager.getEntries()) {
+      if (entry.type !== "message") {
+        continue;
+      }
+      const ui = toUiMessage(entry.message, false, entry.id);
+      if (ui) {
+        next.push(ui);
+      }
+    }
+    if (next.length > 0) {
+      this.state.messages = next;
+    }
   }
 
   private refreshTreeFromSdk(session: AgentSession): void {
@@ -461,6 +480,7 @@ export class SdkPiAdapter implements PiAdapter {
       captureArtifacts: true,
       onAgentEnd: () => {
         if (this.runtime) {
+          this.alignMessagesToEntries(this.runtime.session);
           this.refreshTreeFromSdk(this.runtime.session);
         }
       },

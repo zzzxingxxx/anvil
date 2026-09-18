@@ -25,6 +25,7 @@ describe("sdk event mapping", () => {
       text: "正在读取仓库",
       streaming: true,
     });
+    expect(toUiMessage(fixture.message, false, "entry-9")?.id).toBe("entry-9");
     expect(AnvilEventSchema.parse({ type: "message/upsert", message: ui }).type).toBe("message/upsert");
   });
 

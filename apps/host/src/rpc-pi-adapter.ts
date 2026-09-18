@@ -210,7 +210,9 @@ export class RpcPiAdapter implements PiAdapter {
       this.restarts = 0;
       this.client.onEvent((event) => {
         applyPiSessionEvent(this.state, event as { type: string } & Record<string, unknown>, (mapped) => this.emit(mapped), {
+          captureArtifacts: true,
           onAgentEnd: () => {
+            void this.reloadMessagesFromRpc();
             void this.refreshTreeFromRpc();
             void this.refreshUsageFromRpc();
           },
@@ -259,19 +261,41 @@ export class RpcPiAdapter implements PiAdapter {
       return;
     }
     resetConversation(this.state);
+    await this.reloadMessagesFromRpc();
+    await this.refreshTreeFromRpc();
+    await this.refreshUsageFromRpc();
+  }
+
+  private async reloadMessagesFromRpc(): Promise<void> {
+    const client = this.client;
+    if (!client) {
+      return;
+    }
+    this.state.messages = [];
     try {
-      const messages = await client.getMessages();
-      for (const message of messages) {
-        const ui = toUiMessage(message, false);
+      const { entries } = await client.getEntries();
+      for (const entry of entries) {
+        if (entry.type !== "message") {
+          continue;
+        }
+        const ui = toUiMessage(entry.message, false, entry.id);
         if (ui) {
           upsertMessage(this.state, ui);
         }
       }
     } catch {
-      /* empty transcript is still a valid new session */
+      try {
+        const messages = await client.getMessages();
+        for (const message of messages) {
+          const ui = toUiMessage(message, false);
+          if (ui) {
+            upsertMessage(this.state, ui);
+          }
+        }
+      } catch {
+        /* empty transcript is still a valid new session */
+      }
     }
-    await this.refreshTreeFromRpc();
-    await this.refreshUsageFromRpc();
   }
 
   private async refreshUsageFromRpc(): Promise<void> {

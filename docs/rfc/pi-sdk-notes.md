@@ -47,6 +47,8 @@ AgentSession 订阅的是 `AgentSessionEvent`，Anvil 映射：
 - RPC 会话列表走官方 `SessionManager.list(cwd)`，与 SDK 同一套 jsonl
 - RPC `navigate` 只切换 Anvil 当前节点高亮；sidecar 没有 navigate 命令，真正改叶节点请用分叉
 - RPC `onEvent` 走 `applyPiSessionEvent`：`message_update` 若没有 `message` 则用 `assistantMessageEvent.partial`
+- RPC / SDK 回灌消息时优先用 jsonl `entry.id`，与会话树节点对齐
+- RPC 写/改文件同样 `captureArtifacts`，Diff 面板能还原
 
 ## 树 / 分叉（Phase 2）
 

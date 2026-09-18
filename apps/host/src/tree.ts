@@ -46,10 +46,12 @@ export function buildTree(seeds: TreeSeed[], currentId: string | null): TreeNode
 }
 
 export function messagesOnPath(messages: UiMessage[], pathIds: Set<string> | null): UiMessage[] {
-  if (!pathIds) {
+  if (!pathIds || pathIds.size === 0) {
     return messages;
   }
-  return messages.filter((message) => pathIds.has(message.id) || message.role === "system");
+  const filtered = messages.filter((message) => pathIds.has(message.id) || message.role === "system");
+  const keptUserOrAssistant = filtered.some((message) => message.role !== "system");
+  return keptUserOrAssistant ? filtered : messages;
 }
 
 export function pathIdsFrom(seeds: TreeSeed[], leafId: string | null): Set<string> {
