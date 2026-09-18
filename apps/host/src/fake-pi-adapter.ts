@@ -1,4 +1,5 @@
 import { SessionManager } from "@earendil-works/pi-coding-agent";
+import { ArtifactStore, unifiedDiff } from "@anvil/pi-ext-artifact";
 import type { AnvilEvent, SessionSummary, UiMessage } from "@anvil/protocol";
 import { decideGate, previewArgs, riskFor } from "@anvil/pi-ext-gate";
 import type { ApprovalQueue } from "./approvals.ts";
@@ -161,7 +162,7 @@ export class FakePiAdapter implements PiAdapter {
           upsertTool(this.state, { callId, name: "bash", args, status: "success", output });
           this.emit({ type: "tool/update", callId, partial: output });
           this.emit({ type: "tool/end", callId, ok: true, result: output });
-          this.noteDemoChange();
+          await this.noteDemoChange();
           assistant.text += " 假循环结束，可以继续发消息。";
         }
       } else {
@@ -169,7 +170,7 @@ export class FakePiAdapter implements PiAdapter {
         upsertTool(this.state, { callId, name: "bash", args, status: "success", output });
         this.emit({ type: "tool/update", callId, partial: output });
         this.emit({ type: "tool/end", callId, ok: true, result: output });
-        this.noteDemoChange();
+        await this.noteDemoChange();
         assistant.text += " 假循环结束，可以继续发消息。";
       }
 
@@ -345,7 +346,7 @@ export class FakePiAdapter implements PiAdapter {
     this.listeners.clear();
   }
 
-  private noteDemoChange(): void {
+  private async noteDemoChange(): Promise<void> {
     const path = ".anvil/demo-diff.txt";
     const before = "demo before\n";
     const after = "demo after\n";
@@ -354,9 +355,16 @@ export class FakePiAdapter implements PiAdapter {
       {
         path,
         kind: "modified",
-        diff: `--- a/${path}\n+++ b/${path}\n-demo before\n+demo after`,
+        diff: unifiedDiff(path, before, after),
       },
     ];
+    if (this.state.cwd) {
+      try {
+        await new ArtifactStore(this.state.cwd).snapshotWrite(path, after);
+      } catch {
+        /* demo snapshots must not crash the fake loop */
+      }
+    }
     this.emit({ type: "fs/changed", paths: [path], changes: this.state.changes });
   }
 

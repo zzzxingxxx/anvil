@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { SessionManager } from "@earendil-works/pi-coding-agent";
+import { ArtifactStore } from "@anvil/pi-ext-artifact";
 import type { AnvilEvent } from "@anvil/protocol";
 import { ApprovalQueue } from "./approvals.ts";
 import { FakePiAdapter } from "./fake-pi-adapter.ts";
@@ -10,7 +11,9 @@ import { createWorkspaceState } from "./state.ts";
 
 describe("FakePiAdapter", () => {
   it("emits a prompt loop that ends idle", async () => {
+    const cwd = await mkdtemp(join(tmpdir(), "anvil-fake-art-"));
     const state = createWorkspaceState();
+    state.cwd = cwd;
     state.trust = "trusted";
     const approvals = new ApprovalQueue();
     const adapter = new FakePiAdapter(state, approvals);
@@ -33,6 +36,8 @@ describe("FakePiAdapter", () => {
     expect(state.tools[0]?.status).toBe("success");
     expect(state.tree).toBeTruthy();
     expect(state.changes.some((change) => change.path === ".anvil/demo-diff.txt")).toBe(true);
+    const items = await new ArtifactStore(cwd).list();
+    expect(items.some((item) => item.path.includes("demo-diff.txt"))).toBe(true);
   });
 
   it("navigates and forks without mixing later messages", async () => {
