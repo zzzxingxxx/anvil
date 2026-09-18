@@ -13,6 +13,8 @@ export class RpcPiAdapter implements PiAdapter {
   private listeners = new Set<(event: AnvilEvent) => void>();
   private client: RpcClient | null = null;
   private restarts = 0;
+  private crashRestarts = 0;
+  private lastCwd: string | null = null;
 
   constructor(private readonly state: WorkspaceState) {}
 
@@ -37,7 +39,12 @@ export class RpcPiAdapter implements PiAdapter {
     this.emit({ type: "message/upsert", message: user });
     this.state.agentStatus = "running";
     this.emit({ type: "agent/running" });
-    await client.prompt(input.text);
+    try {
+      await client.prompt(input.text);
+    } catch (error) {
+      await this.recoverFromCrash();
+      throw error instanceof Error ? error : new Error(String(error));
+    }
   }
 
   async steer(text: string): Promise<void> {
@@ -109,6 +116,7 @@ export class RpcPiAdapter implements PiAdapter {
   }
 
   private async restart(cwd: string): Promise<void> {
+    this.lastCwd = cwd;
     await this.client?.stop();
     this.client = new RpcClient({ cwd });
     try {
@@ -133,6 +141,19 @@ export class RpcPiAdapter implements PiAdapter {
       }
       throw new Error(`RPC sidecar 启动失败：${error instanceof Error ? error.message : String(error)}`);
     }
+  }
+
+  async recoverFromCrash(): Promise<void> {
+    if (this.crashRestarts >= 3) {
+      this.emit({ type: "agent/error", error: "RPC sidecar 连续崩溃 3 次，已停止自动重启" });
+      return;
+    }
+    this.crashRestarts += 1;
+    this.emit({
+      type: "agent/error",
+      error: `RPC sidecar 已崩溃，正在第 ${this.crashRestarts} 次重启`,
+    });
+    await this.restart(this.lastCwd ?? this.state.cwd ?? process.cwd());
   }
 
   private emit(event: AnvilEvent): void {

@@ -7,6 +7,7 @@ import {
   makeResponse,
 } from "@anvil/protocol";
 import { loadConfig, rememberWorkspace, saveConfig, trustFor } from "./config.ts";
+import { exportUsage } from "./usage-ledger.ts";
 import { writeFile } from "node:fs/promises";
 import { ArtifactStore } from "@anvil/pi-ext-artifact";
 import { listTree, readTextFile } from "./fs-ops.ts";
@@ -304,6 +305,10 @@ async function dispatch(
       await saveConfig(config);
       state.settings = { ...config.settings };
       return { ok: true, settings: config.settings };
+    }
+    case "usage.export": {
+      const exported = await exportUsage(state.sessionId);
+      return { ok: true, ...exported };
     }
   }
 }

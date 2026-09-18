@@ -5,6 +5,7 @@ import { decideGate, previewArgs, riskFor } from "@anvil/pi-ext-gate";
 import type { ApprovalQueue } from "./approvals.ts";
 import type { PiAdapter, PromptInput } from "./pi-adapter.ts";
 import { appendPiAssistant, appendPiUser, hydrateUiFromPi, persistPiSession } from "./session-persist.ts";
+import { recordUsage } from "./usage-ledger.ts";
 import { resetConversation, upsertMessage, upsertTool, type WorkspaceState } from "./state.ts";
 import { buildTree, demoTree, pathIdsFrom } from "./tree.ts";
 
@@ -76,6 +77,11 @@ export class FakePiAdapter implements PiAdapter {
     this.emit({ type: "agent/running" });
     this.emit({ type: "message/upsert", message: userMessage });
     this.emit({ type: "usage/update", tokens: this.state.usage });
+    void recordUsage({
+      inputTokens: Math.max(8, input.text.length),
+      outputTokens: 0,
+      costUsd: 0.0002,
+    });
 
     const assistant: UiMessage = {
       id: assistantId,

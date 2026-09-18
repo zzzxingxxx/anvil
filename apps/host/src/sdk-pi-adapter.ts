@@ -25,6 +25,7 @@ import {
 } from "./sdk-map.ts";
 import { captureAfter, captureBefore, toolPath } from "./artifacts.ts";
 import { resetConversation, upsertMessage, upsertTool, type WorkspaceState } from "./state.ts";
+import { recordUsage } from "./usage-ledger.ts";
 import { buildTree, type TreeSeed } from "./tree.ts";
 
 export class SdkPiAdapter implements PiAdapter {
@@ -470,8 +471,14 @@ export class SdkPiAdapter implements PiAdapter {
       }
       const nextUsage = usageFromMessage(event.message, this.state.usage);
       if (event.type === "message_end" && nextUsage) {
+        const delta = {
+          inputTokens: Math.max(0, nextUsage.inputTokens - this.state.usage.inputTokens),
+          outputTokens: Math.max(0, nextUsage.outputTokens - this.state.usage.outputTokens),
+          costUsd: Math.max(0, (nextUsage.costUsd ?? 0) - (this.state.usage.costUsd ?? 0)),
+        };
         this.state.usage = nextUsage;
         this.emit({ type: "usage/update", tokens: nextUsage });
+        void recordUsage(delta);
       }
     }
 

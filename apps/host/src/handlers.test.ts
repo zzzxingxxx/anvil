@@ -129,6 +129,15 @@ describe("handleRequest", () => {
     expect(items.some((item) => item.path.endsWith("notes.md.after"))).toBe(true);
   });
 
+  it("exports a local usage summary", async () => {
+    const state = createWorkspaceState();
+    const approvals = new ApprovalQueue();
+    const adapter = new FakePiAdapter(state, approvals);
+    const response = await handleRequest(makeRequest("usage.export", {}, "u1"), state, adapter, approvals);
+    expect(response.payload).toMatchObject({ ok: true });
+    expect(String((response.payload as { text: string }).text)).toContain("未上传");
+  });
+
   it("rejects writable delegate in untrusted workspace", async () => {
     const dir = await mkdtemp(join(tmpdir(), "anvil-task-"));
     const state = createWorkspaceState();

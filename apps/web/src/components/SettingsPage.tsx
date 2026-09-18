@@ -84,6 +84,9 @@ export function SettingsPage() {
         保存
       </button>
       <div className="pt-2 text-[12px] text-[#7e7d77] border-t border-[#00000010]">
+        <p>
+          费用按天记在本机 `~/.anvil/usage.json`，底栏「复制本周 tokens」只复制脱敏摘要，不上传。
+        </p>
         {docker?.available
           ? `已检测到 Docker ${docker.version ?? ""}。整进程进容器仍是可选能力，默认不启用。`
           : docker?.reason ?? "未探测 Docker。没有 Docker 时入口保持隐藏，不阻断启动。"}

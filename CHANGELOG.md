@@ -12,4 +12,5 @@
 - 检查器制品列表 + Composer `/compact` `/new` `/abort`。
 - 假循环允许 bash 后把演示 Diff 写入 ArtifactStore，制品面板能列出来。
 - 子任务 bash 审批走主队列并标明来源；费用汇总；失败分类（锁冲突/用户拒绝等）。
+- `usage.export` 按天汇总本机 tokens；RPC sidecar 命令失败后最多重启 3 次。
 - 已知问题见 README。

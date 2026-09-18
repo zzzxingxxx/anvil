@@ -310,6 +310,20 @@ export const SettingsResultSchema = z.object({
   settings: SettingsSchema,
 });
 
+export const UsageExportPayloadSchema = z.object({}).strict();
+export const UsageDaySchema = z.object({
+  day: z.string(),
+  inputTokens: z.number(),
+  outputTokens: z.number(),
+  costUsd: z.number(),
+});
+export const UsageExportResultSchema = z.object({
+  ok: z.literal(true),
+  text: z.string(),
+  days: z.array(UsageDaySchema),
+  sessionFile: z.string().nullable(),
+});
+
 export const CommandTypeSchema = z.enum([
   "workspace.open",
   "workspace.trust",
@@ -337,6 +351,7 @@ export const CommandTypeSchema = z.enum([
   "board.move",
   "settings.get",
   "settings.set",
+  "usage.export",
 ]);
 export type CommandType = z.infer<typeof CommandTypeSchema>;
 
@@ -367,6 +382,7 @@ export const CommandPayloadSchemas = {
   "board.move": BoardMovePayloadSchema,
   "settings.get": SettingsGetPayloadSchema,
   "settings.set": SettingsSetPayloadSchema,
+  "usage.export": UsageExportPayloadSchema,
 } as const;
 
 export const CommandResultSchemas = {
@@ -396,4 +412,5 @@ export const CommandResultSchemas = {
   "board.move": AgentOkResultSchema,
   "settings.get": SettingsResultSchema,
   "settings.set": SettingsResultSchema,
+  "usage.export": UsageExportResultSchema,
 } as const;
