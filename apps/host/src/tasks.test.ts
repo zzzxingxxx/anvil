@@ -93,4 +93,17 @@ describe("TaskOrchestrator", () => {
     expect(state.tasks.find((item) => item.id === task.id)?.status).toBe("failed");
     expect(state.tasks.find((item) => item.id === task.id)?.error).toMatch(/^超费/);
   });
+
+  it("fails a child that exceeds timeoutSec", async () => {
+    const cwd = await mkdtemp(join(tmpdir(), "anvil-child-to-"));
+    const sessionDir = join(cwd, "sessions");
+    const state = createWorkspaceState();
+    state.cwd = cwd;
+    state.trust = "trusted";
+    const tasks = new TaskOrchestrator(state, sessionDir);
+    const task = await tasks.delegate({ goal: "只读分析", persona: "reviewer", timeoutSec: 0.05 });
+    await new Promise((resolve) => setTimeout(resolve, 1200));
+    expect(state.tasks.find((item) => item.id === task.id)?.status).toBe("failed");
+    expect(state.tasks.find((item) => item.id === task.id)?.error).toMatch(/^超时/);
+  });
 });

@@ -321,6 +321,8 @@ export const UsageDaySchema = z.object({
   day: z.string(),
   inputTokens: z.number(),
   outputTokens: z.number(),
+  cacheReadTokens: z.number().optional(),
+  cacheWriteTokens: z.number().optional(),
   costUsd: z.number(),
 });
 export const UsageExportResultSchema = z.object({

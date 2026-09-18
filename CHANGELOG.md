@@ -29,4 +29,5 @@
 - 刷新 snapshot 带工具已用时；闲时把卡住的 running 收成结束，避免永久转圈。
 - Ctrl+K 列出 `/compact` `/new` `/abort` 与最近会话；假循环忙时拒绝压缩。
 - 子任务托盘显示耗时；完成/失败弹出横幅，不打断 Composer。
+- 用量摘要与 `/health` 带 cache tokens；子任务超时分类有测试。
 - 已知问题见 README。

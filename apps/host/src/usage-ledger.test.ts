@@ -20,11 +20,20 @@ describe("usage ledger", () => {
   });
 
   it("exports a local week summary without uploading", async () => {
-    await recordUsage({ inputTokens: 12, outputTokens: 4, costUsd: 0.001 });
+    await recordUsage({
+      inputTokens: 12,
+      outputTokens: 4,
+      cacheReadTokens: 3,
+      cacheWriteTokens: 1,
+      costUsd: 0.001,
+    });
     const exported = await exportUsage("sess.jsonl");
     expect(exported.text).toContain("未上传");
     expect(exported.text).toContain("input: 12");
+    expect(exported.text).toContain("cacheRead: 3");
+    expect(exported.text).toContain("cacheWrite: 1");
     expect(exported.text).toContain("sess.jsonl");
     expect(exported.days[0]?.inputTokens).toBe(12);
+    expect(exported.days[0]?.cacheReadTokens).toBe(3);
   });
 });

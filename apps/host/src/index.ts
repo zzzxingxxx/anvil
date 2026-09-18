@@ -78,6 +78,8 @@ app.get("/health", (c) =>
       running: state.tasks.filter((item) => item.status === "running").length,
       inputTokens: state.usage.inputTokens,
       outputTokens: state.usage.outputTokens,
+      cacheReadTokens: state.usage.cacheReadTokens ?? 0,
+      cacheWriteTokens: state.usage.cacheWriteTokens ?? 0,
       costUsd: state.usage.costUsd ?? 0,
       rpcRestarts: adapter instanceof RpcPiAdapter ? adapter.restartsUsed() : 0,
     },

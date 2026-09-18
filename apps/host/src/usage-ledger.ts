@@ -7,6 +7,8 @@ export type UsageDay = {
   day: string;
   inputTokens: number;
   outputTokens: number;
+  cacheReadTokens: number;
+  cacheWriteTokens: number;
   costUsd: number;
 };
 
@@ -43,9 +45,18 @@ export async function recordUsage(delta: Usage): Promise<void> {
   }
   const ledger = await loadLedger();
   const day = today();
-  const current = ledger.days[day] ?? { day, inputTokens: 0, outputTokens: 0, costUsd: 0 };
+  const current = ledger.days[day] ?? {
+    day,
+    inputTokens: 0,
+    outputTokens: 0,
+    cacheReadTokens: 0,
+    cacheWriteTokens: 0,
+    costUsd: 0,
+  };
   current.inputTokens += delta.inputTokens ?? 0;
   current.outputTokens += delta.outputTokens ?? 0;
+  current.cacheReadTokens = (current.cacheReadTokens ?? 0) + (delta.cacheReadTokens ?? 0);
+  current.cacheWriteTokens = (current.cacheWriteTokens ?? 0) + (delta.cacheWriteTokens ?? 0);
   current.costUsd += delta.costUsd ?? 0;
   ledger.days[day] = current;
   await saveLedger(ledger);
@@ -63,12 +74,16 @@ export async function exportUsage(sessionFile: string | null): Promise<{
   const week = days.slice(0, 7);
   const input = week.reduce((sum, item) => sum + item.inputTokens, 0);
   const output = week.reduce((sum, item) => sum + item.outputTokens, 0);
+  const cacheRead = week.reduce((sum, item) => sum + (item.cacheReadTokens ?? 0), 0);
+  const cacheWrite = week.reduce((sum, item) => sum + (item.cacheWriteTokens ?? 0), 0);
   const usd = week.reduce((sum, item) => sum + item.costUsd, 0);
   const text = [
     "Anvil 用量摘要（本地，未上传）",
     `days: ${week.map((item) => item.day).join(", ") || today()}`,
     `input: ${input}`,
     `output: ${output}`,
+    `cacheRead: ${cacheRead}`,
+    `cacheWrite: ${cacheWrite}`,
     `usd: ${usd.toFixed(4)}`,
     `session: ${sessionFile ?? "-"}`,
   ].join("\n");
