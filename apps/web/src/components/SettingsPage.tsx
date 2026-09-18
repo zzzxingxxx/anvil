@@ -1,28 +1,34 @@
 import {
   ChevronDown,
-  KeyRound,
   Plus,
   Trash2,
   Cpu,
   Terminal,
   Server,
-  ShieldCheck,
   CheckCircle2,
   AlertCircle,
-  ExternalLink,
-  Sparkles,
+  Bot,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { client } from "../ws.ts";
 import { useUiStore } from "../store.ts";
 import { groupedModels } from "../lib/models.ts";
 
+type PersonaId = "architect" | "implementer" | "reviewer";
+
 type Settings = {
   trustDefault?: "trusted" | "untrusted";
   bashPolicy?: "ask" | "allowlist";
   bashAllowlist?: string[];
   defaultModel?: string;
+  personaModels?: Partial<Record<PersonaId, string>>;
 };
+
+const PERSONA_OPTIONS: Array<{ id: PersonaId; label: string; detail: string }> = [
+  { id: "architect", label: "架构师", detail: "只读梳理模块、给出方案" },
+  { id: "implementer", label: "实现者", detail: "改文件、跑命令、落地实现" },
+  { id: "reviewer", label: "审查者", detail: "检查改动与潜在问题" },
+];
 
 type Endpoint = {
   id: string;
@@ -148,6 +154,27 @@ export function SettingsPage() {
     }
   };
 
+  const setPersonaModel = async (persona: PersonaId, selectedId: string) => {
+    if (busy) return;
+    const personaModels = {
+      ...(settings.personaModels ?? {}),
+      [persona]: selectedId || undefined,
+    };
+    try {
+      await client.request("settings.set", { personaModels });
+      setSettings((prev) => ({ ...prev, personaModels }));
+      setNotice(
+        selectedId
+          ? `已为${PERSONA_OPTIONS.find((item) => item.id === persona)?.label ?? persona}指定模型。`
+          : `已让${PERSONA_OPTIONS.find((item) => item.id === persona)?.label ?? persona}跟随主会话模型。`,
+      );
+    } catch (error) {
+      useUiStore.setState({
+        lastError: error instanceof Error ? error.message : String(error),
+      });
+    }
+  };
+
   const saveBashSettings = async () => {
     if (busy) return;
     try {
@@ -243,6 +270,48 @@ export function SettingsPage() {
                 </optgroup>
               ))}
             </select>
+          </div>
+
+          <div className="space-y-3 pt-1">
+            <div>
+              <div className="text-xs font-semibold text-[#1f1e1d] flex items-center gap-1.5">
+                <Bot className="w-3.5 h-3.5 text-[#7e7d77]" />
+                <span>子智能体模型</span>
+              </div>
+              <p className="text-[11px] text-[#7e7d77] mt-1">
+                分别为架构师、实现者、审查者指定模型。留空则跟随上方主会话模型。派发 @agent 时立即生效。
+              </p>
+            </div>
+            <div className="grid gap-2.5">
+              {PERSONA_OPTIONS.map((persona) => (
+                <div
+                  key={persona.id}
+                  className="grid grid-cols-1 sm:grid-cols-[7.5rem_minmax(0,1fr)] gap-2 items-center p-3 rounded-xl bg-[#faf9f5] border border-[#0000000c]"
+                >
+                  <div className="min-w-0">
+                    <div className="text-xs font-medium text-[#1f1e1d]">{persona.label}</div>
+                    <div className="text-[10.5px] text-[#7e7d77]">{persona.detail}</div>
+                  </div>
+                  <select
+                    value={settings.personaModels?.[persona.id] ?? ""}
+                    onChange={(e) => void setPersonaModel(persona.id, e.target.value)}
+                    disabled={busy || loading}
+                    className="w-full px-3 py-2 rounded-lg border border-[#00000014] bg-white text-xs text-[#1f1e1d] outline-none focus:border-[#00000030]"
+                  >
+                    <option value="">跟随主会话模型</option>
+                    {grouped.map(({ provider, models: list }) => (
+                      <optgroup key={`${persona.id}-${provider}`} label={provider}>
+                        {list.map((m) => (
+                          <option key={m.id} value={m.id}>
+                            {m.label || m.id}
+                          </option>
+                        ))}
+                      </optgroup>
+                    ))}
+                  </select>
+                </div>
+              ))}
+            </div>
           </div>
 
           {/* 添加新接口卡片 */}

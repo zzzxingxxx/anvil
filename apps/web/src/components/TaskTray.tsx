@@ -171,6 +171,11 @@ function TaskRow({ task }: { task: TaskSummary }) {
           <span className="font-semibold text-[#1f1e1d]">
             {LABELS[task.persona] ?? task.persona}
           </span>
+          {task.model ? (
+            <span className="font-mono text-[10px] text-[#7e7d77] truncate max-w-[8rem]" title={task.model}>
+              {task.model.split("/").pop()}
+            </span>
+          ) : null}
           <span
             className={`text-[9.5px] px-1.5 py-0.2 rounded-md font-mono flex items-center gap-1 ${statusMeta.badge}`}
           >

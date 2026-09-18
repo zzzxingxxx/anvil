@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { chooseAdapterKind, useRpcPi } from "./config.ts";
+import { chooseAdapterKind, mergeSettings, resolvePersonaModel, useRpcPi } from "./config.ts";
 
 describe("adapter selection", () => {
   const previousFake = process.env.ANVIL_FAKE_PI;
@@ -25,6 +25,18 @@ describe("adapter selection", () => {
     process.env.ANVIL_PI_MODE = "auto";
     expect(useRpcPi("untrusted")).toBe(true);
     expect(useRpcPi("trusted")).toBe(false);
+  });
+
+  it("resolves persona models with inherit fallback", () => {
+    const merged = mergeSettings(
+      { defaultModel: "main/gpt", personaModels: { architect: "fast/flash" } },
+      { personaModels: { reviewer: "review/opus" } },
+    );
+    expect(merged.personaModels).toEqual({ architect: "fast/flash", reviewer: "review/opus" });
+    expect(resolvePersonaModel(merged, "architect", "ignored")).toBe("fast/flash");
+    expect(resolvePersonaModel(merged, "implementer", "session/sonnet")).toBe("session/sonnet");
+    expect(resolvePersonaModel(merged, "reviewer")).toBe("review/opus");
+    expect(resolvePersonaModel({}, "architect", "session/sonnet")).toBe("session/sonnet");
   });
 });
 

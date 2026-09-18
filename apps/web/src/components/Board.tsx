@@ -228,6 +228,11 @@ export function Board() {
                           >
                             <Bot className="w-3 h-3" />
                             <span>{personaMeta.label}</span>
+                            {task.model ? (
+                              <span className="font-mono font-normal opacity-80 max-w-[7rem] truncate">
+                                {task.model.split("/").pop()}
+                              </span>
+                            ) : null}
                           </span>
 
                           {task.status === "running" ? (

@@ -63,6 +63,11 @@ export type UiState = {
     bashPolicy?: "ask" | "allowlist";
     bashAllowlist?: string[];
     defaultModel?: string;
+    personaModels?: {
+      architect?: string;
+      implementer?: string;
+      reviewer?: string;
+    };
   };
   docker: { available: boolean; version?: string; reason?: string } | null;
 

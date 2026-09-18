@@ -366,6 +366,7 @@ async function dispatch(
         goal: string;
         persona?: "architect" | "implementer" | "reviewer";
         cwd?: string;
+        model?: string;
         timeoutSec?: number;
         maxUsd?: number;
       };
@@ -405,6 +406,11 @@ async function dispatch(
         bashPolicy?: "ask" | "allowlist";
         bashAllowlist?: string[];
         defaultModel?: string;
+        personaModels?: {
+          architect?: string;
+          implementer?: string;
+          reviewer?: string;
+        };
       };
       const config = await loadConfig();
       config.settings = { ...config.settings, ...nextSettings };

@@ -27,6 +27,7 @@ export const TaskSummarySchema = z.object({
   goal: z.string(),
   status: TaskStatusSchema,
   cwd: z.string().optional(),
+  model: z.string().optional(),
   error: z.string().optional(),
   summary: z.string().optional(),
   startedAt: z.number(),
@@ -321,6 +322,7 @@ export const TaskDelegatePayloadSchema = z.object({
   goal: z.string().min(1),
   persona: z.enum(["architect", "implementer", "reviewer"]).default("implementer"),
   cwd: z.string().optional(),
+  model: z.string().optional(),
   timeoutSec: z.number().optional(),
   maxUsd: z.number().optional(),
 });
@@ -355,11 +357,19 @@ export const BoardMovePayloadSchema = z.object({
 });
 export type BoardMovePayload = z.infer<typeof BoardMovePayloadSchema>;
 
+export const PersonaModelsSchema = z.object({
+  architect: z.string().optional(),
+  implementer: z.string().optional(),
+  reviewer: z.string().optional(),
+});
+export type PersonaModels = z.infer<typeof PersonaModelsSchema>;
+
 export const SettingsSchema = z.object({
   trustDefault: TrustLevelSchema.optional(),
   bashPolicy: z.enum(["ask", "allowlist"]).optional(),
   bashAllowlist: z.array(z.string()).optional(),
   defaultModel: z.string().optional(),
+  personaModels: PersonaModelsSchema.optional(),
 });
 export type Settings = z.infer<typeof SettingsSchema>;
 

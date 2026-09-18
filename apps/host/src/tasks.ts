@@ -13,6 +13,7 @@ import { FakePiAdapter } from "./fake-pi-adapter.ts";
 import type { AdapterKind, PiAdapter } from "./pi-adapter.ts";
 import { persistPiSession } from "./session-persist.ts";
 import { SdkPiAdapter } from "./sdk-pi-adapter.ts";
+import { resolvePersonaModel } from "./config.ts";
 import { createWorkspaceState, type WorkspaceState } from "./state.ts";
 import { resolveInside } from "./workspace.ts";
 
@@ -20,6 +21,7 @@ export type DelegateInput = {
   goal: string;
   persona?: string;
   cwd?: string;
+  model?: string;
   timeoutSec?: number;
   maxUsd?: number;
   parentIsChild?: boolean;
@@ -72,6 +74,9 @@ export class TaskOrchestrator {
       throw new Error("请先打开工作区");
     }
     const persona = (input.persona ?? "implementer") as PersonaId;
+    const model =
+      input.model?.trim() ||
+      resolvePersonaModel(this.state.settings, persona, this.state.model?.id);
     const allowed = canDelegate({
       goal: input.goal,
       persona,
@@ -93,6 +98,7 @@ export class TaskOrchestrator {
       status: shouldQueue(this.runningCount()) ? "queued" : "running",
       column: shouldQueue(this.runningCount()) ? "todo" : "doing",
       cwd: input.cwd,
+      model,
       startedAt: Date.now(),
     };
     if (input.timeoutSec != null || input.maxUsd != null) {
@@ -224,8 +230,23 @@ export class TaskOrchestrator {
       childState.cwd = childCwd;
       childState.trust = personaAllowsWrite(task.persona) ? this.state.trust : "untrusted";
       childState.settings = { ...this.state.settings };
+      childState.models = [...this.state.models];
       childState.sessionId = task.sessionId;
       childState.sessionTitle = `${persona.label} · ${task.goal.slice(0, 24)}`;
+      const childModelId =
+        task.model?.trim() ||
+        resolvePersonaModel(this.state.settings, task.persona as PersonaId, this.state.model?.id);
+      if (childModelId) {
+        const found = this.state.models.find((item) => item.id === childModelId);
+        childState.model = found ?? {
+          id: childModelId,
+          label: childModelId,
+          provider: childModelId.split("/")[0] ?? "custom",
+        };
+        childState.settings = { ...childState.settings, defaultModel: childModelId };
+      } else {
+        childState.model = this.state.model;
+      }
       const approvals = this.approvals ?? new ApprovalQueue();
       const child =
         childKind === "sdk"
@@ -235,6 +256,13 @@ export class TaskOrchestrator {
               taskId: task.id,
             });
       this.children.set(task.id, child);
+      if (childModelId && child.setModel) {
+        try {
+          await child.setModel(childModelId);
+        } catch {
+          /* keep spawning the child even if the model id is unknown */
+        }
+      }
       child.subscribe((event) => {
         if (event.type === "approval/needed") {
           task.status = "waiting_approval";

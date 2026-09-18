@@ -64,6 +64,21 @@ describe("TaskOrchestrator", () => {
     expect((state.usage.costUsd ?? 0) > 0).toBe(true);
   });
 
+  it("assigns a persona-specific model to a delegated child", async () => {
+    const cwd = await mkdtemp(join(tmpdir(), "anvil-child-model-"));
+    const sessionDir = join(cwd, "sessions");
+    const state = createWorkspaceState();
+    state.cwd = cwd;
+    state.trust = "trusted";
+    state.model = { id: "fake/anvil-echo", label: "Anvil Echo（假模型）", provider: "fake" };
+    state.settings = { personaModels: { architect: "fake/anvil-echo" } };
+    const tasks = new TaskOrchestrator(state, sessionDir);
+    const task = await tasks.delegate({ goal: "拆前端文案", persona: "architect" });
+    expect(task.model).toBe("fake/anvil-echo");
+    await new Promise((resolve) => setTimeout(resolve, 1200));
+    expect(state.tasks.find((item) => item.id === task.id)?.status).toBe("succeeded");
+  });
+
   it("rolls child file changes and cache tokens onto the parent", async () => {
     const cwd = await mkdtemp(join(tmpdir(), "anvil-child-diff-"));
     const sessionDir = join(cwd, "sessions");

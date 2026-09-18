@@ -3,11 +3,18 @@ import { join } from "node:path";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import type { TrustLevel } from "@anvil/protocol";
 
+export type PersonaModels = {
+  architect?: string;
+  implementer?: string;
+  reviewer?: string;
+};
+
 export type AnvilSettings = {
   trustDefault?: "trusted" | "untrusted";
   bashPolicy?: "ask" | "allowlist";
   bashAllowlist?: string[];
   defaultModel?: string;
+  personaModels?: PersonaModels;
 };
 
 export type AnvilConfig = {
@@ -90,7 +97,24 @@ export function mergeSettings(base: AnvilSettings, overlay: AnvilSettings): Anvi
     ...base,
     ...overlay,
     bashAllowlist: overlay.bashAllowlist ?? base.bashAllowlist,
+    personaModels: {
+      ...(base.personaModels ?? {}),
+      ...(overlay.personaModels ?? {}),
+    },
   };
+}
+
+export function resolvePersonaModel(
+  settings: AnvilSettings | undefined,
+  persona: "architect" | "implementer" | "reviewer",
+  fallback?: string | null,
+): string | undefined {
+  const chosen = settings?.personaModels?.[persona]?.trim();
+  if (chosen) {
+    return chosen;
+  }
+  const inherited = fallback?.trim() || settings?.defaultModel?.trim();
+  return inherited || undefined;
 }
 
 export async function loadProjectSettings(cwd: string): Promise<AnvilSettings> {

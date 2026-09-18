@@ -269,6 +269,27 @@ describe("handleRequest", () => {
     expect(state.model?.id).toBe("fake/anvil-echo");
   });
 
+  it("saves persona model assignments", async () => {
+    const state = createWorkspaceState();
+    const approvals = new ApprovalQueue();
+    const adapter = new FakePiAdapter(state, approvals);
+    const response = await handleRequest(
+      makeRequest(
+        "settings.set",
+        { personaModels: { architect: "fake/anvil-echo", reviewer: "fake/anvil-echo" } },
+        "persona-models",
+      ),
+      state,
+      adapter,
+      approvals,
+    );
+    expect(response.payload).toMatchObject({ ok: true });
+    expect(state.settings.personaModels).toEqual({
+      architect: "fake/anvil-echo",
+      reviewer: "fake/anvil-echo",
+    });
+  });
+
   it("searches files after opening a workspace", async () => {
     const dir = await mkdtemp(join(tmpdir(), "anvil-search-ws-"));
     await writeFile(join(dir, "开发计划.md"), "# plan\n", "utf8");

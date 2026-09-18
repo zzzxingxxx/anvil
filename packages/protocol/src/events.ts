@@ -189,6 +189,13 @@ export const SnapshotEventSchema = z.object({
       bashPolicy: z.enum(["ask", "allowlist"]).optional(),
       bashAllowlist: z.array(z.string()).optional(),
       defaultModel: z.string().optional(),
+      personaModels: z
+        .object({
+          architect: z.string().optional(),
+          implementer: z.string().optional(),
+          reviewer: z.string().optional(),
+        })
+        .optional(),
     })
     .optional(),
   docker: z
