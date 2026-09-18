@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createWorkspaceState, settleIdleTools, upsertTool } from "./state.ts";
+import { createWorkspaceState, resetConversation, settleIdleTools, upsertTool } from "./state.ts";
 
 describe("tool snapshot settling", () => {
   it("stamps startedAt and endedAt", () => {
@@ -17,5 +17,14 @@ describe("tool snapshot settling", () => {
     settleIdleTools(state);
     expect(state.tools[0]?.status).toBe("error");
     expect(state.tools[0]?.endedAt).toBeTypeOf("number");
+  });
+});
+
+describe("resetConversation", () => {
+  it("zeros usage so a new session does not inherit the previous turn", () => {
+    const state = createWorkspaceState();
+    state.usage = { inputTokens: 12, outputTokens: 8, cacheReadTokens: 3, costUsd: 0.02 };
+    resetConversation(state);
+    expect(state.usage).toEqual({ inputTokens: 0, outputTokens: 0 });
   });
 });

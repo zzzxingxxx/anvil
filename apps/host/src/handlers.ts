@@ -116,6 +116,9 @@ async function dispatch(
       if (!state.cwd) {
         throw new Error("请先打开工作区");
       }
+      if (state.agentStatus === "running") {
+        throw new Error("等当前轮结束再改信任");
+      }
       const { trust } = payload as { trust: "trusted" | "untrusted" };
       state.trust = trust;
       const config = await loadConfig();
@@ -225,6 +228,9 @@ async function dispatch(
       return { ok: true, models, currentId: state.model?.id ?? null };
     }
     case "model.set": {
+      if (state.agentStatus === "running") {
+        throw new Error("等当前轮结束再切换模型");
+      }
       const { id } = payload as { id: string };
       if (adapter.setModel) {
         const model = await adapter.setModel(id);

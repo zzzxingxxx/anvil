@@ -29,7 +29,9 @@ export function Header() {
     adapter,
     setActiveTab,
     activeTab,
+    agentStatus,
   } = useUiStore();
+  const busy = agentStatus === "running";
   const [openModels, setOpenModels] = useState(false);
 
   useEffect(() => {
@@ -122,7 +124,9 @@ export function Header() {
         <button
           type="button"
           onClick={handleTrust}
-          className="hidden sm:flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-[#00000006] border border-[#0000000a] text-[#4f4e4a] text-[11px] hover:bg-[#edece6]"
+          disabled={busy}
+          title={busy ? "等当前轮结束再改信任" : undefined}
+          className="hidden sm:flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-[#00000006] border border-[#0000000a] text-[#4f4e4a] text-[11px] hover:bg-[#edece6] disabled:opacity-40 disabled:hover:bg-[#00000006]"
         >
           {trust === "trusted" ? (
             <>
@@ -142,9 +146,14 @@ export function Header() {
             type="button"
             onClick={(event) => {
               event.stopPropagation();
+              if (busy) {
+                return;
+              }
               setOpenModels((open) => !open);
             }}
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#ffffff] hover:bg-[#fcfbf9] text-[#1f1e1d] text-xs font-mono border border-[#00000014] shadow-[0_1px_2px_rgba(0,0,0,0.03)]"
+            disabled={busy}
+            title={busy ? "等当前轮结束再切换模型" : undefined}
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#ffffff] hover:bg-[#fcfbf9] text-[#1f1e1d] text-xs font-mono border border-[#00000014] shadow-[0_1px_2px_rgba(0,0,0,0.03)] disabled:opacity-40"
           >
             <Cpu className="w-3.5 h-3.5 text-[#7e7d77]" />
             <span className="font-medium max-w-[160px] truncate">

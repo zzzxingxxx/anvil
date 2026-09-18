@@ -19,6 +19,7 @@ export function CommandPalette() {
   const open = useUiStore((state) => state.commandOpen);
   const commandMode = useUiStore((state) => state.commandMode);
   const sessions = useUiStore((state) => state.sessions);
+  const agentStatus = useUiStore((state) => state.agentStatus);
   const [query, setQuery] = useState("");
   const [files, setFiles] = useState<Hit[]>([]);
   const [active, setActive] = useState(0);
@@ -71,8 +72,9 @@ export function CommandPalette() {
     if (commandMode === "insert") {
       return [];
     }
-    return SLASH_COMMANDS.filter((item) => !needle || item.id.includes(needle) || item.hint.includes(needle));
-  }, [query, commandMode]);
+    const available = agentStatus === "running" ? SLASH_COMMANDS.filter((item) => item.id === "/abort") : SLASH_COMMANDS;
+    return available.filter((item) => !needle || item.id.includes(needle) || item.hint.includes(needle));
+  }, [query, commandMode, agentStatus]);
 
   const rows = useMemo<PaletteRow[]>(() => {
     const next: PaletteRow[] = [];

@@ -111,6 +111,7 @@ export function resetConversation(state: WorkspaceState): void {
   state.treeSeeds = [];
   state.currentEntryId = null;
   state.changes = [];
+  state.usage = { inputTokens: 0, outputTokens: 0 };
 }
 
 export function upsertMessage(state: WorkspaceState, message: UiMessage): void {

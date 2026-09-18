@@ -66,6 +66,32 @@ describe("handleRequest", () => {
     await prompt;
   });
 
+  it("rejects changing trust or model while a turn is running", async () => {
+    const state = createWorkspaceState();
+    state.cwd = process.cwd();
+    const approvals = new ApprovalQueue();
+    const adapter = new FakePiAdapter(state, approvals);
+    const prompt = adapter.prompt({ text: "还在跑" });
+    const trust = await handleRequest(
+      makeRequest("workspace.trust", { trust: "trusted" }, "trust-busy"),
+      state,
+      adapter,
+      approvals,
+    );
+    expect(trust.payload).toMatchObject({ ok: false });
+    expect(String((trust.payload as { error?: string }).error)).toMatch(/等当前轮结束/);
+    const model = await handleRequest(
+      makeRequest("model.set", { id: "fake/anvil-echo" }, "model-busy"),
+      state,
+      adapter,
+      approvals,
+    );
+    expect(model.payload).toMatchObject({ ok: false });
+    expect(String((model.payload as { error?: string }).error)).toMatch(/等当前轮结束/);
+    await adapter.abort();
+    await prompt;
+  });
+
   it("opens a real directory as untrusted workspace", async () => {
     const dir = await mkdtemp(join(tmpdir(), "anvil-ws-"));
     await writeFile(join(dir, "README.md"), "# hi\n", "utf8");
