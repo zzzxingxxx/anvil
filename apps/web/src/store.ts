@@ -56,6 +56,7 @@ export type UiState = {
   commandOpen: boolean;
   commandMode: "search" | "insert";
   pendingInsert: string | null;
+  restoredDraft: string | null;
   tasks: TaskSummary[];
   settings: {
     trustDefault?: "trusted" | "untrusted";
@@ -81,6 +82,7 @@ type Actions = {
   setCommandOpen: (open: boolean, mode?: "search" | "insert") => void;
   insertPath: (path: string) => void;
   consumeInsert: () => string | null;
+  consumeRestoredDraft: () => string | null;
 };
 
 const emptyUsage: Usage = { inputTokens: 0, outputTokens: 0 };
@@ -110,6 +112,7 @@ export const useUiStore = create<UiState & Actions>((set, get) => ({
   commandOpen: false,
   commandMode: "search",
   pendingInsert: null,
+  restoredDraft: null,
   tasks: [],
   settings: {},
   docker: null,
@@ -130,6 +133,11 @@ export const useUiStore = create<UiState & Actions>((set, get) => ({
     const path = get().pendingInsert;
     set({ pendingInsert: null });
     return path;
+  },
+  consumeRestoredDraft: () => {
+    const text = get().restoredDraft;
+    set({ restoredDraft: null });
+    return text;
   },
 
   applyEvent: (payload) => {
@@ -224,6 +232,7 @@ export const useUiStore = create<UiState & Actions>((set, get) => ({
                 }
               : tool,
           ),
+          pendingApproval: null,
         }));
         break;
       case "approval/needed":
@@ -257,7 +266,10 @@ export const useUiStore = create<UiState & Actions>((set, get) => ({
         set({ agentStatus: "running", lastError: null });
         break;
       case "agent/idle":
-        set({ agentStatus: "idle" });
+        set({
+          agentStatus: "idle",
+          restoredDraft: typeof event.restoredDraft === "string" ? event.restoredDraft : get().restoredDraft,
+        });
         break;
       case "agent/error":
         set({ agentStatus: "error", lastError: String(event.error ?? "未知错误") });

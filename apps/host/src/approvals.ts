@@ -11,17 +11,20 @@ type Pending = {
 export class ApprovalQueue {
   private pending = new Map<string, Pending>();
 
+  constructor(private readonly timeoutMs = TIMEOUT_MS) {}
+
   get current(): ApprovalRequest | null {
     const first = this.pending.values().next().value as Pending | undefined;
     return first?.request ?? null;
   }
 
   wait(request: ApprovalRequest): Promise<ApprovalDecision> {
+    request.expiresAt = request.expiresAt ?? Date.now() + this.timeoutMs;
     return new Promise((resolve) => {
       const timer = setTimeout(() => {
         this.pending.delete(request.requestId);
         resolve("deny");
-      }, TIMEOUT_MS);
+      }, this.timeoutMs);
       this.pending.set(request.requestId, { request, resolve, timer });
     });
   }

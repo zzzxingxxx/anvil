@@ -34,7 +34,7 @@ export function Composer({ onSend, sending }: ComposerProps) {
   const [draft, setDraft] = useState("");
   const [slashOpen, setSlashOpen] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const { agentStatus, connection, cwd, pendingInsert } = useUiStore();
+  const { agentStatus, connection, cwd, pendingInsert, restoredDraft } = useUiStore();
   const isRunning = agentStatus === "running";
   const slashCommands = [
     { id: "/compact", hint: "压缩当前会话上下文" },
@@ -67,6 +67,18 @@ export function Composer({ onSend, sending }: ComposerProps) {
     textareaRef.current?.focus();
   }, [pendingInsert]);
 
+  useEffect(() => {
+    if (!restoredDraft) {
+      return;
+    }
+    const text = useUiStore.getState().consumeRestoredDraft();
+    if (!text) {
+      return;
+    }
+    setDraft((current) => (current.trim() ? `${current.trim()}\n${text}` : text));
+    textareaRef.current?.focus();
+  }, [restoredDraft]);
+
   const runSlash = async (id: string) => {
     setSlashOpen(false);
     try {
@@ -81,8 +93,12 @@ export function Composer({ onSend, sending }: ComposerProps) {
         return;
       }
       if (id === "/abort") {
-        await client.request("agent.abort", {});
-        setDraft("");
+        const response = await client.request("agent.abort", {});
+        const restored = (response.payload as { restoredDraft?: string }).restoredDraft;
+        useUiStore.getState().consumeRestoredDraft();
+        if (restored) {
+          setDraft((current) => (current.trim() ? `${current.trim()}\n${restored}` : restored));
+        }
       }
     } catch (error) {
       useUiStore.setState({
@@ -145,7 +161,12 @@ export function Composer({ onSend, sending }: ComposerProps) {
 
   const handleAbort = async () => {
     try {
-      await client.request("agent.abort", {});
+      const response = await client.request("agent.abort", {});
+      const restored = (response.payload as { restoredDraft?: string }).restoredDraft;
+      useUiStore.getState().consumeRestoredDraft();
+      if (restored) {
+        setDraft((current) => (current.trim() ? `${current.trim()}\n${restored}` : restored));
+      }
     } catch (error) {
       useUiStore.setState({
         lastError: error instanceof Error ? error.message : String(error),

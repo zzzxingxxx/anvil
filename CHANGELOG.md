@@ -24,4 +24,5 @@
 - 大于 2MB 的快照只记 sha256；`/health` 带 RPC sidecar 重启次数。
 - 子任务 `timeoutSec` / `maxUsd` 真正生效；检查器压缩带保留指令。
 - 助手消息转义后渲染粗体/行内代码；工具卡显示已用时并可展开全部输出。
+- 审批超时视为拒绝并显示倒计时；Esc / 中止把 steer、follow-up 队列还回输入框。
 - 已知问题见 README。

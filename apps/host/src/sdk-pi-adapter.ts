@@ -99,26 +99,30 @@ export class SdkPiAdapter implements PiAdapter {
     this.emit({ type: "message/upsert", message });
   }
 
-  async abort(): Promise<void> {
+  async abort(): Promise<string | void> {
     const queued = this.runtime?.session.clearQueue();
     this.approvals.rejectAll();
     this.state.pendingApproval = null;
     if (this.runtime) {
       await this.runtime.session.abort();
     }
-    if (queued && (queued.steering.length || queued.followUp.length)) {
-      const text = [...queued.steering, ...queued.followUp].join("\n");
+    const restoredDraft =
+      queued && (queued.steering.length || queued.followUp.length)
+        ? [...queued.steering, ...queued.followUp].join("\n")
+        : undefined;
+    if (restoredDraft) {
       const message: UiMessage = {
         id: `abort-queue-${Date.now()}`,
         role: "system",
-        text: `已中止。队列已清空：${text}`,
+        text: `已中止。队列已清空，文本已还回输入框。`,
         createdAt: Date.now(),
       };
       upsertMessage(this.state, message);
       this.emit({ type: "message/upsert", message });
     }
     this.state.agentStatus = "idle";
-    this.emit({ type: "agent/idle" });
+    this.emit(restoredDraft ? { type: "agent/idle", restoredDraft } : { type: "agent/idle" });
+    return restoredDraft;
   }
 
   async listSessions(): Promise<SessionSummary[]> {

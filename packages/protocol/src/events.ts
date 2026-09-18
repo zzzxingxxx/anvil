@@ -31,6 +31,7 @@ export const ApprovalRequestSchema = z.object({
   argsPreview: z.string(),
   risk: z.enum(["low", "medium", "high"]),
   taskId: z.string().optional(),
+  expiresAt: z.number().optional(),
 });
 export type ApprovalRequest = z.infer<typeof ApprovalRequestSchema>;
 
@@ -118,6 +119,7 @@ export const AgentRunningEventSchema = z.object({
 
 export const AgentIdleEventSchema = z.object({
   type: z.literal("agent/idle"),
+  restoredDraft: z.string().optional(),
 });
 
 export const AgentErrorEventSchema = z.object({

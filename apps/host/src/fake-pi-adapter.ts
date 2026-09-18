@@ -30,6 +30,8 @@ export class FakePiAdapter implements PiAdapter {
   private listeners = new Set<(event: AnvilEvent) => void>();
   private runAbort: AbortController | null = null;
   private counter = 0;
+  private queuedSteer: string[] = [];
+  private queuedFollowUp: string[] = [];
 
   constructor(
     private readonly state: WorkspaceState,
@@ -214,6 +216,7 @@ export class FakePiAdapter implements PiAdapter {
   }
 
   async steer(text: string): Promise<void> {
+    this.queuedSteer.push(text);
     const message: UiMessage = {
       id: `steer-${Date.now()}`,
       role: "system",
@@ -225,6 +228,7 @@ export class FakePiAdapter implements PiAdapter {
   }
 
   async followUp(text: string): Promise<void> {
+    this.queuedFollowUp.push(text);
     const message: UiMessage = {
       id: `follow-${Date.now()}`,
       role: "system",
@@ -235,11 +239,13 @@ export class FakePiAdapter implements PiAdapter {
     this.emit({ type: "message/upsert", message });
   }
 
-  async abort(): Promise<void> {
+  async abort(): Promise<string | void> {
     this.runAbort?.abort();
     this.approvals?.rejectAll();
     this.state.pendingApproval = null;
-    this.finishIdle();
+    const restoredDraft = this.takeQueuedDraft();
+    this.finishIdle(restoredDraft);
+    return restoredDraft;
   }
 
   async newSession(title?: string): Promise<SessionSummary> {
@@ -446,9 +452,16 @@ export class FakePiAdapter implements PiAdapter {
     return true;
   }
 
-  private finishIdle(): void {
+  private takeQueuedDraft(): string | undefined {
+    const text = [...this.queuedSteer, ...this.queuedFollowUp].join("\n").trim();
+    this.queuedSteer = [];
+    this.queuedFollowUp = [];
+    return text || undefined;
+  }
+
+  private finishIdle(restoredDraft?: string): void {
     this.state.agentStatus = "idle";
-    this.emit({ type: "agent/idle" });
+    this.emit(restoredDraft ? { type: "agent/idle", restoredDraft } : { type: "agent/idle" });
   }
 
   private emit(event: AnvilEvent): void {

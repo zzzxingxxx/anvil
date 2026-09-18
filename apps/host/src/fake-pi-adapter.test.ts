@@ -130,4 +130,16 @@ describe("FakePiAdapter", () => {
     await restorer.resumeSession(file);
     expect(other.messages.some((item) => item.text.includes("解释这个仓库"))).toBe(true);
   });
+
+  it("returns queued steer text when aborting", async () => {
+    const state = createWorkspaceState();
+    state.trust = "untrusted";
+    const adapter = new FakePiAdapter(state);
+    const prompt = adapter.prompt({ text: "跑起来" });
+    await new Promise((resolve) => setTimeout(resolve, 40));
+    await adapter.steer("改成只读");
+    const restored = await adapter.abort();
+    expect(restored).toBe("改成只读");
+    await prompt;
+  });
 });

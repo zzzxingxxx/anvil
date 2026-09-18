@@ -194,9 +194,10 @@ async function dispatch(
       await adapter.followUp(text);
       return { ok: true };
     }
-    case "agent.abort":
-      await adapter.abort();
-      return { ok: true };
+    case "agent.abort": {
+      const restoredDraft = await adapter.abort();
+      return restoredDraft ? { ok: true, restoredDraft } : { ok: true };
+    }
     case "approval.respond": {
       const { requestId, decision } = payload as {
         requestId: string;

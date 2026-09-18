@@ -59,10 +59,16 @@ export class RpcPiAdapter implements PiAdapter {
     await (await this.requireClient()).followUp(text);
   }
 
-  async abort(): Promise<void> {
+  async abort(): Promise<string | void> {
+    const client = this.client as (RpcClient & { clearQueue?: () => Promise<{ steering?: string[]; followUp?: string[] }> | { steering?: string[]; followUp?: string[] } }) | null;
+    const queuedRaw = client?.clearQueue ? await client.clearQueue() : undefined;
     await this.client?.abort();
+    const restoredDraft = queuedRaw
+      ? [...(queuedRaw.steering ?? []), ...(queuedRaw.followUp ?? [])].join("\n").trim() || undefined
+      : undefined;
     this.state.agentStatus = "idle";
-    this.emit({ type: "agent/idle" });
+    this.emit(restoredDraft ? { type: "agent/idle", restoredDraft } : { type: "agent/idle" });
+    return restoredDraft;
   }
 
   async compact(instructions?: string): Promise<void> {

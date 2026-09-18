@@ -123,6 +123,12 @@ export const AgentOkResultSchema = z.object({
 });
 export type AgentOkResult = z.infer<typeof AgentOkResultSchema>;
 
+export const AgentAbortResultSchema = z.object({
+  ok: z.literal(true),
+  restoredDraft: z.string().optional(),
+});
+export type AgentAbortResult = z.infer<typeof AgentAbortResultSchema>;
+
 export const AgentSteerPayloadSchema = z.object({
   text: z.string().min(1),
 });
@@ -397,7 +403,7 @@ export const CommandResultSchemas = {
   "agent.prompt": AgentOkResultSchema,
   "agent.steer": AgentOkResultSchema,
   "agent.followUp": AgentOkResultSchema,
-  "agent.abort": AgentOkResultSchema,
+  "agent.abort": AgentAbortResultSchema,
   "approval.respond": AgentOkResultSchema,
   "model.list": ModelListResultSchema,
   "model.set": ModelSetResultSchema,

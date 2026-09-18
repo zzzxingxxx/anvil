@@ -13,7 +13,7 @@ export interface PiAdapter {
   prompt(input: PromptInput): Promise<void>;
   steer(text: string): Promise<void>;
   followUp(text: string): Promise<void>;
-  abort(): Promise<void>;
+  abort(): Promise<string | void>;
   subscribe(cb: (event: AnvilEvent) => void): () => void;
   dispose(): Promise<void>;
   openWorkspace?(cwd: string): Promise<void>;

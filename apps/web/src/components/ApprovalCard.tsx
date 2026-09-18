@@ -1,10 +1,24 @@
 import { ShieldAlert } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useUiStore } from "../store.ts";
 import { client } from "../ws.ts";
+import { formatElapsed } from "../lib/utils.ts";
 
 export function ApprovalCard() {
   const pendingApproval = useUiStore((state) => state.pendingApproval);
+  const [now, setNow] = useState(Date.now());
+
+  useEffect(() => {
+    if (!pendingApproval?.expiresAt) {
+      return;
+    }
+    const handle = window.setInterval(() => setNow(Date.now()), 500);
+    return () => window.clearInterval(handle);
+  }, [pendingApproval?.expiresAt]);
+
   if (!pendingApproval) return null;
+
+  const remainingMs = pendingApproval.expiresAt ? Math.max(0, pendingApproval.expiresAt - now) : null;
 
   const respond = async (decision: "allow-once" | "deny") => {
     try {
@@ -39,6 +53,11 @@ export function ApprovalCard() {
               ) : (
                 <span className="text-[10px] text-[#7e7d77]">主会话</span>
               )}
+              {remainingMs != null ? (
+                <span className="text-[10px] font-mono text-[#7e7d77]">
+                  {remainingMs === 0 ? "已超时，视为拒绝" : `${formatElapsed(remainingMs)} 后自动拒绝`}
+                </span>
+              ) : null}
             </div>
             <pre className="mt-1.5 text-[11px] font-mono text-[#4f4e4a] whitespace-pre-wrap break-all max-h-24 overflow-y-auto">
               {pendingApproval.argsPreview}
