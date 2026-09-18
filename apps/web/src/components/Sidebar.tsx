@@ -1,6 +1,7 @@
 import { SquarePen, GitBranch, Compass, FolderOpen } from "lucide-react";
 import { useState } from "react";
 import { useUiStore } from "../store.ts";
+import { formatRelativeTime } from "../lib/utils.ts";
 import { client } from "../ws.ts";
 
 export function Sidebar() {
@@ -145,7 +146,10 @@ export function Sidebar() {
                         <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${active ? "bg-emerald-500" : "bg-[#d6d4cc]"}`} />
                         <div className="flex flex-col truncate">
                           <span className="font-medium truncate text-xs">{session.title}</span>
-                          <span className="text-[10px] text-[#abaaa2] font-mono truncate">{session.id.split(/[\\/]/).pop()}</span>
+                          <span className="text-[10px] text-[#abaaa2] truncate">
+                            {formatRelativeTime(session.mtime)}
+                            {session.id.endsWith(".jsonl") ? ` · ${session.id.split(/[\\/]/).pop()}` : ""}
+                          </span>
                         </div>
                       </div>
                       <GitBranch className="w-3.5 h-3.5 text-[#abaaa2] shrink-0" />

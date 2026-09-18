@@ -35,7 +35,20 @@ export function DiffPanel() {
             </button>
           </div>
           <pre className="text-[10.5px] leading-relaxed max-h-40 overflow-auto whitespace-pre-wrap text-[#4f4e4a]">
-            {change.diff ?? change.kind}
+            {(change.diff ?? change.kind).split("\n").map((line, index) => (
+              <div
+                key={`${change.path}-${index}`}
+                className={
+                  line.startsWith("+") && !line.startsWith("+++")
+                    ? "text-emerald-700"
+                    : line.startsWith("-") && !line.startsWith("---")
+                      ? "text-rose-700"
+                      : "text-[#4f4e4a]"
+                }
+              >
+                {line || " "}
+              </div>
+            ))}
           </pre>
         </div>
       ))}

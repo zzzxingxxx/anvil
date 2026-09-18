@@ -33,6 +33,7 @@ function parseAgentMention(text: string): { persona: "architect" | "implementer"
 export function Composer({ onSend, sending }: ComposerProps) {
   const [draft, setDraft] = useState("");
   const [slashOpen, setSlashOpen] = useState(false);
+  const [slashIndex, setSlashIndex] = useState(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { agentStatus, connection, cwd, pendingInsert, restoredDraft } = useUiStore();
   const isRunning = agentStatus === "running";
@@ -41,12 +42,17 @@ export function Composer({ onSend, sending }: ComposerProps) {
     { id: "/new", hint: "新建会话" },
     { id: "/abort", hint: "中止当前轮" },
   ];
+  const visibleSlash = slashCommands.filter((item) => item.id.startsWith(draft.trim() || "/"));
 
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
       textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 220)}px`;
     }
+  }, [draft]);
+
+  useEffect(() => {
+    setSlashIndex(0);
   }, [draft]);
 
   useEffect(() => {
@@ -155,6 +161,26 @@ export function Composer({ onSend, sending }: ComposerProps) {
     if (e.key === "/" && (draft.length === 0 || draft.startsWith("/"))) {
       setSlashOpen(true);
     }
+    if (slashOpen && visibleSlash.length > 0) {
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setSlashIndex((value) => Math.min(value + 1, visibleSlash.length - 1));
+        return;
+      }
+      if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setSlashIndex((value) => Math.max(0, value - 1));
+        return;
+      }
+      if (e.key === "Enter" && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault();
+        const selected = visibleSlash[slashIndex] ?? visibleSlash[0];
+        if (selected) {
+          void runSlash(selected.id);
+        }
+        return;
+      }
+    }
     if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
       e.preventDefault();
       handleSubmit();
@@ -227,13 +253,14 @@ export function Composer({ onSend, sending }: ComposerProps) {
       <div className="rounded-2xl border border-[#00000018] bg-[#ffffff] shadow-[0_4px_20px_rgba(0,0,0,0.04)] overflow-hidden focus-within:border-[#00000030] transition-all relative">
         {slashOpen || draft.startsWith("/") ? (
           <div className="absolute bottom-full left-0 right-0 mb-1 rounded-xl border border-[#00000012] bg-white shadow-[0_8px_24px_rgba(0,0,0,0.08)] p-1">
-            {slashCommands
-              .filter((item) => item.id.startsWith(draft.trim() || "/"))
-              .map((item) => (
+            {visibleSlash.map((item, index) => (
                 <button
                   key={item.id}
                   type="button"
-                  className="w-full text-left px-3 py-1.5 rounded-lg text-[12px] hover:bg-[#f5f4ef]"
+                  className={`w-full text-left px-3 py-1.5 rounded-lg text-[12px] ${
+                    index === slashIndex ? "bg-[#f5f4ef]" : "hover:bg-[#f5f4ef]"
+                  }`}
+                  onMouseEnter={() => setSlashIndex(index)}
                   onClick={() => void runSlash(item.id)}
                 >
                   <span className="font-mono text-[#1f1e1d]">{item.id}</span>

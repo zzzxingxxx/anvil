@@ -4,7 +4,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import type { UiMessage } from "@anvil/protocol";
-import { formatTime, parseSafeMarkdown } from "../lib/utils.ts";
+import { formatTime, isSafeHref, parseSafeMarkdown } from "../lib/utils.ts";
 
 interface MessageItemProps {
   message: UiMessage;
@@ -70,7 +70,7 @@ export function MessageItem({ message }: MessageItemProps) {
               if (part.type === "italic") {
                 return <em key={index}>{part.value}</em>;
               }
-              if (part.type === "link" && part.href) {
+              if (part.type === "link" && part.href && isSafeHref(part.href)) {
                 return (
                   <a
                     key={index}

@@ -48,6 +48,27 @@ export function formatElapsed(ms: number): string {
   return `${minutes}m${rest.toString().padStart(2, "0")}s`;
 }
 
+export function formatRelativeTime(timestamp: number, now = Date.now()): string {
+  const delta = Math.max(0, now - timestamp);
+  if (delta < 60_000) {
+    return "刚刚";
+  }
+  if (delta < 3_600_000) {
+    return `${Math.floor(delta / 60_000)} 分钟前`;
+  }
+  if (delta < 86_400_000) {
+    return `${Math.floor(delta / 3_600_000)} 小时前`;
+  }
+  if (delta < 7 * 86_400_000) {
+    return `${Math.floor(delta / 86_400_000)} 天前`;
+  }
+  return new Date(timestamp).toLocaleDateString("zh-CN");
+}
+
+export function isSafeHref(href: string): boolean {
+  return /^https?:\/\//i.test(href.trim());
+}
+
 export type TextPart = { type: "text" | "code" | "bold" | "italic" | "link"; value: string; href?: string };
 
 export function parseSafeMarkdown(text: string): TextPart[] {
@@ -66,7 +87,11 @@ export function parseSafeMarkdown(text: string): TextPart[] {
       parts.push({ type: "bold", value: token.slice(2, -2) });
     } else if (token.startsWith("http://") || token.startsWith("https://")) {
       const href = token.replace(/[),.;!?]+$/, "");
-      parts.push({ type: "link", value: href, href });
+      if (isSafeHref(href)) {
+        parts.push({ type: "link", value: href, href });
+      } else {
+        parts.push({ type: "text", value: href });
+      }
       if (href.length < token.length) {
         parts.push({ type: "text", value: token.slice(href.length) });
       }
