@@ -42,7 +42,7 @@ Host 不用 4310：Windows 上该端口常被 QQ 占用。
 F:\adfadda\demo2342\demooo
 ```
 
-最近项目记在 `~/.anvil/config.json`。默认 **未信任**：禁止 bash / write / edit。点顶栏「沙箱保护」切换为信任后，bash 仍会弹出「允许一次 / 拒绝」。
+最近项目记在 `~/.anvil/config.json`。默认角色写在 `~/.anvil/personas/`（architect / implementer / reviewer.md），已改过的文件不会被覆盖。默认 **未信任**：禁止 bash / write / edit。点顶栏「沙箱保护」切换为信任后，bash 仍会弹出「允许一次 / 拒绝」。
 
 ## 真 Pi 与假循环
 

@@ -58,10 +58,22 @@ export function FileTree() {
         <span className="truncate text-[10px] font-mono text-[#abaaa2]" title={path ?? cwd}>
           {path ?? cwd}
         </span>
-        {path && path !== cwd ? (
-          <button type="button" className="text-[10px] text-[#7e7d77] hover:text-[#1f1e1d]" onClick={() => load(cwd)}>
-            回到根
-          </button>
+        {path && !samePath(path, cwd) ? (
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              className="text-[10px] text-[#7e7d77] hover:text-[#1f1e1d]"
+              onClick={() => {
+                const parent = parentInside(cwd, path);
+                void load(parent ?? cwd);
+              }}
+            >
+              上一级
+            </button>
+            <button type="button" className="text-[10px] text-[#7e7d77] hover:text-[#1f1e1d]" onClick={() => load(cwd)}>
+              回到根
+            </button>
+          </div>
         ) : null}
       </div>
       <div className="space-y-0.5 max-h-48 overflow-y-auto">
@@ -98,4 +110,31 @@ export function FileTree() {
       ) : null}
     </div>
   );
+}
+
+function samePath(left: string, right: string): boolean {
+  return normalizePath(left) === normalizePath(right);
+}
+
+function parentInside(cwd: string, current: string): string | null {
+  const root = normalizePath(cwd);
+  const value = normalizePath(current);
+  if (value === root) {
+    return null;
+  }
+  const sep = current.includes("\\") ? "\\" : "/";
+  const idx = current.lastIndexOf(sep);
+  if (idx <= 0) {
+    return cwd;
+  }
+  const parent = current.slice(0, idx);
+  const normalizedParent = normalizePath(parent);
+  if (normalizedParent.length < root.length || (normalizedParent !== root && !normalizedParent.startsWith(`${root}/`))) {
+    return cwd;
+  }
+  return parent;
+}
+
+function normalizePath(value: string): string {
+  return value.replace(/\\/g, "/").replace(/\/+$/, "").toLowerCase();
 }

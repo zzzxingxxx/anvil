@@ -34,6 +34,8 @@
 4. 未信任不能派出可写子 Agent。
 5. 子任务卡片能 resume 到一份 `.jsonl`。
 6. `pnpm --filter host compat` 能打开本机最多 5 个真实 session。
+7. Host 启动后 `~/.anvil/personas/` 有 architect/implementer/reviewer.md；改过的文件不会被覆盖。
+8. 文件树进入子目录后能点「上一级」，不会走出工作区。
 
 ## Phase 4
 

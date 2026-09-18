@@ -14,6 +14,7 @@ import { cors } from "hono/cors";
 import { WebSocketServer, type WebSocket } from "ws";
 import { ApprovalQueue } from "./approvals.ts";
 import { chooseAdapterKind, loadConfig } from "./config.ts";
+import { ensurePersonas } from "./personas.ts";
 import { probeDocker } from "./docker.ts";
 import { FakePiAdapter } from "./fake-pi-adapter.ts";
 import { handleRequest } from "./handlers.ts";
@@ -36,7 +37,8 @@ const adapter: PiAdapter = fake
   : rpc
     ? new RpcPiAdapter(state)
     : new SdkPiAdapter(state, approvals);
-const tasks = new TaskOrchestrator(state, undefined, approvals);
+const personas = await ensurePersonas();
+const tasks = new TaskOrchestrator(state, undefined, approvals, personas);
 const sockets = new Set<WebSocket>();
 
 state.recentWorkspaces = bootConfig.recentWorkspaces;

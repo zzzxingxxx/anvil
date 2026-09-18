@@ -6,6 +6,7 @@ import {
   shouldQueue,
   type PersonaId,
 } from "@anvil/pi-ext-delegate";
+import type { PersonaSpec } from "./personas.ts";
 import type { AnvilEvent, TaskSummary } from "@anvil/protocol";
 import { ApprovalQueue } from "./approvals.ts";
 import { FakePiAdapter } from "./fake-pi-adapter.ts";
@@ -34,6 +35,7 @@ export class TaskOrchestrator {
     private readonly state: WorkspaceState,
     private readonly sessionDir?: string,
     private readonly approvals?: ApprovalQueue,
+    private readonly personas: Record<PersonaId, PersonaSpec> = PERSONAS,
   ) {
     this.children = new Map();
   }
@@ -115,7 +117,7 @@ export class TaskOrchestrator {
     }
     try {
       const childCwd = relativeCwd ? resolveInside(this.state.cwd, relativeCwd) : this.state.cwd;
-      const spec = PERSONAS[persona] ?? PERSONAS.implementer;
+      const spec = this.personas[persona] ?? this.personas.implementer ?? PERSONAS.implementer;
       const file = persistPiSession({
         cwd: childCwd,
         sessionDir: this.sessionDir,
@@ -183,7 +185,8 @@ export class TaskOrchestrator {
     }
     this.inFlight.add(task.id);
     try {
-      const persona = PERSONAS[task.persona as PersonaId] ?? PERSONAS.implementer;
+      const persona =
+        this.personas[task.persona as PersonaId] ?? this.personas.implementer ?? PERSONAS.implementer;
       const latest = this.state.tasks.find((item) => item.id === task.id);
       if (!latest || latest.status === "cancelled") {
         return;
