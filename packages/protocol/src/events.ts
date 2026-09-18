@@ -154,6 +154,8 @@ export const SnapshotEventSchema = z.object({
       args: z.unknown(),
       status: ToolStatusSchema,
       output: z.string(),
+      startedAt: z.number().optional(),
+      endedAt: z.number().optional(),
     }),
   ),
   usage: UsageSchema,

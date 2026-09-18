@@ -20,6 +20,8 @@ export type ToolCard = {
   args: unknown;
   status: ToolStatus;
   output: string;
+  startedAt?: number;
+  endedAt?: number;
 };
 
 export type WorkspaceState = {
@@ -122,9 +124,31 @@ export function upsertMessage(state: WorkspaceState, message: UiMessage): void {
 
 export function upsertTool(state: WorkspaceState, card: ToolCard): void {
   const index = state.tools.findIndex((item) => item.callId === card.callId);
+  const previous = index === -1 ? undefined : state.tools[index];
+  const next: ToolCard = { ...previous, ...card };
+  if (next.status === "running" && next.startedAt == null) {
+    next.startedAt = previous?.startedAt ?? Date.now();
+  }
+  if ((next.status === "success" || next.status === "error") && next.endedAt == null) {
+    next.endedAt = Date.now();
+  }
   if (index === -1) {
-    state.tools.push(card);
+    state.tools.push(next);
     return;
   }
-  state.tools[index] = { ...state.tools[index], ...card };
+  state.tools[index] = next;
+}
+
+export function settleIdleTools(state: WorkspaceState): void {
+  if (state.agentStatus === "running") {
+    return;
+  }
+  for (const tool of state.tools) {
+    if (tool.status !== "running" && tool.status !== "queued") {
+      continue;
+    }
+    tool.status = "error";
+    tool.endedAt = tool.endedAt ?? Date.now();
+    tool.output = tool.output || "刷新时该工具已结束，避免永久转圈。";
+  }
 }

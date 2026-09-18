@@ -22,7 +22,7 @@ import { logError, logInfo } from "./log.ts";
 import type { PiAdapter } from "./pi-adapter.ts";
 import { RpcPiAdapter } from "./rpc-pi-adapter.ts";
 import { SdkPiAdapter } from "./sdk-pi-adapter.ts";
-import { createWorkspaceState } from "./state.ts";
+import { createWorkspaceState, settleIdleTools } from "./state.ts";
 import { TaskOrchestrator } from "./tasks.ts";
 import { messagesOnPath, pathIdsFrom } from "./tree.ts";
 
@@ -174,7 +174,7 @@ function snapshot() {
     modelLabel: state.model?.label ?? null,
     agentStatus: state.agentStatus,
     messages: visibleMessages(state),
-    tools: state.tools,
+    tools: settleSnapshotTools(state),
     usage: state.usage,
     sessions: state.sessions,
     models: state.models,
@@ -204,6 +204,11 @@ function send(socket: WebSocket, type: string, payload: unknown): void {
   if (socket.readyState === socket.OPEN) {
     socket.send(JSON.stringify(makeEvent(type, payload)));
   }
+}
+
+function settleSnapshotTools(state: ReturnType<typeof createWorkspaceState>) {
+  settleIdleTools(state);
+  return state.tools;
 }
 
 function visibleMessages(state: ReturnType<typeof createWorkspaceState>) {
