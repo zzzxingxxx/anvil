@@ -4,7 +4,10 @@ import { useUiStore } from "./store.ts";
 type Pending = {
   resolve: (envelope: Envelope) => void;
   reject: (error: Error) => void;
+  timer: number;
 };
+
+const REQUEST_TIMEOUT_MS = 30_000;
 
 class AnvilClient {
   private socket: WebSocket | null = null;
@@ -39,7 +42,11 @@ class AnvilClient {
     const envelope = makeRequest(type, payload);
     const raw = JSON.stringify(envelope);
     const response = await new Promise<Envelope>((resolve, reject) => {
-      this.pending.set(envelope.id, { resolve, reject });
+      const timer = window.setTimeout(() => {
+        this.pending.delete(envelope.id);
+        reject(new Error("请求超时"));
+      }, REQUEST_TIMEOUT_MS);
+      this.pending.set(envelope.id, { resolve, reject, timer });
       this.socket?.send(raw);
     });
     const payloadOut = response.payload as { ok?: boolean; error?: string } | undefined;
@@ -87,6 +94,7 @@ class AnvilClient {
       if (envelope.data.kind === "res") {
         const waiter = this.pending.get(envelope.data.id);
         if (waiter) {
+          window.clearTimeout(waiter.timer);
           this.pending.delete(envelope.data.id);
           waiter.resolve(envelope.data);
         }
@@ -109,6 +117,7 @@ class AnvilClient {
         this.socket = null;
       }
       for (const waiter of this.pending.values()) {
+        window.clearTimeout(waiter.timer);
         waiter.reject(new Error("连接已断开"));
       }
       this.pending.clear();

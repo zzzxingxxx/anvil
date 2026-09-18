@@ -67,10 +67,11 @@ export function SettingsPage() {
         <span className="text-[11px] text-[#7e7d77]">新工作区默认信任</span>
         <select
           value={settings.trustDefault ?? "untrusted"}
+          disabled={busy}
           onChange={(event) =>
             setSettings((prev) => ({ ...prev, trustDefault: event.target.value as Settings["trustDefault"] }))
           }
-          className="w-full rounded-lg border border-[#00000014] bg-white px-2 py-1.5"
+          className="w-full rounded-lg border border-[#00000014] bg-white px-2 py-1.5 disabled:opacity-40"
         >
           <option value="untrusted">未信任（禁止 bash / write）</option>
           <option value="trusted">信任（bash 仍会询问）</option>
@@ -80,8 +81,9 @@ export function SettingsPage() {
         <span className="text-[11px] text-[#7e7d77]">Bash 策略</span>
         <select
           value={settings.bashPolicy ?? "ask"}
+          disabled={busy}
           onChange={(event) => setSettings((prev) => ({ ...prev, bashPolicy: event.target.value as Settings["bashPolicy"] }))}
-          className="w-full rounded-lg border border-[#00000014] bg-white px-2 py-1.5"
+          className="w-full rounded-lg border border-[#00000014] bg-white px-2 py-1.5 disabled:opacity-40"
         >
           <option value="ask">每次询问</option>
           <option value="allowlist">白名单，其余询问</option>
@@ -91,9 +93,10 @@ export function SettingsPage() {
         <span className="text-[11px] text-[#7e7d77]">Bash 白名单（每行一条）</span>
         <textarea
           value={allowlist}
+          disabled={busy}
           onChange={(event) => setAllowlist(event.target.value)}
           rows={4}
-          className="w-full rounded-lg border border-[#00000014] bg-white px-2 py-1.5 font-mono text-[12px]"
+          className="w-full rounded-lg border border-[#00000014] bg-white px-2 py-1.5 font-mono text-[12px] disabled:opacity-40"
         />
       </label>
       <label className="block space-y-1">
@@ -101,10 +104,11 @@ export function SettingsPage() {
         {models.length > 0 ? (
           <select
             value={settings.defaultModel ?? ""}
+            disabled={busy}
             onChange={(event) =>
               setSettings((prev) => ({ ...prev, defaultModel: event.target.value || undefined }))
             }
-            className="w-full rounded-lg border border-[#00000014] bg-white px-2 py-1.5"
+            className="w-full rounded-lg border border-[#00000014] bg-white px-2 py-1.5 disabled:opacity-40"
           >
             <option value="">未指定（用当前会话模型）</option>
             {models.map((model) => (
@@ -119,9 +123,10 @@ export function SettingsPage() {
         ) : (
           <input
             value={settings.defaultModel ?? ""}
+            disabled={busy}
             onChange={(event) => setSettings((prev) => ({ ...prev, defaultModel: event.target.value }))}
             placeholder="provider/model，例如 anthropic/claude-sonnet-4-5"
-            className="w-full rounded-lg border border-[#00000014] bg-white px-2 py-1.5"
+            className="w-full rounded-lg border border-[#00000014] bg-white px-2 py-1.5 disabled:opacity-40"
           />
         )}
       </label>

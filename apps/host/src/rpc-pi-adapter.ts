@@ -69,6 +69,10 @@ export class RpcPiAdapter implements PiAdapter {
   }
 
   async steer(text: string): Promise<void> {
+    if (this.state.agentStatus !== "running") {
+      await this.prompt({ text });
+      return;
+    }
     await (await this.requireClient()).steer(text);
     const message: UiMessage = {
       id: `steer-${Date.now()}`,
@@ -81,6 +85,10 @@ export class RpcPiAdapter implements PiAdapter {
   }
 
   async followUp(text: string): Promise<void> {
+    if (this.state.agentStatus !== "running") {
+      await this.prompt({ text });
+      return;
+    }
     await (await this.requireClient()).followUp(text);
     const message: UiMessage = {
       id: `follow-${Date.now()}`,

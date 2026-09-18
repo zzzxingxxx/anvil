@@ -67,6 +67,10 @@ export class SdkPiAdapter implements PiAdapter {
   }
 
   async steer(text: string): Promise<void> {
+    if (this.state.agentStatus !== "running") {
+      await this.prompt({ text });
+      return;
+    }
     const session = await this.requireSession();
     await session.steer(text);
     const message: UiMessage = {
@@ -80,6 +84,10 @@ export class SdkPiAdapter implements PiAdapter {
   }
 
   async followUp(text: string): Promise<void> {
+    if (this.state.agentStatus !== "running") {
+      await this.prompt({ text });
+      return;
+    }
     const session = await this.requireSession();
     await session.followUp(text);
     const message: UiMessage = {
