@@ -2,7 +2,8 @@
 
 > 底座：**Earendil Pi**（`@earendil-works/pi-coding-agent` / [pi.dev](https://pi.dev)）
 > 原则：**不 fork Pi，不重写 Agent Runtime**。工作台只做「操作系统」，Pi 做「引擎」。
-> 工作区：`F:\adfadda\demo2342\demooo`（当前为空，本文件是立项文档）
+> 工作区：`F:\adfadda\demo2342\demooo`
+> 状态：**立项草案，已冻结。** 执行进度以 [开发计划](./开发计划.md) 和 README 为准。
 
 ---
 
@@ -530,28 +531,28 @@ Pi 文档写得很清楚：它 **没有** 内置文件系统/进程/网络权限
 
 ### Host
 
-- [ ] workspace open/close，记录最近项目
-- [ ] 信任提示状态机
-- [ ] Pi SDK 生命周期：cwd 变化要重建 `AgentSessionRuntime`
-- [ ] 事件规范化 + 快照（供 UI 重连）
-- [ ] session 文件索引
-- [ ] 审批队列 API
-- [ ] 静态文件服务 + WS
+- [x] workspace open/close，记录最近项目
+- [x] 信任提示状态机
+- [x] Pi SDK 生命周期：cwd 变化要重建 `AgentSessionRuntime`
+- [x] 事件规范化 + 快照（供 UI 重连）
+- [x] session 文件索引
+- [x] 审批队列 API
+- [x] 静态文件服务 + WS（Web 由 Vite 提供，Host 提供 `/health` + `/ws`）
 
 ### Web
 
-- [ ] 三栏布局
-- [ ] 消息列表虚拟滚动
-- [ ] 工具卡
-- [ ] Composer（@ 文件、/ 命令以后再做，v1 先纯文本）
-- [ ] 会话侧栏
-- [ ] 审批模态
-- [ ] 断线重连
+- [x] 三栏布局
+- [ ] 消息列表虚拟滚动（冰盒；当前为普通滚动）
+- [x] 工具卡
+- [x] Composer（@ 文件、/ 命令以后再做，v1 先纯文本；现已有 Ctrl+K / @agent）
+- [x] 会话侧栏
+- [x] 审批模态
+- [x] 断线重连
 
 ### Extension
 
-- [ ] `anvil-gate`：`beforeToolCall` 把 bash/write 转到 Host 审批
-- [ ] `anvil-snap`：write/edit 前后复制到 artifacts/snapshots
+- [x] `anvil-gate`：`beforeToolCall` 把 bash/write 转到 Host 审批
+- [x] `anvil-snap`：write/edit 前后复制到 artifacts/snapshots
 
 ### 协议（先定这 12 个命令）
 

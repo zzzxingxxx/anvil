@@ -14,7 +14,7 @@
 8. `pnpm check && pnpm test` 绿。
 9. **需密钥：** 真模型改一个 md；官方 `pi` resume 同一 jsonl。
 
-当前本机：已装 `pi`，`~/.pi/agent` 存在。`pnpm --filter host compat` 用 SessionManager 打开了 5 个真实 jsonl（version 3）。环境里没有模型密钥，第 9 步（真改文件）未跑通。
+当前本机：已装 `pi`，`~/.pi/agent` 存在。`pnpm --filter host compat` 用 SessionManager 打开了 5 个真实 jsonl（version 3）。`pi auth check --provider openai` 为 `credentials_not_configured`。第 9 步（真改文件）未跑通。
 
 ## Phase 2
 
