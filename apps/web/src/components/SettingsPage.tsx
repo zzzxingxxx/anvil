@@ -12,6 +12,7 @@ type Settings = {
 export function SettingsPage() {
   const docker = useUiStore((state) => state.docker);
   const cwd = useUiStore((state) => state.cwd);
+  const models = useUiStore((state) => state.models);
   const [settings, setSettings] = useState<Settings>({ bashPolicy: "ask" });
   const [allowlist, setAllowlist] = useState("git status");
   const [notice, setNotice] = useState<string | null>(null);
@@ -94,12 +95,33 @@ export function SettingsPage() {
         />
       </label>
       <label className="block space-y-1">
-        <span className="text-[11px] text-[#7e7d77]">默认模型 id（provider/model）</span>
-        <input
-          value={settings.defaultModel ?? ""}
-          onChange={(event) => setSettings((prev) => ({ ...prev, defaultModel: event.target.value }))}
-          className="w-full rounded-lg border border-[#00000014] bg-white px-2 py-1.5"
-        />
+        <span className="text-[11px] text-[#7e7d77]">默认模型</span>
+        {models.length > 0 ? (
+          <select
+            value={settings.defaultModel ?? ""}
+            onChange={(event) =>
+              setSettings((prev) => ({ ...prev, defaultModel: event.target.value || undefined }))
+            }
+            className="w-full rounded-lg border border-[#00000014] bg-white px-2 py-1.5"
+          >
+            <option value="">未指定（用当前会话模型）</option>
+            {models.map((model) => (
+              <option key={model.id} value={model.id}>
+                {model.label}（{model.id}）
+              </option>
+            ))}
+            {settings.defaultModel && !models.some((model) => model.id === settings.defaultModel) ? (
+              <option value={settings.defaultModel}>{settings.defaultModel}（已保存）</option>
+            ) : null}
+          </select>
+        ) : (
+          <input
+            value={settings.defaultModel ?? ""}
+            onChange={(event) => setSettings((prev) => ({ ...prev, defaultModel: event.target.value }))}
+            placeholder="provider/model，例如 anthropic/claude-sonnet-4-5"
+            className="w-full rounded-lg border border-[#00000014] bg-white px-2 py-1.5"
+          />
+        )}
       </label>
       <div className="flex items-center gap-2">
         <button type="button" onClick={save} className="px-3 py-1.5 rounded-lg bg-[#1f1e1d] text-white text-xs">

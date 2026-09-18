@@ -153,6 +153,25 @@ describe("FakePiAdapter", () => {
     expect(resumed.id).toBe(session.id);
   });
 
+  it("opens a workspace onto the latest persisted jsonl", async () => {
+    const cwd = await mkdtemp(join(tmpdir(), "anvil-fake-open-"));
+    const writerState = createWorkspaceState();
+    writerState.cwd = cwd;
+    writerState.trust = "untrusted";
+    const writer = new FakePiAdapter(writerState);
+    await writer.prompt({ text: "解释这个仓库" });
+    const file = writerState.sessionId!;
+    expect(file.endsWith(".jsonl")).toBe(true);
+
+    const other = createWorkspaceState();
+    other.cwd = cwd;
+    const restorer = new FakePiAdapter(other);
+    await restorer.openWorkspace(cwd);
+    expect(other.sessionId).toBe(file);
+    expect(other.messages.some((item) => item.text.includes("解释这个仓库"))).toBe(true);
+    expect(other.sessions.some((item) => item.id === file)).toBe(true);
+  });
+
   it("hydrates messages from a persisted jsonl on resume", async () => {
     const cwd = await mkdtemp(join(tmpdir(), "anvil-fake-resume-"));
     const state = createWorkspaceState();

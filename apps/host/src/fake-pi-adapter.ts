@@ -5,6 +5,7 @@ import { decideGate, previewArgs, riskFor } from "@anvil/pi-ext-gate";
 import type { ApprovalQueue } from "./approvals.ts";
 import type { PiAdapter, PromptInput } from "./pi-adapter.ts";
 import { gitDiff } from "./artifacts.ts";
+import { latestSession, toSessionSummary } from "./sdk-map.ts";
 import { appendPiAssistant, appendPiUser, hydrateUiFromPi, persistPiSession } from "./session-persist.ts";
 import { recordUsage } from "./usage-ledger.ts";
 import { resetConversation, upsertMessage, upsertTool, type WorkspaceState } from "./state.ts";
@@ -42,6 +43,24 @@ export class FakePiAdapter implements PiAdapter {
   subscribe(cb: (event: AnvilEvent) => void): () => void {
     this.listeners.add(cb);
     return () => this.listeners.delete(cb);
+  }
+
+  async openWorkspace(_cwd: string): Promise<void> {
+    await this.refreshSessions();
+    const latest = latestSession(this.state.sessions);
+    if (!latest) {
+      return;
+    }
+    try {
+      await this.resumeSession(latest.id);
+    } catch {
+      /* listing is still useful even if hydrate fails */
+    }
+  }
+
+  async listSessions(): Promise<SessionSummary[]> {
+    await this.refreshSessions();
+    return this.state.sessions;
   }
 
   async prompt(input: PromptInput): Promise<void> {
@@ -440,6 +459,20 @@ export class FakePiAdapter implements PiAdapter {
     this.state.currentEntryId = currentId;
     if (this.state.tree) {
       this.emit({ type: "tree/changed", root: this.state.tree });
+    }
+  }
+
+  private async refreshSessions(): Promise<void> {
+    const cwd = this.state.cwd;
+    if (!cwd) {
+      this.state.sessions = [];
+      return;
+    }
+    try {
+      const listed = await SessionManager.list(cwd);
+      this.state.sessions = listed.map(toSessionSummary).sort((a, b) => b.mtime - a.mtime);
+    } catch {
+      this.state.sessions = [];
     }
   }
 
