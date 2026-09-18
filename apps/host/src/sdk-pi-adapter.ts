@@ -13,7 +13,7 @@ import type { AnvilEvent, ModelInfo, SessionSummary, UiMessage } from "@anvil/pr
 import { decideGate, previewArgs, riskFor } from "@anvil/pi-ext-gate";
 import type { ApprovalQueue } from "./approvals.ts";
 import type { PiAdapter, PromptInput } from "./pi-adapter.ts";
-import { messageText, parseModelKey, toModelInfo, toSessionSummary, toUiMessage, usageFromSessionStats } from "./sdk-map.ts";
+import { latestSession, messageText, parseModelKey, toModelInfo, toSessionSummary, toUiMessage, usageFromSessionStats } from "./sdk-map.ts";
 import { applyPiSessionEvent } from "./sdk-events.ts";
 import { resetConversation, upsertMessage, type WorkspaceState } from "./state.ts";
 import { buildTree, type TreeSeed } from "./tree.ts";
@@ -36,7 +36,9 @@ export class SdkPiAdapter implements PiAdapter {
   }
 
   async openWorkspace(cwd: string): Promise<void> {
-    await this.replaceRuntime(cwd, SessionManager.create(cwd));
+    await this.refreshSessions();
+    const latest = latestSession(this.state.sessions);
+    await this.replaceRuntime(cwd, latest ? SessionManager.open(latest.id) : SessionManager.create(cwd));
     await this.refreshSessions();
     await this.refreshModels();
     this.hydrateFromSession();

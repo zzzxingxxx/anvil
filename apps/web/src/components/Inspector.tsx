@@ -22,7 +22,8 @@ export function Inspector() {
     usage,
     tasks,
     inspectorOpen,
-    toggleInspector
+    toggleInspector,
+    adapter,
   } = useUiStore();
 
   if (!inspectorOpen) return null;
@@ -86,6 +87,11 @@ export function Inspector() {
                   {modelLabel ?? "fake/anvil-echo"}
                 </span>
               </div>
+              {adapter === "rpc" ? (
+                <div className="text-[10.5px] leading-relaxed text-amber-800 bg-amber-50 border border-amber-100 rounded-lg px-2 py-1.5">
+                  RPC sidecar 不走 Anvil 审批闸门。bash / write 由本机 pi 策略决定。
+                </div>
+              ) : null}
             </div>
           </div>
 

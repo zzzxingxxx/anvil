@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { AnvilEventSchema } from "@anvil/protocol";
-import { eventFromSdk, toUiMessage, usageFromSessionStats } from "./sdk-map.ts";
+import { eventFromSdk, latestSession, toUiMessage, usageFromSessionStats } from "./sdk-map.ts";
 
 describe("sdk event mapping", () => {
   it("maps agent_start and agent_end", () => {
@@ -27,6 +27,16 @@ describe("sdk event mapping", () => {
     });
     expect(toUiMessage(fixture.message, false, "entry-9")?.id).toBe("entry-9");
     expect(AnvilEventSchema.parse({ type: "message/upsert", message: ui }).type).toBe("message/upsert");
+  });
+
+  it("picks the newest session by mtime", () => {
+    expect(
+      latestSession([
+        { id: "old.jsonl", title: "旧", mtime: 10 },
+        { id: "new.jsonl", title: "新", mtime: 99 },
+        { id: "mid.jsonl", title: "中", mtime: 40 },
+      ])?.id,
+    ).toBe("new.jsonl");
   });
 
   it("maps sidecar session stats onto Anvil usage", () => {

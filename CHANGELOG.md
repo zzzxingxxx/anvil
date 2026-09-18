@@ -37,4 +37,5 @@
 - RPC 列出本机 Pi 会话并回灌会话树；Ctrl+K `/abort` 把队列草稿还回输入框；文件树在 fs/changed 后刷新。
 - RPC compact 后回灌消息；打开工作区列出会话并同步 sidecar 用量。
 - RPC 写/改文件会做制品快照；会话树用 jsonl entry id，避免导航把对话滤空。
+- 打开工作区恢复最近一次官方 Pi 会话；RPC 标明不走 Anvil 闸门；助手消息渲染 http(s) 链接。
 - 已知问题见 README。

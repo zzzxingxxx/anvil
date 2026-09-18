@@ -3,7 +3,7 @@ import type { AnvilEvent, ModelInfo, SessionSummary, UiMessage } from "@anvil/pr
 import type { PiAdapter, PromptInput } from "./pi-adapter.ts";
 import { resetConversation, upsertMessage, type WorkspaceState } from "./state.ts";
 import { applyPiSessionEvent } from "./sdk-events.ts";
-import { toModelInfo, toSessionSummary, toUiMessage, usageFromSessionStats } from "./sdk-map.ts";
+import { latestSession, toModelInfo, toSessionSummary, toUiMessage, usageFromSessionStats } from "./sdk-map.ts";
 import { buildTree, pathIdsFrom, seedsFromRpcTree } from "./tree.ts";
 
 /**
@@ -36,6 +36,11 @@ export class RpcPiAdapter implements PiAdapter {
       await this.listModels();
     } catch {
       /* sidecar may start without models configured */
+    }
+    const latest = latestSession(this.state.sessions);
+    if (latest) {
+      await this.resumeSession(latest.id);
+      return;
     }
     await this.hydrateFromRpc();
   }

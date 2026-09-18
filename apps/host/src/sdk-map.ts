@@ -37,6 +37,10 @@ export function toModelInfo(model: { id?: string; name?: string; provider?: stri
   };
 }
 
+export function latestSession(sessions: SessionSummary[]): SessionSummary | undefined {
+  return [...sessions].sort((a, b) => b.mtime - a.mtime)[0];
+}
+
 export function toSessionSummary(info: {
   path: string;
   id: string;

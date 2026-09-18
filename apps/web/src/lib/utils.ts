@@ -48,11 +48,11 @@ export function formatElapsed(ms: number): string {
   return `${minutes}m${rest.toString().padStart(2, "0")}s`;
 }
 
-export type TextPart = { type: "text" | "code" | "bold" | "italic"; value: string };
+export type TextPart = { type: "text" | "code" | "bold" | "italic" | "link"; value: string; href?: string };
 
 export function parseSafeMarkdown(text: string): TextPart[] {
   const parts: TextPart[] = [];
-  const pattern = /(`[^`]+`|\*\*[^*]+\*\*|\*[^*]+\*)/g;
+  const pattern = /(`[^`]+`|\*\*[^*]+\*\*|\*[^*]+\*|https?:\/\/[^\s<]+)/g;
   let last = 0;
   let match: RegExpExecArray | null;
   while ((match = pattern.exec(text))) {
@@ -64,6 +64,12 @@ export function parseSafeMarkdown(text: string): TextPart[] {
       parts.push({ type: "code", value: token.slice(1, -1) });
     } else if (token.startsWith("**")) {
       parts.push({ type: "bold", value: token.slice(2, -2) });
+    } else if (token.startsWith("http://") || token.startsWith("https://")) {
+      const href = token.replace(/[),.;!?]+$/, "");
+      parts.push({ type: "link", value: href, href });
+      if (href.length < token.length) {
+        parts.push({ type: "text", value: token.slice(href.length) });
+      }
     } else {
       parts.push({ type: "italic", value: token.slice(1, -1) });
     }

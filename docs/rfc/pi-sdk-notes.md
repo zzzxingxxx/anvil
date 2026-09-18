@@ -12,6 +12,7 @@
 ## 会话
 
 - `SessionManager.create(cwd)` / `SessionManager.open(path)` / `SessionManager.list(cwd)`
+- 打开工作区：先 `list`，有会话就 `open` 最近一份 jsonl，避免每次新建空文件
 - 默认目录：`~/.pi/agent/sessions/<encoded-cwd>/`
 - Anvil 的 `session.id` **就是 jsonl 文件路径**，官方 `pi` 可 resume 同一文件
 - `runtime.newSession()` / `runtime.switchSession(path)` 会先 teardown 再创建

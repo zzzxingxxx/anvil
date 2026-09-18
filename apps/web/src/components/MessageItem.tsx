@@ -70,6 +70,19 @@ export function MessageItem({ message }: MessageItemProps) {
               if (part.type === "italic") {
                 return <em key={index}>{part.value}</em>;
               }
+              if (part.type === "link" && part.href) {
+                return (
+                  <a
+                    key={index}
+                    href={part.href}
+                    target="_blank"
+                    rel="noreferrer noopener"
+                    className="text-[#1f4b99] underline underline-offset-2"
+                  >
+                    {part.value}
+                  </a>
+                );
+              }
               return <span key={index}>{part.value}</span>;
             })}
             {message.streaming ? <span className="streaming-dot" /> : null}

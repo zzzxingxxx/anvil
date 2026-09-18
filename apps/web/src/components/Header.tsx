@@ -77,7 +77,10 @@ export function Header() {
               </span>
             ) : null}
             {adapter === "rpc" ? (
-              <span className="text-[10px] font-medium text-[#7e7d77] bg-[#edece6] px-1.5 py-0.5 rounded">
+              <span
+                className="text-[10px] font-medium text-[#7e7d77] bg-[#edece6] px-1.5 py-0.5 rounded"
+                title="RPC sidecar 不走 Anvil 闸门；bash/write 由本机 pi 策略决定"
+              >
                 RPC
               </span>
             ) : null}
