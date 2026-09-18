@@ -249,6 +249,9 @@ export class FakePiAdapter implements PiAdapter {
   }
 
   async newSession(title?: string): Promise<SessionSummary> {
+    if (this.state.agentStatus === "running") {
+      throw new Error("等当前轮结束再新建会话");
+    }
     const label = title ?? `假循环 ${this.state.sessions.length + 1}`;
     let id = `sess-fake-${Date.now()}`;
     if (this.state.cwd) {
@@ -284,6 +287,9 @@ export class FakePiAdapter implements PiAdapter {
   }
 
   async resumeSession(id: string): Promise<SessionSummary> {
+    if (this.state.agentStatus === "running") {
+      throw new Error("等当前轮结束再切换会话");
+    }
     const found = this.state.sessions.find((item) => item.id === id);
     if (id.endsWith(".jsonl")) {
       const hydrated = hydrateUiFromPi(id);

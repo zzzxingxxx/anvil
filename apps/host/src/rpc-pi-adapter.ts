@@ -95,6 +95,9 @@ export class RpcPiAdapter implements PiAdapter {
   }
 
   async newSession(): Promise<SessionSummary> {
+    if (this.state.agentStatus === "running") {
+      throw new Error("等当前轮结束再新建会话");
+    }
     const client = await this.requireClient();
     const result = await client.newSession();
     if (result.cancelled) {

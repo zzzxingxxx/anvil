@@ -10,17 +10,24 @@ const SLASH_COMMANDS = [
   { id: "/abort", hint: "中止当前轮" },
 ] as const;
 
+type PaletteRow =
+  | { kind: "command"; key: string; command: (typeof SLASH_COMMANDS)[number] }
+  | { kind: "session"; key: string; id: string; title: string }
+  | { kind: "file"; key: string; path: string };
+
 export function CommandPalette() {
   const open = useUiStore((state) => state.commandOpen);
   const commandMode = useUiStore((state) => state.commandMode);
   const sessions = useUiStore((state) => state.sessions);
   const [query, setQuery] = useState("");
   const [files, setFiles] = useState<Hit[]>([]);
+  const [active, setActive] = useState(0);
 
   useEffect(() => {
     if (!open) {
       setQuery("");
       setFiles([]);
+      setActive(0);
       return;
     }
     const onKey = (event: KeyboardEvent) => {
@@ -64,6 +71,24 @@ export function CommandPalette() {
     return SLASH_COMMANDS.filter((item) => !needle || item.id.includes(needle) || item.hint.includes(needle));
   }, [query, commandMode]);
 
+  const rows = useMemo<PaletteRow[]>(() => {
+    const next: PaletteRow[] = [];
+    for (const command of commandHits) {
+      next.push({ kind: "command", key: `cmd:${command.id}`, command });
+    }
+    for (const session of sessionHits) {
+      next.push({ kind: "session", key: `sess:${session.id}`, id: session.id, title: session.title });
+    }
+    for (const file of files) {
+      next.push({ kind: "file", key: `file:${file.path}`, path: file.path });
+    }
+    return next;
+  }, [commandHits, sessionHits, files]);
+
+  useEffect(() => {
+    setActive(0);
+  }, [query, commandMode, rows.length]);
+
   const runSlash = async (id: (typeof SLASH_COMMANDS)[number]["id"]) => {
     try {
       if (id === "/compact") {
@@ -81,6 +106,58 @@ export function CommandPalette() {
     }
   };
 
+  const activate = async (row: PaletteRow) => {
+    if (row.kind === "command") {
+      await runSlash(row.command.id);
+      return;
+    }
+    if (row.kind === "session") {
+      try {
+        await client.request("session.resume", { id: row.id });
+        useUiStore.getState().setCommandOpen(false);
+      } catch (error) {
+        useUiStore.setState({
+          lastError: error instanceof Error ? error.message : String(error),
+        });
+      }
+      return;
+    }
+    try {
+      if (commandMode === "insert") {
+        useUiStore.getState().insertPath(row.path);
+        return;
+      }
+      const response = await client.request("fs.read", { path: row.path });
+      const payload = response.payload as { path: string; content: string; truncated?: boolean };
+      useUiStore.getState().setPreview(payload);
+      useUiStore.getState().setCommandOpen(false);
+    } catch (error) {
+      useUiStore.setState({
+        lastError: error instanceof Error ? error.message : String(error),
+      });
+    }
+  };
+
+  const onInputKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      setActive((value) => (rows.length === 0 ? 0 : Math.min(value + 1, rows.length - 1)));
+      return;
+    }
+    if (event.key === "ArrowUp") {
+      event.preventDefault();
+      setActive((value) => Math.max(0, value - 1));
+      return;
+    }
+    if (event.key === "Enter") {
+      event.preventDefault();
+      const row = rows[active];
+      if (row) {
+        void activate(row);
+      }
+    }
+  };
+
   if (!open) return null;
 
   return (
@@ -93,54 +170,32 @@ export function CommandPalette() {
           autoFocus
           value={query}
           onChange={(event) => setQuery(event.target.value)}
+          onKeyDown={onInputKeyDown}
           placeholder={commandMode === "insert" ? "搜索文件并插入路径…" : "搜索命令、会话或文件…"}
           className="w-full px-4 py-3 text-sm outline-none border-b border-[#0000000c]"
         />
         <div className="max-h-80 overflow-y-auto p-2 text-xs">
-          {commandHits.map((command) => (
+          {rows.map((row, index) => (
             <button
-              key={command.id}
+              key={row.key}
               type="button"
-              className="w-full text-left px-3 py-2 rounded-lg hover:bg-[#f5f4ef]"
-              onClick={() => void runSlash(command.id)}
+              className={`w-full text-left px-3 py-2 rounded-lg ${index === active ? "bg-[#f5f4ef]" : "hover:bg-[#f5f4ef]"}`}
+              onMouseEnter={() => setActive(index)}
+              onClick={() => void activate(row)}
             >
-              <div className="font-mono text-[#1f1e1d]">{command.id}</div>
-              <div className="text-[10.5px] text-[#7e7d77]">{command.hint}</div>
+              {row.kind === "command" ? (
+                <>
+                  <div className="font-mono text-[#1f1e1d]">{row.command.id}</div>
+                  <div className="text-[10.5px] text-[#7e7d77]">{row.command.hint}</div>
+                </>
+              ) : row.kind === "session" ? (
+                <>会话 · {row.title}</>
+              ) : (
+                <span className="font-mono">文件 · {row.path}</span>
+              )}
             </button>
           ))}
-          {sessionHits.map((session) => (
-            <button
-              key={session.id}
-              type="button"
-              className="w-full text-left px-3 py-2 rounded-lg hover:bg-[#f5f4ef]"
-              onClick={async () => {
-                await client.request("session.resume", { id: session.id });
-                useUiStore.getState().setCommandOpen(false);
-              }}
-            >
-              会话 · {session.title}
-            </button>
-          ))}
-          {files.map((file) => (
-            <button
-              key={file.path}
-              type="button"
-              className="w-full text-left px-3 py-2 rounded-lg hover:bg-[#f5f4ef] font-mono"
-              onClick={async () => {
-                if (commandMode === "insert") {
-                  useUiStore.getState().insertPath(file.path);
-                  return;
-                }
-                const response = await client.request("fs.read", { path: file.path });
-                const payload = response.payload as { path: string; content: string; truncated?: boolean };
-                useUiStore.getState().setPreview(payload);
-                useUiStore.getState().setCommandOpen(false);
-              }}
-            >
-              文件 · {file.path}
-            </button>
-          ))}
-          {commandHits.length === 0 && sessionHits.length === 0 && files.length === 0 ? (
+          {rows.length === 0 ? (
             <div className="px-3 py-4 text-[#abaaa2]">
               {commandMode === "insert" ? "选中文件后插入相对路径。" : "输入关键字搜索命令、会话或预览文件。Composer 输入 @ 可插入路径。"}
             </div>

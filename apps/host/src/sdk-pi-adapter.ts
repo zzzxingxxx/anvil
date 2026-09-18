@@ -131,6 +131,9 @@ export class SdkPiAdapter implements PiAdapter {
   }
 
   async newSession(title?: string): Promise<SessionSummary> {
+    if (this.state.agentStatus === "running") {
+      throw new Error("等当前轮结束再新建会话");
+    }
     const cwd = this.requireCwd();
     if (!this.runtime) {
       await this.replaceRuntime(cwd, SessionManager.create(cwd));
@@ -161,6 +164,9 @@ export class SdkPiAdapter implements PiAdapter {
   }
 
   async resumeSession(id: string): Promise<SessionSummary> {
+    if (this.state.agentStatus === "running") {
+      throw new Error("等当前轮结束再切换会话");
+    }
     const cwd = this.requireCwd();
     if (!this.runtime) {
       await this.replaceRuntime(cwd, SessionManager.open(id));

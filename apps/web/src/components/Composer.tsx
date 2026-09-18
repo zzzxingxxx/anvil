@@ -83,7 +83,9 @@ export function Composer({ onSend, sending }: ComposerProps) {
     setSlashOpen(false);
     try {
       if (id === "/compact") {
-        await client.request("session.compact", {});
+        await client.request("session.compact", {
+          instructions: "保留目标、未完成项和关键结论",
+        });
         setDraft("");
         return;
       }

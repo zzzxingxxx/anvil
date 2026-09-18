@@ -31,4 +31,5 @@
 - 子任务托盘显示耗时；完成/失败弹出横幅，不打断 Composer。
 - 用量摘要与 `/health` 带 cache tokens；子任务超时分类有测试。
 - 底栏/检查器区分 error 态；设置保存与复制用量有成功反馈；RPC 忙时拒绝压缩。
+- Composer `/compact` 带保留指令；Ctrl+K 可用方向键/回车；忙时拒绝新建或切换会话。
 - 已知问题见 README。
