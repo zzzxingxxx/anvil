@@ -1,4 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
+import {
+  Search,
+  Terminal,
+  FileCode,
+  GitBranch,
+  CornerDownLeft,
+  X,
+  Sparkles,
+} from "lucide-react";
 import { useUiStore } from "../store.ts";
 import { client } from "../ws.ts";
 
@@ -6,8 +15,8 @@ type Hit = { path: string; name: string };
 
 const SLASH_COMMANDS = [
   { id: "/compact", hint: "压缩当前会话上下文" },
-  { id: "/new", hint: "新建会话" },
-  { id: "/abort", hint: "中止当前轮" },
+  { id: "/new", hint: "新建探索分支会话" },
+  { id: "/abort", hint: "中止当前正在执行的轮次" },
 ] as const;
 
 type PaletteRow =
@@ -72,8 +81,14 @@ export function CommandPalette() {
     if (commandMode === "insert") {
       return [];
     }
-    const available = agentStatus === "running" ? SLASH_COMMANDS.filter((item) => item.id === "/abort") : SLASH_COMMANDS;
-    return available.filter((item) => !needle || item.id.includes(needle) || item.hint.includes(needle));
+    const available =
+      agentStatus === "running"
+        ? SLASH_COMMANDS.filter((item) => item.id === "/abort")
+        : SLASH_COMMANDS;
+    return available.filter(
+      (item) =>
+        !needle || item.id.includes(needle) || item.hint.includes(needle),
+    );
   }, [query, commandMode, agentStatus]);
 
   const rows = useMemo<PaletteRow[]>(() => {
@@ -82,7 +97,12 @@ export function CommandPalette() {
       next.push({ kind: "command", key: `cmd:${command.id}`, command });
     }
     for (const session of sessionHits) {
-      next.push({ kind: "session", key: `sess:${session.id}`, id: session.id, title: session.title });
+      next.push({
+        kind: "session",
+        key: `sess:${session.id}`,
+        id: session.id,
+        title: session.title,
+      });
     }
     for (const file of files) {
       next.push({ kind: "file", key: `file:${file.path}`, path: file.path });
@@ -97,18 +117,14 @@ export function CommandPalette() {
   const runSlash = async (id: (typeof SLASH_COMMANDS)[number]["id"]) => {
     try {
       if (id === "/compact") {
-        await client.request("session.compact", { instructions: "保留目标、未完成项和关键结论" });
+        await client.request("session.compact", {
+          instructions: "保留目标、未完成项和关键结论",
+        });
       } else if (id === "/new") {
-        await client.request("session.new", { title: "命令面板新建" });
-      } else {
-        const response = await client.request("agent.abort", {});
-        const restored = (response.payload as { restoredDraft?: string }).restoredDraft;
-        useUiStore.getState().consumeRestoredDraft();
-        if (restored) {
-          useUiStore.setState({ restoredDraft: restored });
-        }
+        await client.request("session.new", { title: "快速新建" });
+      } else if (id === "/abort") {
+        await client.request("agent.abort", {});
       }
-      useUiStore.getState().setCommandOpen(false);
     } catch (error) {
       useUiStore.setState({
         lastError: error instanceof Error ? error.message : String(error),
@@ -116,108 +132,152 @@ export function CommandPalette() {
     }
   };
 
-  const activate = async (row: PaletteRow) => {
+  const selectRow = (row: PaletteRow | undefined) => {
+    if (!row) return;
     if (row.kind === "command") {
-      await runSlash(row.command.id);
+      void runSlash(row.command.id);
+      useUiStore.getState().setCommandOpen(false);
       return;
     }
     if (row.kind === "session") {
-      try {
-        await client.request("session.resume", { id: row.id });
-        useUiStore.getState().setCommandOpen(false);
-      } catch (error) {
-        useUiStore.setState({
-          lastError: error instanceof Error ? error.message : String(error),
+      void client
+        .request("session.resume", { id: row.id })
+        .then(() => {
+          useUiStore.getState().setActiveTab("chat");
+          useUiStore.getState().setCommandOpen(false);
+        })
+        .catch((error) => {
+          useUiStore.setState({
+            lastError: error instanceof Error ? error.message : String(error),
+          });
         });
-      }
       return;
     }
-    try {
-      if (commandMode === "insert") {
-        useUiStore.getState().insertPath(row.path);
-        return;
-      }
-      const response = await client.request("fs.read", { path: row.path });
-      const payload = response.payload as { path: string; content: string; truncated?: boolean };
-      useUiStore.getState().setPreview(payload);
+    if (row.kind === "file") {
+      useUiStore.getState().insertPath(row.path);
       useUiStore.getState().setCommandOpen(false);
-    } catch (error) {
-      useUiStore.setState({
-        lastError: error instanceof Error ? error.message : String(error),
-      });
-    }
-  };
-
-  const onInputKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === "ArrowDown") {
-      event.preventDefault();
-      setActive((value) => (rows.length === 0 ? 0 : Math.min(value + 1, rows.length - 1)));
-      return;
-    }
-    if (event.key === "ArrowUp") {
-      event.preventDefault();
-      setActive((value) => Math.max(0, value - 1));
-      return;
-    }
-    if (event.key === "Enter") {
-      event.preventDefault();
-      const row = rows[active];
-      if (row) {
-        void activate(row);
-      }
     }
   };
 
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/20 flex items-start justify-center pt-24" onClick={() => useUiStore.getState().setCommandOpen(false)}>
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="命令面板"
+      className="fixed inset-0 z-50 flex items-start justify-center pt-[15vh] px-4 bg-[#1f1e1d]/25 backdrop-blur-[3px]"
+      onClick={() => useUiStore.getState().setCommandOpen(false)}
+    >
       <div
-        role="dialog"
-        aria-modal="true"
-        aria-label={commandMode === "insert" ? "插入文件路径" : "命令面板"}
-        className="w-full max-w-lg rounded-2xl bg-white border border-[#00000014] shadow-[0_16px_40px_rgba(0,0,0,0.12)] overflow-hidden"
-        onClick={(event) => event.stopPropagation()}
+        className="w-full max-w-xl rounded-2xl bg-white border border-[#00000018] shadow-[var(--shadow-float)] overflow-hidden flex flex-col max-h-[70vh] select-none"
+        onClick={(e) => e.stopPropagation()}
       >
-        <input
-          autoFocus
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          onKeyDown={onInputKeyDown}
-          aria-label={commandMode === "insert" ? "搜索文件并插入路径" : "搜索命令、会话或文件"}
-          placeholder={commandMode === "insert" ? "搜索文件并插入路径…" : "搜索命令、会话或文件…"}
-          className="w-full px-4 py-3 text-sm outline-none border-b border-[#0000000c]"
-        />
-        <div className="max-h-80 overflow-y-auto p-2 text-xs">
-          {rows.map((row, index) => (
-            <button
-              key={row.key}
-              type="button"
-              className={`w-full text-left px-3 py-2 rounded-lg ${index === active ? "bg-[#f5f4ef]" : "hover:bg-[#f5f4ef]"}`}
-              onMouseEnter={() => setActive(index)}
-              onClick={() => void activate(row)}
-            >
-              {row.kind === "command" ? (
-                <>
-                  <div className="font-mono text-[#1f1e1d]">{row.command.id}</div>
-                  <div className="text-[10.5px] text-[#7e7d77]">{row.command.hint}</div>
-                </>
-              ) : row.kind === "session" ? (
-                <>会话 · {row.title}</>
-              ) : (
-                <span className="font-mono">文件 · {row.path}</span>
-              )}
-            </button>
-          ))}
+        {/* 输入框 */}
+        <div className="flex items-center gap-3 px-4 py-3.5 border-b border-[#0000000a] bg-[#faf9f5]/50">
+          <Search className="w-4 h-4 text-[#7e7d77] shrink-0" />
+          <input
+            autoFocus
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "ArrowDown") {
+                e.preventDefault();
+                setActive((prev) => (prev + 1) % Math.max(1, rows.length));
+              } else if (e.key === "ArrowUp") {
+                e.preventDefault();
+                setActive((prev) => (prev - 1 + rows.length) % Math.max(1, rows.length));
+              } else if (e.key === "Enter") {
+                e.preventDefault();
+                selectRow(rows[active]);
+              }
+            }}
+            placeholder="搜索工程文件、历史会话或执行 /compact 等指令..."
+            className="flex-1 bg-transparent text-xs sm:text-[13px] text-[#1f1e1d] outline-none placeholder-[#abaaa2]"
+          />
+          <kbd className="hidden sm:inline-block text-[10px] font-mono px-1.5 py-0.5 rounded bg-[#edece6] text-[#7e7d77]">
+            ESC
+          </kbd>
+        </div>
+
+        {/* 结果列表 */}
+        <div className="flex-1 overflow-y-auto p-2 space-y-1 [scrollbar-width:none]">
           {rows.length === 0 ? (
-            <div className="px-3 py-6 text-center text-[#abaaa2] leading-relaxed">
-              {commandMode === "insert"
-                ? "输入文件名，选中后插入相对路径。"
-                : query.trim()
-                  ? "没有匹配的命令、会话或文件。"
-                  : "输入关键字搜索命令、会话或预览文件。对话输入 @ 可插入路径。"}
+            <div className="py-10 text-center text-xs text-[#abaaa2]">
+              未搜索到匹配的文件或指令
             </div>
-          ) : null}
+          ) : (
+            rows.map((row, index) => {
+              const isSelected = index === active;
+              return (
+                <button
+                  key={row.key}
+                  type="button"
+                  onMouseEnter={() => setActive(index)}
+                  onClick={() => selectRow(row)}
+                  className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-left text-xs transition-all ${
+                    isSelected
+                      ? "bg-[#1f1e1d] text-white shadow-[var(--shadow-sm)]"
+                      : "text-[#4f4e4a] hover:bg-[#faf9f5]"
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5 min-w-0 pr-2">
+                    {row.kind === "command" ? (
+                      <Terminal
+                        className={`w-3.5 h-3.5 shrink-0 ${
+                          isSelected ? "text-white" : "text-[#7e7d77]"
+                        }`}
+                      />
+                    ) : row.kind === "session" ? (
+                      <GitBranch
+                        className={`w-3.5 h-3.5 shrink-0 ${
+                          isSelected ? "text-white" : "text-[#7e7d77]"
+                        }`}
+                      />
+                    ) : (
+                      <FileCode
+                        className={`w-3.5 h-3.5 shrink-0 ${
+                          isSelected ? "text-white" : "text-[#7e7d77]"
+                        }`}
+                      />
+                    )}
+
+                    <div className="min-w-0 truncate">
+                      {row.kind === "command" ? (
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono font-semibold">{row.command.id}</span>
+                          <span
+                            className={`text-[11px] truncate ${
+                              isSelected ? "text-white/70" : "text-[#7e7d77]"
+                            }`}
+                          >
+                            {row.command.hint}
+                          </span>
+                        </div>
+                      ) : row.kind === "session" ? (
+                        <div className="font-medium truncate">{row.title}</div>
+                      ) : (
+                        <div className="font-mono text-[11px] truncate">{row.path}</div>
+                      )}
+                    </div>
+                  </div>
+
+                  {isSelected ? (
+                    <CornerDownLeft className="w-3.5 h-3.5 text-white/70 shrink-0" />
+                  ) : null}
+                </button>
+              );
+            })
+          )}
+        </div>
+
+        {/* 底部键盘说明 */}
+        <div className="px-4 py-2 bg-[#faf9f5] border-t border-[#00000008] flex items-center justify-between text-[10.5px] text-[#abaaa2]">
+          <span className="flex items-center gap-3">
+            <span>↑↓ 导航</span>
+            <span>↵ 确认</span>
+          </span>
+          <span>按 ESC 关闭</span>
         </div>
       </div>
     </div>

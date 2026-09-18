@@ -1,4 +1,4 @@
-import { ShieldAlert } from "lucide-react";
+import { ShieldAlert, AlertTriangle, Check, X, Clock } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useUiStore } from "../store.ts";
 import { client } from "../ws.ts";
@@ -18,7 +18,9 @@ export function ApprovalCard() {
 
   if (!pendingApproval) return null;
 
-  const remainingMs = pendingApproval.expiresAt ? Math.max(0, pendingApproval.expiresAt - now) : null;
+  const remainingMs = pendingApproval.expiresAt
+    ? Math.max(0, pendingApproval.expiresAt - now)
+    : null;
 
   const respond = async (decision: "allow-once" | "deny") => {
     try {
@@ -34,53 +36,83 @@ export function ApprovalCard() {
     }
   };
 
-  const riskLabel =
-    pendingApproval.risk === "high" ? "高风险" : pendingApproval.risk === "medium" ? "中风险" : "低风险";
+  const riskBadge =
+    pendingApproval.risk === "high"
+      ? "bg-rose-100 text-rose-800 border-rose-200"
+      : pendingApproval.risk === "medium"
+        ? "bg-amber-100 text-amber-800 border-amber-200"
+        : "bg-blue-100 text-blue-800 border-blue-200";
+
+  const riskText =
+    pendingApproval.risk === "high"
+      ? "高风险"
+      : pendingApproval.risk === "medium"
+        ? "中风险"
+        : "低风险";
 
   return (
-    <div className="w-full max-w-2xl mx-auto px-3 sm:px-4 pb-2">
-      <div className="rounded-xl border border-amber-200 bg-amber-50/80 p-3.5 shadow-[var(--shadow-card)]">
-        <div className="flex items-start gap-2.5">
-          <ShieldAlert className="w-4 h-4 text-amber-700 mt-0.5 shrink-0" />
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2 text-xs font-medium text-[#1f1e1d]">
-              <span>需要审批：{pendingApproval.toolName}</span>
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-800">{riskLabel}</span>
-              {pendingApproval.taskId ? (
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-white text-[#4f4e4a] border border-[#00000010]">
-                  来自子任务 {pendingApproval.taskId}
-                </span>
-              ) : (
-                <span className="text-[10px] text-[#7e7d77]">主会话</span>
-              )}
-              {remainingMs != null ? (
-                <span className="text-[10px] font-mono text-[#7e7d77]">
-                  {remainingMs === 0 ? "已超时，视为拒绝" : `${formatElapsed(remainingMs)} 后自动拒绝`}
-                </span>
-              ) : null}
+    <div className="w-full max-w-2xl mx-auto px-3 sm:px-4 pb-2 select-none z-10">
+      <div className="rounded-2xl border border-amber-300/80 bg-[#fffdf7] p-4 shadow-[var(--shadow-card)] space-y-3">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-lg bg-amber-100/70 border border-amber-200 flex items-center justify-center shrink-0">
+              <ShieldAlert className="w-4 h-4 text-amber-700" />
             </div>
-            <pre className="mt-1.5 text-[11px] font-mono text-[#4f4e4a] whitespace-pre-wrap break-all max-h-24 overflow-y-auto">
-              {pendingApproval.argsPreview}
-            </pre>
-            <div className="mt-2.5 flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => respond("allow-once")}
-                disabled={remainingMs === 0}
-                className="px-3 py-1 rounded-lg bg-[#1f1e1d] text-white text-xs disabled:opacity-40"
-              >
-                允许一次
-              </button>
-              <button
-                type="button"
-                onClick={() => respond("deny")}
-                disabled={remainingMs === 0}
-                className="px-3 py-1 rounded-lg border border-[#00000014] bg-white text-xs text-[#4f4e4a] disabled:opacity-40"
-              >
-                拒绝
-              </button>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-semibold text-xs text-[#1f1e1d]">
+                  需授权执行：{pendingApproval.toolName}
+                </span>
+                <span
+                  className={`text-[10px] font-medium px-1.5 py-0.5 rounded border ${riskBadge}`}
+                >
+                  {riskText}
+                </span>
+              </div>
+              <div className="text-[10.5px] text-[#7e7d77]">
+                {pendingApproval.taskId
+                  ? `来源：子任务 ${pendingApproval.taskId}`
+                  : "来源：主会话对话"}
+              </div>
             </div>
           </div>
+
+          {remainingMs != null ? (
+            <div className="flex items-center gap-1 text-[10.5px] font-mono text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200/60">
+              <Clock className="w-3 h-3" />
+              <span>
+                {remainingMs === 0 ? "已超时" : `${formatElapsed(remainingMs)} 后自动拒绝`}
+              </span>
+            </div>
+          ) : null}
+        </div>
+
+        {/* 参数预览 */}
+        <div className="rounded-xl border border-[#0000000a] bg-white p-3 font-mono text-[11px] text-[#1f1e1d] whitespace-pre-wrap break-all max-h-32 overflow-y-auto leading-relaxed">
+          {pendingApproval.argsPreview}
+        </div>
+
+        {/* 决策操作 */}
+        <div className="flex items-center justify-end gap-2 pt-1">
+          <button
+            type="button"
+            onClick={() => respond("deny")}
+            disabled={remainingMs === 0}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[#00000014] bg-white hover:bg-[#faf9f5] text-xs font-medium text-[#4f4e4a] transition-all disabled:opacity-40"
+          >
+            <X className="w-3.5 h-3.5 text-[#7e7d77]" />
+            <span>拒绝</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => respond("allow-once")}
+            disabled={remainingMs === 0}
+            className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl bg-[#1f1e1d] hover:bg-[#343230] text-xs font-medium text-white shadow-[var(--shadow-sm)] transition-all active:scale-[0.98] disabled:opacity-40"
+          >
+            <Check className="w-3.5 h-3.5 text-emerald-400" />
+            <span>允许执行一次</span>
+          </button>
         </div>
       </div>
     </div>
