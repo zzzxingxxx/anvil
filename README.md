@@ -100,7 +100,7 @@ docs/
 ## 已知问题
 
 - 本机没有模型密钥时，真模型改文件的 dogfood 未跑。
-- 子任务会写合法 Pi jsonl，但子 Agent 推理仍是 Host 编排摘要，不是再拉一个计费 runtime。
+- 子任务会写合法 Pi jsonl，并跑独立假循环。真模型子 runtime 仍需密钥。
 - 桌面壳是开发版 Electron，没有安装包。Docker 只做探测，未验证进容器。人用 PTY 按计划减载。
 - 人用 PTY 终端按 Phase 2 减载推迟。
 - 桌面壳只有说明，没有安装包。

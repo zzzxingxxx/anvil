@@ -45,7 +45,7 @@ describe("TaskOrchestrator", () => {
     const tasks = new TaskOrchestrator(state, sessionDir);
     const a = await tasks.delegate({ goal: "拆前端文案", persona: "architect" });
     const b = await tasks.delegate({ goal: "审查改动", persona: "reviewer" });
-    await new Promise((resolve) => setTimeout(resolve, 160));
+    await new Promise((resolve) => setTimeout(resolve, 1200));
     expect(state.tasks.find((item) => item.id === a.id)?.status).toBe("succeeded");
     expect(state.tasks.find((item) => item.id === b.id)?.status).toBe("succeeded");
     expect(a.sessionId?.endsWith(".jsonl")).toBe(true);
@@ -53,5 +53,6 @@ describe("TaskOrchestrator", () => {
     expect(opened.getHeader()?.type).toBe("session");
     expect(opened.getEntries().length).toBeGreaterThan(0);
     expect(b.sessionId).not.toBe(a.sessionId);
+    expect(state.messages.some((item) => item.text.includes("只读子任务结束"))).toBe(true);
   });
 });

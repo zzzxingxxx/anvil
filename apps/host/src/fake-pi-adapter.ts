@@ -31,6 +31,7 @@ export class FakePiAdapter implements PiAdapter {
   constructor(
     private readonly state: WorkspaceState,
     private readonly approvals?: ApprovalQueue,
+    private readonly options: { tools?: "bash" | "none" } = {},
   ) {}
 
   subscribe(cb: (event: AnvilEvent) => void): () => void {
@@ -95,6 +96,24 @@ export class FakePiAdapter implements PiAdapter {
       }
 
       await sleep(80, signal);
+      if (this.options.tools === "none") {
+        assistant.text += " 只读子任务结束，没有调用 bash。";
+        await sleep(70, signal);
+        assistant.streaming = false;
+        this.emit({ type: "message/upsert", message: { ...assistant } });
+        if (this.state.sessionId?.endsWith(".jsonl") && assistant.text) {
+          try {
+            appendPiAssistant(this.state.sessionId, assistant.text);
+          } catch {
+            /* ignore persist errors in the demo loop */
+          }
+        }
+        if (this.runAbort === run) {
+          this.refreshTree(assistant.id);
+          this.finishIdle();
+        }
+        return;
+      }
       const args = { command: "git status" };
       const gate = decideGate({
         toolName: "bash",

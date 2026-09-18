@@ -7,8 +7,10 @@ import {
   type PersonaId,
 } from "@anvil/pi-ext-delegate";
 import type { AnvilEvent, TaskSummary } from "@anvil/protocol";
-import { appendPiAssistant, persistPiSession } from "./session-persist.ts";
-import type { WorkspaceState } from "./state.ts";
+import { ApprovalQueue } from "./approvals.ts";
+import { FakePiAdapter } from "./fake-pi-adapter.ts";
+import { persistPiSession } from "./session-persist.ts";
+import { createWorkspaceState, type WorkspaceState } from "./state.ts";
 import { resolveInside } from "./workspace.ts";
 
 export type DelegateInput = {
@@ -31,7 +33,11 @@ export class TaskOrchestrator {
   constructor(
     private readonly state: WorkspaceState,
     private readonly sessionDir?: string,
-  ) {}
+  ) {
+    this.children = new Map();
+  }
+
+  private children: Map<string, FakePiAdapter>;
 
   subscribe(cb: (event: AnvilEvent) => void): () => void {
     this.listeners.add(cb);
@@ -94,6 +100,8 @@ export class TaskOrchestrator {
     if (task.status === "succeeded" || task.status === "failed" || task.status === "cancelled") {
       return task;
     }
+    const child = this.children.get(id);
+    void child?.abort();
     this.finish(task, "cancelled", { error: "用户取消" });
     void this.pump();
     return task;
@@ -175,7 +183,6 @@ export class TaskOrchestrator {
     this.inFlight.add(task.id);
     try {
       const persona = PERSONAS[task.persona as PersonaId] ?? PERSONAS.implementer;
-      await sleep(40);
       const latest = this.state.tasks.find((item) => item.id === task.id);
       if (!latest || latest.status === "cancelled") {
         return;
@@ -188,13 +195,46 @@ export class TaskOrchestrator {
           return;
         }
       }
-      const summary = `${persona.label}完成：${task.goal.slice(0, 80)}\n范围：${task.cwd ?? "."}\n禁止再委派。`;
+      const childCwd = task.cwd && this.state.cwd ? resolveInside(this.state.cwd, task.cwd) : this.state.cwd;
+      const childState = createWorkspaceState("fake");
+      childState.cwd = childCwd;
+      childState.trust = personaAllowsWrite(task.persona) ? this.state.trust : "untrusted";
+      childState.settings = { ...this.state.settings };
+      childState.sessionId = task.sessionId;
+      childState.sessionTitle = `${persona.label} · ${task.goal.slice(0, 24)}`;
+      const child = new FakePiAdapter(childState, new ApprovalQueue(), {
+        tools: personaAllowsWrite(task.persona) ? "bash" : "none",
+      });
+      this.children.set(task.id, child);
+      child.subscribe((event) => {
+        if (event.type === "approval/needed") {
+          task.status = "waiting_approval";
+          this.emitTask(task);
+          this.emit({
+            type: "approval/needed",
+            request: { ...event.request, taskId: task.id },
+          });
+        }
+      });
+      await child.prompt({
+        text: `${persona.system}\n\n目标：${task.goal}\n范围：${task.cwd ?? "."}\n禁止再委派。`,
+      });
+      const still = this.state.tasks.find((item) => item.id === task.id);
+      if (!still || still.status === "cancelled") {
+        return;
+      }
+      const summary =
+        childState.messages.find((item) => item.role === "assistant")?.text ??
+        `${persona.label}完成：${task.goal.slice(0, 80)}`;
       this.finish(task, "succeeded", { summary });
     } catch (error) {
       this.finish(task, "failed", {
         error: error instanceof Error ? error.message : String(error),
       });
     } finally {
+      const child = this.children.get(task.id);
+      this.children.delete(task.id);
+      void child?.dispose();
       this.inFlight.delete(task.id);
       this.locks.release(task.id);
     }
@@ -212,13 +252,6 @@ export class TaskOrchestrator {
     Object.assign(task, extra);
     this.emitTask(task);
     if (status === "succeeded" && extra.summary) {
-      if (task.sessionId?.endsWith(".jsonl")) {
-        try {
-          appendPiAssistant(task.sessionId, extra.summary);
-        } catch {
-          /* keep Host running even if the child jsonl cannot be appended */
-        }
-      }
       const message = {
         id: `task-summary-${task.id}`,
         role: "system" as const,
@@ -241,6 +274,4 @@ export class TaskOrchestrator {
   }
 }
 
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
+
