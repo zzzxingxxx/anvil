@@ -9,6 +9,12 @@ type Settings = {
   defaultModel?: string;
 };
 
+type Endpoint = {
+  id: string;
+  baseUrl: string;
+  modelCount: number;
+};
+
 export function SettingsPage() {
   const docker = useUiStore((state) => state.docker);
   const cwd = useUiStore((state) => state.cwd);
@@ -19,7 +25,9 @@ export function SettingsPage() {
   const [notice, setNotice] = useState<string | null>(null);
   const [importUrl, setImportUrl] = useState("");
   const [importKey, setImportKey] = useState("");
+  const [importName, setImportName] = useState("");
   const [importing, setImporting] = useState(false);
+  const [endpoints, setEndpoints] = useState<Endpoint[]>([]);
 
   useEffect(() => {
     void client
@@ -36,6 +44,15 @@ export function SettingsPage() {
           lastError: error instanceof Error ? error.message : String(error),
         });
       });
+    void client
+      .request("model.providers", {})
+      .then((response) => {
+        const payload = response.payload as { endpoints?: Endpoint[] };
+        setEndpoints(payload.endpoints ?? []);
+      })
+      .catch(() => {
+        setEndpoints([]);
+      });
   }, [cwd]);
 
   const importModels = async () => {
@@ -47,10 +64,13 @@ export function SettingsPage() {
       const response = await client.request("model.import", {
         url: importUrl.trim(),
         apiKey: importKey.trim(),
+        provider: importName.trim() || undefined,
       });
-      const payload = response.payload as { imported?: number; provider?: string };
+      const payload = response.payload as { imported?: number; provider?: string; endpoints?: Endpoint[] };
       setImportKey("");
-      setNotice(`已从 ${payload.provider ?? "自定义接口"} 导入 ${payload.imported ?? 0} 个模型。密钥只写本机 Pi 配置。`);
+      setImportName("");
+      setEndpoints(payload.endpoints ?? []);
+      setNotice(`已保存 ${payload.provider ?? "自定义接口"}（${payload.imported ?? 0} 个模型）。对话顶栏可切换。`);
     } catch (error) {
       setNotice(null);
       useUiStore.setState({
@@ -58,6 +78,19 @@ export function SettingsPage() {
       });
     } finally {
       setImporting(false);
+    }
+  };
+
+  const removeEndpoint = async (id: string) => {
+    try {
+      const response = await client.request("model.remove", { provider: id });
+      const payload = response.payload as { endpoints?: Endpoint[] };
+      setEndpoints(payload.endpoints ?? []);
+      setNotice(`已删除 ${id}`);
+    } catch (error) {
+      useUiStore.setState({
+        lastError: error instanceof Error ? error.message : String(error),
+      });
     }
   };
 
@@ -112,10 +145,39 @@ export function SettingsPage() {
         />
       </label>
       <div className="space-y-2 rounded-xl border border-[#00000010] bg-white p-3">
-        <div className="text-[11px] text-[#7e7d77]">添加模型</div>
+        <div className="text-[11px] text-[#7e7d77]">模型接口</div>
         <p className="text-[11px] text-[#abaaa2] leading-relaxed">
-          OpenAI 兼容地址 + Key。密钥只写本机 Pi 配置。
+          可添加多套 URL + Key。对话顶栏按接口切换模型。
         </p>
+        {endpoints.length > 0 ? (
+          <div className="space-y-1">
+            {endpoints.map((item) => (
+              <div key={item.id} className="flex items-center gap-2 rounded-lg bg-[#faf9f5] px-2 py-1.5">
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-[12px] text-[#1f1e1d]">{item.id}</div>
+                  <div className="truncate text-[10px] text-[#abaaa2] font-mono">{item.baseUrl} · {item.modelCount} 个模型</div>
+                </div>
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => void removeEndpoint(item.id)}
+                  className="shrink-0 text-[11px] text-[#7e7d77] hover:text-[#1f1e1d] disabled:opacity-40"
+                >
+                  删除
+                </button>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-[11px] text-[#abaaa2]">还没有自定义接口。</p>
+        )}
+        <input
+          value={importName}
+          disabled={busy || importing}
+          onChange={(event) => setImportName(event.target.value)}
+          placeholder="名称（可选，例如 work / home）"
+          className="w-full rounded-lg border border-[#00000014] bg-white px-2 py-1.5 disabled:opacity-40"
+        />
         <input
           value={importUrl}
           disabled={busy || importing}
@@ -138,7 +200,7 @@ export function SettingsPage() {
           disabled={busy || importing || !importUrl.trim() || !importKey.trim()}
           className="px-3 py-1.5 rounded-lg border border-[#00000014] bg-[#faf9f5] text-xs disabled:opacity-40"
         >
-          {importing ? "正在拉取…" : "拉取并保存"}
+          {importing ? "正在拉取…" : "添加接口"}
         </button>
       </div>
       <label className="block space-y-1">

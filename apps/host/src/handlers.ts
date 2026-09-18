@@ -22,7 +22,7 @@ import { ArtifactStore } from "@anvil/pi-ext-artifact";
 import { listTree, readTextFile } from "./fs-ops.ts";
 import { searchFiles } from "./search.ts";
 import { logInfo } from "./log.ts";
-import { importOpenAiModels } from "./pi-models.ts";
+import { importOpenAiModels, listPiEndpoints, removePiProvider } from "./pi-models.ts";
 import type { PiAdapter } from "./pi-adapter.ts";
 import { resetConversation, type WorkspaceState } from "./state.ts";
 import { resolveInside, resolveWorkspacePath } from "./workspace.ts";
@@ -263,7 +263,35 @@ async function dispatch(
         provider: imported.provider,
         imported: imported.models.length,
         models: state.models,
+        endpoints: imported.endpoints,
       };
+    }
+    case "model.providers": {
+      return { ok: true, endpoints: await listPiEndpoints() };
+    }
+    case "model.remove": {
+      if (state.agentStatus === "running") {
+        throw new Error("等当前轮结束再删除接口");
+      }
+      const { provider } = payload as { provider: string };
+      const endpoints = await removePiProvider(provider);
+      const listed = adapter.reloadModels
+        ? await adapter.reloadModels()
+        : adapter.listModels
+          ? await adapter.listModels()
+          : state.models;
+      state.models = listed.filter((item) => item.provider !== provider);
+      if (state.model?.provider === provider) {
+        state.model = state.models[0] ?? null;
+        if (state.model && adapter.setModel) {
+          try {
+            await adapter.setModel(state.model.id);
+          } catch {
+            /* keep the remaining list even if the adapter cannot switch */
+          }
+        }
+      }
+      return { ok: true, provider, models: state.models, endpoints };
     }
     case "model.set": {
       if (state.agentStatus === "running") {

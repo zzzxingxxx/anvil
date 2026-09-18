@@ -137,7 +137,8 @@ wss.on("connection", (socket) => {
       envelope.data.type === "board.move" ||
       envelope.data.type === "settings.set" ||
       envelope.data.type === "model.set" ||
-      envelope.data.type === "model.import"
+      envelope.data.type === "model.import" ||
+      envelope.data.type === "model.remove"
     ) {
       broadcast("snapshot", snapshot());
     }

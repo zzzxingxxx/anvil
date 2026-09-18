@@ -220,12 +220,12 @@ describe("handleRequest", () => {
         adapter,
         approvals,
       );
-      expect(response.payload).toMatchObject({ ok: true, imported: 1, provider: "example-test" });
-      expect(state.models.some((item) => item.id === "example-test/gemini-flash")).toBe(true);
+      expect(response.payload).toMatchObject({ ok: true, imported: 1, provider: "example-test-v1" });
+      expect(state.models.some((item) => item.id === "example-test-v1/gemini-flash")).toBe(true);
       const written = JSON.parse(await readFile(join(dir, "models.json"), "utf8")) as {
         providers: Record<string, { baseUrl?: string }>;
       };
-      expect(written.providers["example-test"]?.baseUrl).toBe("https://example.test/v1");
+      expect(written.providers["example-test-v1"]?.baseUrl).toBe("https://example.test/v1");
     } finally {
       globalThis.fetch = previousFetch;
     }

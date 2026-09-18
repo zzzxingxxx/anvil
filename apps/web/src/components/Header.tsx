@@ -10,6 +10,7 @@ import {
   ShieldAlert,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import type { ModelInfo } from "@anvil/protocol";
 import { useUiStore } from "../store.ts";
 import { client } from "../ws.ts";
 
@@ -174,21 +175,28 @@ export function Header() {
             >
               {models.length === 0 ? (
                 <div className="px-3 py-3 text-[11px] text-[#7e7d77] leading-relaxed">
-                  没有可用模型。到设置页用 URL + Key 拉取，或在终端运行 pi 登录。
+                  没有可用模型。到设置页添加接口，或在终端运行 pi 登录。
                 </div>
               ) : (
-                models.map((model) => (
-                  <button
-                    key={model.id}
-                    type="button"
-                    onClick={() => handleModel(model.id)}
-                    className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs ${
-                      model.id === modelId ? "bg-[#edece6] text-[#1f1e1d]" : "hover:bg-[#f5f4ef] text-[#4f4e4a]"
-                    }`}
-                  >
-                    <div className="font-medium truncate">{model.label}</div>
-                    <div className="text-[10px] text-[#abaaa2] font-mono truncate">{model.id}</div>
-                  </button>
+                groupedModels(models).map((group) => (
+                  <div key={group.provider} className="pb-1">
+                    <div className="px-2.5 pt-1.5 pb-0.5 text-[10px] uppercase tracking-wider text-[#abaaa2]">
+                      {group.provider}
+                    </div>
+                    {group.models.map((model) => (
+                      <button
+                        key={model.id}
+                        type="button"
+                        onClick={() => handleModel(model.id)}
+                        className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs ${
+                          model.id === modelId ? "bg-[#edece6] text-[#1f1e1d]" : "hover:bg-[#f5f4ef] text-[#4f4e4a]"
+                        }`}
+                      >
+                        <div className="font-medium truncate">{model.label}</div>
+                        <div className="text-[10px] text-[#abaaa2] font-mono truncate">{model.id}</div>
+                      </button>
+                    ))}
+                  </div>
                 ))
               )}
             </div>
@@ -249,4 +257,17 @@ export function Header() {
       </div>
     </header>
   );
+}
+
+function groupedModels(models: ModelInfo[]): Array<{ provider: string; models: ModelInfo[] }> {
+  const groups: Array<{ provider: string; models: ModelInfo[] }> = [];
+  for (const model of models) {
+    const last = groups.at(-1);
+    if (last && last.provider === model.provider) {
+      last.models.push(model);
+      continue;
+    }
+    groups.push({ provider: model.provider, models: [model] });
+  }
+  return groups;
 }

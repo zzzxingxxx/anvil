@@ -2,7 +2,13 @@ import { mkdtemp, readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { modelsUrl, normalizeOpenAiBaseUrl, providerIdFromUrl, upsertPiProvider } from "./pi-models.ts";
+import {
+  modelsUrl,
+  normalizeOpenAiBaseUrl,
+  providerIdFromUrl,
+  uniqueProviderId,
+  upsertPiProvider,
+} from "./pi-models.ts";
 
 describe("pi-models", () => {
   const previous = process.env.PI_CODING_AGENT_DIR;
@@ -20,7 +26,8 @@ describe("pi-models", () => {
     expect(normalizeOpenAiBaseUrl("https://xywxing.xyz/v1/")).toBe("https://xywxing.xyz/v1");
     expect(normalizeOpenAiBaseUrl("https://xywxing.xyz/v1/models")).toBe("https://xywxing.xyz/v1");
     expect(modelsUrl("https://xywxing.xyz/v1")).toBe("https://xywxing.xyz/v1/models");
-    expect(providerIdFromUrl("https://xywxing.xyz/v1")).toBe("xywxing-xyz");
+    expect(providerIdFromUrl("https://xywxing.xyz/v1")).toBe("xywxing-xyz-v1");
+    expect(uniqueProviderId("xywxing-xyz-v1", new Set(["xywxing-xyz-v1"]))).toBe("xywxing-xyz-v1-2");
   });
 
   it("writes a provider into local models.json without BOM", async () => {

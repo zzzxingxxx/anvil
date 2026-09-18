@@ -53,14 +53,34 @@ export function normalizeOpenAiBaseUrl(raw: string): string {
   return parsed.toString().replace(/\/+$/, "");
 }
 
-export function providerIdFromUrl(baseUrl: string): string {
-  const host = new URL(baseUrl).hostname.replace(/^www\./, "");
-  const slug = host
-    .replace(/[^a-zA-Z0-9]+/g, "-")
+export function slugPart(value: string, fallback: string): string {
+  const slug = value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
-    .slice(0, 24)
-    .toLowerCase();
-  return slug || "custom";
+    .slice(0, 24);
+  return slug || fallback;
+}
+
+export function providerIdFromUrl(baseUrl: string): string {
+  const parsed = new URL(baseUrl);
+  const host = slugPart(parsed.hostname.replace(/^www\./, ""), "custom");
+  const path = slugPart(parsed.pathname.replace(/^\/+|\/+$/g, ""), "");
+  return path ? `${host}-${path}` : host;
+}
+
+export function uniqueProviderId(base: string, existing: Set<string>): string {
+  if (!existing.has(base)) {
+    return base;
+  }
+  for (let i = 2; i < 100; i += 1) {
+    const next = `${base}-${i}`;
+    if (!existing.has(next)) {
+      return next;
+    }
+  }
+  return `${base}-${Date.now().toString(16).slice(-4)}`;
 }
 
 export function modelsUrl(baseUrl: string): string {
@@ -149,14 +169,18 @@ export async function importOpenAiModels(input: {
   url: string;
   apiKey: string;
   provider?: string;
-}): Promise<{ provider: string; models: ModelInfo[] }> {
+}): Promise<{ provider: string; models: ModelInfo[]; endpoints: ModelEndpointSummary[] }> {
   const baseUrl = normalizeOpenAiBaseUrl(input.url);
-  const provider = (input.provider?.trim() || providerIdFromUrl(baseUrl)).replace(/[^a-zA-Z0-9._-]/g, "-");
+  const file = await readPiModelsFile();
+  const existing = new Set(Object.keys(file.providers));
+  const requested = input.provider?.trim().replace(/[^a-zA-Z0-9._-]/g, "-");
+  const sameUrl = Object.entries(file.providers).find(([, config]) => config.baseUrl === baseUrl)?.[0];
+  const provider = requested || sameUrl || uniqueProviderId(providerIdFromUrl(baseUrl), existing);
   if (!provider) {
     throw new Error("provider 名称无效");
   }
   const fetched = await fetchOpenAiModels(baseUrl, input.apiKey.trim());
-  await upsertPiProvider({
+  const next = await upsertPiProvider({
     provider,
     baseUrl,
     apiKey: input.apiKey.trim(),
@@ -169,7 +193,45 @@ export async function importOpenAiModels(input: {
       label: model.name ?? model.id,
       provider,
     })),
+    endpoints: listEndpoints(next),
   };
+}
+
+export type ModelEndpointSummary = {
+  id: string;
+  baseUrl: string;
+  modelCount: number;
+};
+
+export async function listPiEndpoints(): Promise<ModelEndpointSummary[]> {
+  return listEndpoints(await readPiModelsFile());
+}
+
+export async function removePiProvider(provider: string): Promise<ModelEndpointSummary[]> {
+  const path = join(getAgentDir(), "models.json");
+  const current = await readPiModels(path);
+  if (!current.providers[provider]) {
+    throw new Error("没有这个接口");
+  }
+  delete current.providers[provider];
+  await mkdir(dirname(path), { recursive: true });
+  await writeFile(path, `${JSON.stringify(current, null, 2)}\n`, { encoding: "utf8" });
+  return listEndpoints(current);
+}
+
+function listEndpoints(file: PiModelsFile): ModelEndpointSummary[] {
+  return Object.entries(file.providers)
+    .filter(([, config]) => Boolean(config.baseUrl) && Array.isArray(config.models) && config.models.length > 0)
+    .map(([id, config]) => ({
+      id,
+      baseUrl: config.baseUrl ?? "",
+      modelCount: config.models?.length ?? 0,
+    }))
+    .sort((a, b) => a.id.localeCompare(b.id));
+}
+
+async function readPiModelsFile(): Promise<PiModelsFile> {
+  return readPiModels(join(getAgentDir(), "models.json"));
 }
 
 async function readPiModels(path: string): Promise<PiModelsFile> {

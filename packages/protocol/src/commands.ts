@@ -179,6 +179,13 @@ export const ModelSetResultSchema = z.object({
 });
 export type ModelSetResult = z.infer<typeof ModelSetResultSchema>;
 
+export const ModelEndpointSchema = z.object({
+  id: z.string(),
+  baseUrl: z.string(),
+  modelCount: z.number(),
+});
+export type ModelEndpoint = z.infer<typeof ModelEndpointSchema>;
+
 export const ModelImportPayloadSchema = z.object({
   url: z.string().min(1),
   apiKey: z.string().min(1),
@@ -191,8 +198,29 @@ export const ModelImportResultSchema = z.object({
   provider: z.string(),
   imported: z.number(),
   models: z.array(ModelInfoSchema),
+  endpoints: z.array(ModelEndpointSchema).optional(),
 });
 export type ModelImportResult = z.infer<typeof ModelImportResultSchema>;
+
+export const ModelProvidersPayloadSchema = z.object({}).strict();
+export const ModelProvidersResultSchema = z.object({
+  ok: z.literal(true),
+  endpoints: z.array(ModelEndpointSchema),
+});
+export type ModelProvidersResult = z.infer<typeof ModelProvidersResultSchema>;
+
+export const ModelRemovePayloadSchema = z.object({
+  provider: z.string().min(1),
+});
+export type ModelRemovePayload = z.infer<typeof ModelRemovePayloadSchema>;
+
+export const ModelRemoveResultSchema = z.object({
+  ok: z.literal(true),
+  provider: z.string(),
+  models: z.array(ModelInfoSchema),
+  endpoints: z.array(ModelEndpointSchema),
+});
+export type ModelRemoveResult = z.infer<typeof ModelRemoveResultSchema>;
 
 export const FsTreePayloadSchema = z.object({
   path: z.string().optional(),
@@ -364,6 +392,8 @@ export const CommandTypeSchema = z.enum([
   "model.list",
   "model.set",
   "model.import",
+  "model.providers",
+  "model.remove",
   "fs.tree",
   "fs.read",
   "fs.search",
@@ -396,6 +426,8 @@ export const CommandPayloadSchemas = {
   "model.list": ModelListPayloadSchema,
   "model.set": ModelSetPayloadSchema,
   "model.import": ModelImportPayloadSchema,
+  "model.providers": ModelProvidersPayloadSchema,
+  "model.remove": ModelRemovePayloadSchema,
   "fs.tree": FsTreePayloadSchema,
   "fs.read": FsReadPayloadSchema,
   "fs.search": FsSearchPayloadSchema,
@@ -427,6 +459,8 @@ export const CommandResultSchemas = {
   "model.list": ModelListResultSchema,
   "model.set": ModelSetResultSchema,
   "model.import": ModelImportResultSchema,
+  "model.providers": ModelProvidersResultSchema,
+  "model.remove": ModelRemoveResultSchema,
   "fs.tree": FsTreeResultSchema,
   "fs.read": FsReadResultSchema,
   "fs.search": FsSearchResultSchema,

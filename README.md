@@ -46,7 +46,7 @@ F:\adfadda\demo2342\demooo
 
 ## 真 Pi 与假循环
 
-默认使用 `@earendil-works/pi-coding-agent@0.85.1`。没有配置模型时，顶栏会显示中文空状态。设置页可从已探测模型里选默认模型，也可填 OpenAI 兼容 URL + Key 拉取模型（写入本机 `~/.pi/agent/models.json`，不进仓库）。
+默认使用 `@earendil-works/pi-coding-agent@0.85.1`。没有配置模型时，顶栏会显示中文空状态。设置页可添加多套 OpenAI 兼容 URL + Key（写入本机 `~/.pi/agent/models.json`，不进仓库），对话顶栏按接口切换模型。
 
 强制假循环（CI / 没密钥）：
 
