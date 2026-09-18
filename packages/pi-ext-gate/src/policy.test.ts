@@ -55,6 +55,25 @@ describe("decideGate", () => {
     ).toBe("ask");
   });
 
+  it("denies tools outside a persona allowlist", () => {
+    expect(
+      decideGate({
+        toolName: "bash",
+        args: { command: "git status" },
+        trust: "trusted",
+        allowedTools: ["read", "grep", "find", "ls"],
+      }),
+    ).toMatchObject({ decision: "deny" });
+    expect(
+      decideGate({
+        toolName: "read",
+        args: { path: "README.md" },
+        trust: "untrusted",
+        allowedTools: ["read", "grep", "find", "ls"],
+      }).decision,
+    ).toBe("allow");
+  });
+
   it("allows commands on the bash allowlist", () => {
     expect(
       decideGate({

@@ -28,7 +28,7 @@ export class SdkPiAdapter implements PiAdapter {
   constructor(
     private readonly state: WorkspaceState,
     private readonly approvals: ApprovalQueue,
-    private readonly options: { taskId?: string } = {},
+    private readonly options: { taskId?: string; allowedTools?: string[] } = {},
   ) {}
 
   subscribe(cb: (event: AnvilEvent) => void): () => void {
@@ -307,6 +307,7 @@ export class SdkPiAdapter implements PiAdapter {
           services,
           sessionManager,
           sessionStartEvent,
+          tools: this.options.allowedTools,
         });
         return { ...created, services, diagnostics: services.diagnostics };
       },
@@ -451,6 +452,7 @@ export class SdkPiAdapter implements PiAdapter {
             cwd: this.state.cwd,
             bashPolicy: this.state.settings.bashPolicy,
             bashAllowlist: this.state.settings.bashAllowlist,
+            allowedTools: this.options.allowedTools,
           });
           if (gate.decision === "allow") {
             return;

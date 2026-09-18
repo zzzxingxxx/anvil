@@ -85,7 +85,9 @@ export function FileTree() {
         ) : null}
       </div>
       <div className="space-y-0.5 max-h-48 overflow-y-auto">
-        {entries.map((entry) => (
+        {entries.map((entry) => {
+          const changed = cwd ? isChangedEntry(cwd, entry.path, changes) : false;
+          return (
           <button
             key={entry.path}
             type="button"
@@ -97,10 +99,12 @@ export function FileTree() {
             ) : (
               <FileText className="w-3 h-3 text-[#7e7d77]" />
             )}
-            <span className="truncate">{entry.name}</span>
+            <span className={`truncate ${changed ? "text-amber-800" : ""}`}>{entry.name}</span>
+            {changed ? <span className="text-[9px] text-amber-800 shrink-0">改</span> : null}
             {entry.kind === "dir" ? <ChevronRight className="w-3 h-3 ml-auto text-[#abaaa2]" /> : null}
           </button>
-        ))}
+          );
+        })}
       </div>
       {preview ? (
         <div className="rounded-lg border border-[#00000010] bg-white p-2">
@@ -145,4 +149,14 @@ function parentInside(cwd: string, current: string): string | null {
 
 function normalizePath(value: string): string {
   return value.replace(/\\/g, "/").replace(/\/+$/, "").toLowerCase();
+}
+
+function isChangedEntry(cwd: string, entryPath: string, changes: { path: string }[]): boolean {
+  const root = normalizePath(cwd);
+  const value = normalizePath(entryPath);
+  const rel = value === root ? "" : value.startsWith(`${root}/`) ? value.slice(root.length + 1) : value;
+  return changes.some((change) => {
+    const changed = normalizePath(change.path);
+    return changed === rel || changed.startsWith(`${rel}/`) || rel.endsWith(`/${changed}`) || rel === changed;
+  });
 }

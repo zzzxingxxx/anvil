@@ -35,7 +35,8 @@
 5. 子任务卡片能 resume 到一份 `.jsonl`。
 6. `pnpm --filter host compat` 能打开本机最多 5 个真实 session。
 7. Host 启动后 `~/.anvil/personas/` 有 architect/implementer/reviewer.md；改过的文件不会被覆盖。
-8. 文件树进入子目录后能点「上一级」，不会走出工作区。
+8. 文件树进入子目录后能点「上一级」，不会走出工作区。本轮 Diff 里的文件在树里标「改」。
+9. SDK 只读子任务（架构师/审查者）不能 bash/write；实现者才有写工具。
 
 ## Phase 4
 

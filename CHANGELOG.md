@@ -41,4 +41,5 @@
 - 假循环打开工作区同样列出并恢复最近 jsonl；设置页可从已探测模型里选默认模型。
 - Composer `/` 菜单可用方向键/回车；侧栏会话显示相对时间；Diff 着色；链接只认 http(s)。
 - SDK 父会话的子任务走独立 SdkPiAdapter，审批卡带 taskId；假循环/RPC 子任务仍用 Fake。
+- SDK 子任务按 persona 限制工具；文件树对本轮变更标「改」。
 - 已知问题见 README。

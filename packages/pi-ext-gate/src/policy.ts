@@ -10,6 +10,7 @@ export type GateInput = {
   protectedPaths?: string[];
   bashPolicy?: "ask" | "allowlist";
   bashAllowlist?: string[];
+  allowedTools?: string[];
 };
 
 const WRITE_TOOLS = new Set(["write", "edit", "bash", "powershell"]);
@@ -56,6 +57,10 @@ export function decideGate(input: GateInput): { decision: GateDecision; reason: 
 
   if (protectedHit) {
     return { decision: "deny", reason: `命中保护路径：${protectedHit}` };
+  }
+
+  if (input.allowedTools && !input.allowedTools.some((item) => item.toLowerCase() === name)) {
+    return { decision: "deny", reason: `当前角色不能使用 ${input.toolName}` };
   }
 
   if (ALWAYS_ASK_PATTERNS.some((pattern) => pattern.test(preview))) {

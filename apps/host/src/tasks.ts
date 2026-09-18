@@ -216,7 +216,7 @@ export class TaskOrchestrator {
       const approvals = this.approvals ?? new ApprovalQueue();
       const child =
         childKind === "sdk"
-          ? new SdkPiAdapter(childState, approvals, { taskId: task.id })
+          ? new SdkPiAdapter(childState, approvals, { taskId: task.id, allowedTools: persona.tools })
           : new FakePiAdapter(childState, approvals, {
               tools: personaAllowsWrite(task.persona) ? "bash" : "none",
               taskId: task.id,
