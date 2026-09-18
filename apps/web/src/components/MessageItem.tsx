@@ -4,7 +4,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import type { UiMessage } from "@anvil/protocol";
-import { formatTime } from "../lib/utils.ts";
+import { formatTime, parseSafeMarkdown } from "../lib/utils.ts";
 
 interface MessageItemProps {
   message: UiMessage;
@@ -56,8 +56,20 @@ export function MessageItem({ message }: MessageItemProps) {
           }`}
         >
           <div className="whitespace-pre-wrap">
-            {shown}
-            {message.streaming && <span className="streaming-dot" />}
+            {parseSafeMarkdown(shown).map((part, index) => {
+              if (part.type === "code") {
+                return (
+                  <code key={index} className="font-mono text-[12.5px] bg-[#f5f4ef] px-1 rounded">
+                    {part.value}
+                  </code>
+                );
+              }
+              if (part.type === "bold") {
+                return <strong key={index}>{part.value}</strong>;
+              }
+              return <span key={index}>{part.value}</span>;
+            })}
+            {message.streaming ? <span className="streaming-dot" /> : null}
           </div>
           {lines.length > COLLAPSE_LINES ? (
             <button

@@ -21,6 +21,8 @@ export type ToolCard = {
   args: unknown;
   status: ToolStatus;
   output: string;
+  startedAt?: number;
+  endedAt?: number;
 };
 
 export type FilePreview = {
@@ -195,6 +197,7 @@ export const useUiStore = create<UiState & Actions>((set, get) => ({
               args: event.args,
               status: "running",
               output: "",
+              startedAt: Date.now(),
             },
           ],
         }));
@@ -215,6 +218,7 @@ export const useUiStore = create<UiState & Actions>((set, get) => ({
               ? {
                   ...tool,
                   status: event.ok ? "success" : "error",
+                  endedAt: Date.now(),
                   output:
                     typeof event.result === "string" ? event.result : JSON.stringify(event.result),
                 }

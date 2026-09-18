@@ -5,8 +5,9 @@ import {
   ChevronRight, 
   ChevronDown,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { ToolCard } from "../store.ts";
+import { formatElapsed } from "../lib/utils.ts";
 
 interface ToolItemProps {
   tool: ToolCard;
@@ -18,6 +19,20 @@ export function ToolItem({ tool }: ToolItemProps) {
   const [fullOutput, setFullOutput] = useState(false);
   const truncated = !fullOutput && tool.output.length > 4000;
   const shownOutput = truncated ? `${tool.output.slice(0, 4000)}\n…` : tool.output;
+  const [now, setNow] = useState(Date.now());
+
+  useEffect(() => {
+    if (tool.status !== "running" || !tool.startedAt) {
+      return;
+    }
+    const handle = window.setInterval(() => setNow(Date.now()), 500);
+    return () => window.clearInterval(handle);
+  }, [tool.status, tool.startedAt]);
+
+  const elapsedMs =
+    tool.startedAt == null
+      ? null
+      : (tool.endedAt ?? (tool.status === "running" ? now : tool.startedAt)) - tool.startedAt;
 
   const copyOutput = () => {
     navigator.clipboard.writeText(tool.output);
@@ -55,6 +70,9 @@ export function ToolItem({ tool }: ToolItemProps) {
         </div>
 
         <div className="flex items-center gap-2 text-xs">
+          {elapsedMs != null ? (
+            <span className="font-mono text-[10px] text-[#abaaa2]">{formatElapsed(elapsedMs)}</span>
+          ) : null}
           {tool.status === "running" && (
             <span className="text-amber-700 font-medium flex items-center gap-1.5 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200/60">
               <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
@@ -105,13 +123,13 @@ export function ToolItem({ tool }: ToolItemProps) {
             <pre className="p-3 rounded-lg bg-[#ffffff] font-mono text-[#1f1e1d] overflow-x-auto text-xs leading-relaxed max-h-64 border border-[#00000010] shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
               {shownOutput || <span className="text-[#abaaa2] italic">子进程实时结果等待中...</span>}
             </pre>
-            {truncated ? (
+            {tool.output.length > 4000 ? (
               <button
                 type="button"
-                onClick={() => setFullOutput(true)}
+                onClick={() => setFullOutput((value) => !value)}
                 className="text-[11px] text-[#7e7d77] hover:text-[#1f1e1d]"
               >
-                展开全部
+                {fullOutput ? "收起" : "展开全部"}
               </button>
             ) : null}
           </div>
