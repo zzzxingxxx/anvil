@@ -16,7 +16,8 @@ import {
   trustFor,
 } from "./config.ts";
 import { exportUsage } from "./usage-ledger.ts";
-import { unlink, writeFile } from "node:fs/promises";
+import { mkdir, unlink, writeFile } from "node:fs/promises";
+import { dirname } from "node:path";
 import { ArtifactStore } from "@anvil/pi-ext-artifact";
 import { listTree, readTextFile } from "./fs-ops.ts";
 import { searchFiles } from "./search.ts";
@@ -282,6 +283,7 @@ async function dispatch(
         await unlink(abs).catch(() => undefined);
         delete state.snapshots[path];
       } else {
+        await mkdir(dirname(abs), { recursive: true });
         await writeFile(abs, snap.before, "utf8");
         state.snapshots[path] = { before: snap.before, after: snap.before };
       }
@@ -334,6 +336,9 @@ async function dispatch(
       return { ok: true, settings: mergeSettings(config.settings ?? {}, project) };
     }
     case "settings.set": {
+      if (state.agentStatus === "running") {
+        throw new Error("等当前轮结束再改设置");
+      }
       const nextSettings = payload as {
         trustDefault?: "trusted" | "untrusted";
         bashPolicy?: "ask" | "allowlist";

@@ -88,6 +88,14 @@ describe("handleRequest", () => {
     );
     expect(model.payload).toMatchObject({ ok: false });
     expect(String((model.payload as { error?: string }).error)).toMatch(/等当前轮结束/);
+    const settings = await handleRequest(
+      makeRequest("settings.set", { bashPolicy: "allowlist" }, "settings-busy"),
+      state,
+      adapter,
+      approvals,
+    );
+    expect(settings.payload).toMatchObject({ ok: false });
+    expect(String((settings.payload as { error?: string }).error)).toMatch(/等当前轮结束/);
     await adapter.abort();
     await prompt;
   });
@@ -240,6 +248,29 @@ describe("handleRequest", () => {
     await expect(access(file)).rejects.toThrow();
     expect(state.changes.some((item) => item.path === "fresh.md")).toBe(false);
     expect(state.snapshots["fresh.md"]).toBeUndefined();
+  });
+
+  it("restores a deleted file from its before snapshot", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "anvil-restore-del-"));
+    const nested = join(dir, "docs");
+    await mkdir(nested);
+    const file = join(nested, "gone.md");
+    const state = createWorkspaceState();
+    const approvals = new ApprovalQueue();
+    const adapter = new FakePiAdapter(state, approvals);
+    await handleRequest(makeRequest("workspace.open", { path: dir }, "w-del"), state, adapter, approvals);
+    state.snapshots["docs/gone.md"] = { before: "keep\n", after: null };
+    state.changes = [{ path: "docs/gone.md", kind: "deleted", diff: "-keep\n" }];
+    const response = await handleRequest(
+      makeRequest("artifact.restore", { path: "docs/gone.md" }, "r-del"),
+      state,
+      adapter,
+      approvals,
+    );
+    expect(response.payload).toMatchObject({ ok: true, path: "docs/gone.md" });
+    expect(await readFile(file, "utf8")).toBe("keep\n");
+    expect(state.changes.some((item) => item.path === "docs/gone.md")).toBe(false);
+    expect(state.snapshots["docs/gone.md"]?.after).toBe("keep\n");
   });
 
   it("lists artifact snapshots after a fake write", async () => {

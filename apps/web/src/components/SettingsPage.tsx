@@ -13,6 +13,7 @@ export function SettingsPage() {
   const docker = useUiStore((state) => state.docker);
   const cwd = useUiStore((state) => state.cwd);
   const models = useUiStore((state) => state.models);
+  const busy = useUiStore((state) => state.agentStatus) === "running";
   const [settings, setSettings] = useState<Settings>({ bashPolicy: "ask" });
   const [allowlist, setAllowlist] = useState("git status");
   const [notice, setNotice] = useState<string | null>(null);
@@ -125,7 +126,13 @@ export function SettingsPage() {
         )}
       </label>
       <div className="flex items-center gap-2">
-        <button type="button" onClick={save} className="px-3 py-1.5 rounded-lg bg-[#1f1e1d] text-white text-xs">
+        <button
+          type="button"
+          onClick={save}
+          disabled={busy}
+          title={busy ? "等当前轮结束再改设置" : undefined}
+          className="px-3 py-1.5 rounded-lg bg-[#1f1e1d] text-white text-xs disabled:opacity-40"
+        >
           保存
         </button>
         {notice ? <span className="text-[11px] text-emerald-800">{notice}</span> : null}

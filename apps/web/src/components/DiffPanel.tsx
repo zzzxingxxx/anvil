@@ -34,7 +34,7 @@ export function DiffPanel() {
               className="flex items-center gap-1 text-[10px] text-[#7e7d77] hover:text-[#1f1e1d]"
             >
               <RotateCcw className="w-3 h-3" />
-              {change.kind === "added" ? "删除新增" : "还原"}
+              {change.kind === "added" ? "删除新增" : change.kind === "deleted" ? "恢复文件" : "还原"}
             </button>
           </div>
           <pre className="text-[10.5px] leading-relaxed max-h-40 overflow-auto whitespace-pre-wrap text-[#4f4e4a]">

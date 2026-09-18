@@ -173,7 +173,9 @@ export function Inspector() {
               </span>
               <button
                 type="button"
-                className="text-[10px] text-[#7e7d77] hover:text-[#1f1e1d]"
+                disabled={agentStatus === "running"}
+                title={agentStatus === "running" ? "等当前轮结束再压缩" : undefined}
+                className="text-[10px] text-[#7e7d77] hover:text-[#1f1e1d] disabled:opacity-40"
                 onClick={async () => {
                   try {
                     await client.request("session.compact", {

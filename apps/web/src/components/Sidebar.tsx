@@ -5,7 +5,8 @@ import { formatRelativeTime } from "../lib/utils.ts";
 import { client } from "../ws.ts";
 
 export function Sidebar() {
-  const { sessionId, sessions, sidebarOpen, cwd, recentWorkspaces } = useUiStore();
+  const { sessionId, sessions, sidebarOpen, cwd, recentWorkspaces, agentStatus } = useUiStore();
+  const busy = agentStatus === "running";
   const [pathDraft, setPathDraft] = useState(cwd ?? "");
 
   useEffect(() => {
@@ -112,7 +113,9 @@ export function Sidebar() {
         <div className="p-3 border-b border-[#00000008]">
           <button
             onClick={handleNewSession}
-            className="w-full flex items-center justify-between px-3 py-2 rounded-xl bg-[#ffffff] hover:bg-[#fcfbf9] border border-[#00000012] text-[#1f1e1d] shadow-[0_1px_3px_rgba(0,0,0,0.03)] transition-all active:scale-[0.98] font-medium group"
+            disabled={busy}
+            title={busy ? "等当前轮结束再新建会话" : undefined}
+            className="w-full flex items-center justify-between px-3 py-2 rounded-xl bg-[#ffffff] hover:bg-[#fcfbf9] border border-[#00000012] text-[#1f1e1d] shadow-[0_1px_3px_rgba(0,0,0,0.03)] transition-all active:scale-[0.98] font-medium group disabled:opacity-40 disabled:hover:bg-[#ffffff]"
           >
             <span className="flex items-center gap-2">
               <SquarePen className="w-3.5 h-3.5 text-[#7e7d77] group-hover:text-[#1f1e1d] transition-colors" />
