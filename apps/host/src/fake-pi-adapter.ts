@@ -1,6 +1,6 @@
 import { SessionManager } from "@earendil-works/pi-coding-agent";
 import { ArtifactStore, unifiedDiff } from "@anvil/pi-ext-artifact";
-import type { AnvilEvent, SessionSummary, UiMessage } from "@anvil/protocol";
+import type { AnvilEvent, ModelInfo, SessionSummary, UiMessage } from "@anvil/protocol";
 import { decideGate, previewArgs, riskFor } from "@anvil/pi-ext-gate";
 import type { ApprovalQueue } from "./approvals.ts";
 import type { PiAdapter, PromptInput } from "./pi-adapter.ts";
@@ -259,6 +259,21 @@ export class FakePiAdapter implements PiAdapter {
     resetConversation(this.state);
     this.emit({ type: "session/replaced", sessionId: session.id, title: session.title });
     return session;
+  }
+
+  async listModels(): Promise<ModelInfo[]> {
+    return this.state.models;
+  }
+
+  async setModel(id: string): Promise<ModelInfo> {
+    const found = this.state.models.find((item) => item.id === id);
+    const model = found ?? { id, label: id, provider: id.includes("/") ? id.split("/")[0]! : "fake" };
+    if (!found) {
+      this.state.models.push(model);
+    }
+    this.state.model = model;
+    this.state.settings = { ...this.state.settings, defaultModel: id };
+    return model;
   }
 
   async resumeSession(id: string): Promise<SessionSummary> {

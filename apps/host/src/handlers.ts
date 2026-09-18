@@ -304,6 +304,13 @@ async function dispatch(
       config.settings = { ...config.settings, ...nextSettings };
       await saveConfig(config);
       state.settings = { ...config.settings };
+      if (nextSettings.defaultModel && adapter.setModel) {
+        try {
+          await adapter.setModel(nextSettings.defaultModel);
+        } catch {
+          /* settings persist even if the current adapter cannot switch models */
+        }
+      }
       return { ok: true, settings: config.settings };
     }
     case "usage.export": {

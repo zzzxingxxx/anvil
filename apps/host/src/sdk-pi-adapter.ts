@@ -320,6 +320,19 @@ export class SdkPiAdapter implements PiAdapter {
     if (runtime.session.model) {
       this.state.model = toModelInfo(runtime.session.model);
     }
+    await this.applyPreferredModel();
+  }
+
+  private async applyPreferredModel(): Promise<void> {
+    const preferred = this.state.settings.defaultModel?.trim();
+    if (!preferred || !this.runtime) {
+      return;
+    }
+    try {
+      await this.setModel(preferred);
+    } catch {
+      /* keep the runtime's current model if the saved default is unavailable */
+    }
   }
 
   private bindSession(session: AgentSession): void {

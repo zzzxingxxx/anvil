@@ -93,6 +93,20 @@ describe("handleRequest", () => {
     expect(state.settings.bashAllowlist).toEqual(["git status"]);
   });
 
+  it("applies defaultModel to the fake adapter", async () => {
+    const state = createWorkspaceState();
+    const approvals = new ApprovalQueue();
+    const adapter = new FakePiAdapter(state, approvals);
+    const response = await handleRequest(
+      makeRequest("settings.set", { defaultModel: "fake/anvil-echo" }, "s2"),
+      state,
+      adapter,
+      approvals,
+    );
+    expect(response.payload).toMatchObject({ ok: true });
+    expect(state.model?.id).toBe("fake/anvil-echo");
+  });
+
   it("searches files after opening a workspace", async () => {
     const dir = await mkdtemp(join(tmpdir(), "anvil-search-ws-"));
     await writeFile(join(dir, "开发计划.md"), "# plan\n", "utf8");

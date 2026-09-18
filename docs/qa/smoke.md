@@ -42,5 +42,5 @@
 4. `ANVIL_PI_MODE=rpc` 时 Host 日志显示 adapter rpc（需本机 pi）。
 5. 设置页把 bash 设为白名单后，名单外的命令会弹审批。
 6. 没有 Docker 时设置页只显示说明。
-7. `pnpm --filter desktop dev` 能打开壳；浏览器版继续粘贴路径。
+7. `pnpm --filter desktop dev` 能打开壳；关窗口进托盘，托盘「退出」才结束。浏览器版继续粘贴路径。
 8. 底栏「复制本周 tokens」得到本地摘要，不含密钥。
