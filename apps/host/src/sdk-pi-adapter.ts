@@ -13,19 +13,9 @@ import type { AnvilEvent, ModelInfo, SessionSummary, UiMessage } from "@anvil/pr
 import { decideGate, previewArgs, riskFor } from "@anvil/pi-ext-gate";
 import type { ApprovalQueue } from "./approvals.ts";
 import type { PiAdapter, PromptInput } from "./pi-adapter.ts";
-import {
-  eventFromSdk,
-  messageText,
-  parseModelKey,
-  stringifyPartial,
-  toModelInfo,
-  toSessionSummary,
-  toUiMessage,
-  usageFromMessage,
-} from "./sdk-map.ts";
-import { captureAfter, captureBefore, toolPath } from "./artifacts.ts";
-import { resetConversation, upsertMessage, upsertTool, type WorkspaceState } from "./state.ts";
-import { recordUsage } from "./usage-ledger.ts";
+import { messageText, parseModelKey, toModelInfo, toSessionSummary, toUiMessage } from "./sdk-map.ts";
+import { applyPiSessionEvent } from "./sdk-events.ts";
+import { resetConversation, upsertMessage, type WorkspaceState } from "./state.ts";
 import { buildTree, type TreeSeed } from "./tree.ts";
 
 export class SdkPiAdapter implements PiAdapter {
@@ -474,107 +464,14 @@ export class SdkPiAdapter implements PiAdapter {
   }
 
   private onSdkEvent(event: AgentSessionEvent): void {
-    const mapped = eventFromSdk(event);
-    if (mapped) {
-      if (mapped.type === "agent/running") {
-        this.state.agentStatus = "running";
-      }
-      if (mapped.type === "agent/idle") {
-        this.state.agentStatus = "idle";
-      }
-      this.emit(mapped);
-    }
-
-    if (event.type === "message_start" || event.type === "message_update" || event.type === "message_end") {
-      const streaming = event.type !== "message_end";
-      const ui = toUiMessage(event.message, streaming);
-      if (ui) {
-        upsertMessage(this.state, ui);
-        this.emit({ type: "message/upsert", message: ui });
-      }
-      const nextUsage = usageFromMessage(event.message, this.state.usage);
-      if (event.type === "message_end" && nextUsage) {
-        const delta = {
-          inputTokens: Math.max(0, nextUsage.inputTokens - this.state.usage.inputTokens),
-          outputTokens: Math.max(0, nextUsage.outputTokens - this.state.usage.outputTokens),
-          costUsd: Math.max(0, (nextUsage.costUsd ?? 0) - (this.state.usage.costUsd ?? 0)),
-        };
-        this.state.usage = nextUsage;
-        this.emit({ type: "usage/update", tokens: nextUsage });
-        void recordUsage(delta);
-      }
-    }
-
-    if (event.type === "tool_execution_start") {
-      upsertTool(this.state, {
-        callId: event.toolCallId,
-        name: event.toolName,
-        args: event.args,
-        status: "running",
-        output: "",
-      });
-      this.emit({
-        type: "tool/start",
-        callId: event.toolCallId,
-        name: event.toolName,
-        args: event.args,
-      });
-      const path = toolPath(event.args);
-      if (path && (event.toolName === "write" || event.toolName === "edit")) {
-        void captureBefore(this.state, path);
-      }
-    }
-
-    if (event.type === "tool_execution_update") {
-      const partial = stringifyPartial(event.partialResult);
-      const existing = this.state.tools.find((item) => item.callId === event.toolCallId);
-      upsertTool(this.state, {
-        callId: event.toolCallId,
-        name: event.toolName,
-        args: event.args,
-        status: "running",
-        output: existing ? `${existing.output}${partial}` : partial,
-      });
-      this.emit({ type: "tool/update", callId: event.toolCallId, partial });
-    }
-
-    if (event.type === "tool_execution_end") {
-      const output = stringifyPartial(event.result);
-      upsertTool(this.state, {
-        callId: event.toolCallId,
-        name: event.toolName,
-        args: {},
-        status: event.isError ? "error" : "success",
-        output,
-      });
-      this.emit({
-        type: "tool/end",
-        callId: event.toolCallId,
-        ok: !event.isError,
-        result: output,
-      });
-      const path = toolPath(this.state.tools.find((item) => item.callId === event.toolCallId)?.args);
-      if (!event.isError && path && (event.toolName === "write" || event.toolName === "edit")) {
-        void captureAfter(this.state, path).then(() => {
-          this.emit({
-            type: "fs/changed",
-            paths: [path],
-            changes: this.state.changes,
-          });
-        });
-      }
-    }
-
-    if (event.type === "agent_end") {
-      const last = this.state.messages.at(-1);
-      if (last?.streaming) {
-        last.streaming = false;
-        this.emit({ type: "message/upsert", message: { ...last } });
-      }
-      if (this.runtime) {
-        this.refreshTreeFromSdk(this.runtime.session);
-      }
-    }
+    applyPiSessionEvent(this.state, event as { type: string } & Record<string, unknown>, (mapped) => this.emit(mapped), {
+      captureArtifacts: true,
+      onAgentEnd: () => {
+        if (this.runtime) {
+          this.refreshTreeFromSdk(this.runtime.session);
+        }
+      },
+    });
   }
 
   private emit(event: AnvilEvent): void {

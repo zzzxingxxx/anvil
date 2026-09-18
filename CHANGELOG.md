@@ -33,4 +33,5 @@
 - 底栏/检查器区分 error 态；设置保存与复制用量有成功反馈；RPC 忙时拒绝压缩。
 - Composer `/compact` 带保留指令；Ctrl+K 可用方向键/回车；忙时拒绝新建或切换会话。
 - RPC 支持 resume/fork 并回灌消息；助手消息渲染斜体。
+- RPC sidecar 流式事件映射到消息/工具卡（与 SDK 共用 applyPiSessionEvent）。
 - 已知问题见 README。

@@ -2,6 +2,7 @@ import { RpcClient } from "@earendil-works/pi-coding-agent";
 import type { AnvilEvent, ModelInfo, SessionSummary, UiMessage } from "@anvil/protocol";
 import type { PiAdapter, PromptInput } from "./pi-adapter.ts";
 import { resetConversation, upsertMessage, type WorkspaceState } from "./state.ts";
+import { applyPiSessionEvent } from "./sdk-events.ts";
 import { toModelInfo, toUiMessage } from "./sdk-map.ts";
 
 /**
@@ -178,15 +179,7 @@ export class RpcPiAdapter implements PiAdapter {
       await this.client.start();
       this.restarts = 0;
       this.client.onEvent((event) => {
-        const type = (event as { type?: string }).type;
-        if (type === "agent_start") {
-          this.state.agentStatus = "running";
-          this.emit({ type: "agent/running" });
-        }
-        if (type === "agent_end" || type === "agent_settled") {
-          this.state.agentStatus = "idle";
-          this.emit({ type: "agent/idle" });
-        }
+        applyPiSessionEvent(this.state, event as { type: string } & Record<string, unknown>, (mapped) => this.emit(mapped));
       });
     } catch (error) {
       this.restarts += 1;
