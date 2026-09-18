@@ -140,7 +140,7 @@ export function ModelSelector({ compact = false }: { compact?: boolean }) {
           ref={listRef}
           role="listbox"
           aria-labelledby={buttonId}
-          className="absolute right-0 mt-1 w-[min(22rem,calc(100vw-2rem))] max-h-80 overflow-y-auto rounded-xl border border-[#00000014] bg-white shadow-[var(--shadow-float)] z-40 p-1"
+          className="z-40 max-h-80 overflow-y-auto rounded-xl border border-[#00000014] bg-white shadow-[var(--shadow-float)] p-1 max-sm:fixed max-sm:left-4 max-sm:right-4 max-sm:top-12 max-sm:w-auto sm:absolute sm:right-0 sm:mt-1 sm:w-[min(22rem,calc(100vw-2rem))]"
         >
           {models.length === 0 ? (
             <div className="px-3 py-3 space-y-2">

@@ -173,6 +173,9 @@ export function CommandPalette() {
   return (
     <div className="fixed inset-0 z-50 bg-black/20 flex items-start justify-center pt-24" onClick={() => useUiStore.getState().setCommandOpen(false)}>
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={commandMode === "insert" ? "插入文件路径" : "命令面板"}
         className="w-full max-w-lg rounded-2xl bg-white border border-[#00000014] shadow-[0_16px_40px_rgba(0,0,0,0.12)] overflow-hidden"
         onClick={(event) => event.stopPropagation()}
       >
@@ -181,6 +184,7 @@ export function CommandPalette() {
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           onKeyDown={onInputKeyDown}
+          aria-label={commandMode === "insert" ? "搜索文件并插入路径" : "搜索命令、会话或文件"}
           placeholder={commandMode === "insert" ? "搜索文件并插入路径…" : "搜索命令、会话或文件…"}
           className="w-full px-4 py-3 text-sm outline-none border-b border-[#0000000c]"
         />
