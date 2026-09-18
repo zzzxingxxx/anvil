@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { client } from "../ws.ts";
 import { useUiStore } from "../store.ts";
+import { formatRelativeTime } from "../lib/utils.ts";
 
 type Item = { path: string; kind: string; mtime?: number };
 
@@ -35,7 +36,7 @@ export function ArtifactPanel() {
         <button
           key={item.path}
           type="button"
-          className="w-full text-left font-mono text-[10.5px] truncate px-1.5 py-1 rounded hover:bg-[#f8f7f2]"
+          className="w-full flex items-center justify-between gap-2 text-left font-mono text-[10.5px] px-1.5 py-1 rounded hover:bg-[#f8f7f2]"
           onClick={async () => {
             try {
               const response = await client.request("fs.read", { path: `.anvil/artifacts/snapshots/${item.path}` });
@@ -48,7 +49,10 @@ export function ArtifactPanel() {
             }
           }}
         >
-          {item.path}
+          <span className="truncate">{item.path}</span>
+          {item.mtime ? (
+            <span className="ml-2 text-[9px] text-[#abaaa2]">{formatRelativeTime(item.mtime)}</span>
+          ) : null}
         </button>
       ))}
     </div>

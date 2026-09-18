@@ -57,11 +57,14 @@ export function CommandPalette() {
   }, [open, query]);
 
   const sessionHits = useMemo(() => {
+    if (commandMode === "insert") {
+      return [];
+    }
     const needle = query.trim().toLowerCase();
     return sessions
       .filter((session) => !needle || session.title.toLowerCase().includes(needle))
       .slice(0, 8);
-  }, [sessions, query]);
+  }, [sessions, query, commandMode]);
 
   const commandHits = useMemo(() => {
     const needle = query.trim().toLowerCase();

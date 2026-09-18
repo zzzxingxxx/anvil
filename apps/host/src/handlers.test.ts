@@ -93,8 +93,13 @@ describe("handleRequest", () => {
         startedAt: Date.now(),
       },
     ];
+    state.snapshots["notes.md"] = { before: "a", after: "b" };
+    state.usage = { inputTokens: 9, outputTokens: 4, cacheReadTokens: 1, costUsd: 0.01 };
     await handleRequest(makeRequest("workspace.open", { path: second }, "w-b"), state, adapter, approvals, tasks);
     expect(state.tasks).toEqual([]);
+    expect(state.snapshots).toEqual({});
+    expect(state.usage.inputTokens).toBe(0);
+    expect(state.usage.outputTokens).toBe(0);
   });
 
   it("applies bash allowlist settings to the workspace state", async () => {

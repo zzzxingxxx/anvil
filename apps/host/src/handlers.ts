@@ -100,6 +100,9 @@ async function dispatch(
         }
       }
       resetConversation(state);
+      state.snapshots = {};
+      state.usage = { inputTokens: 0, outputTokens: 0 };
+      state.sessions = [];
       tasks?.reset();
       if (adapter.openWorkspace) {
         await adapter.openWorkspace(resolved);

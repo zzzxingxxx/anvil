@@ -76,6 +76,11 @@ export function Header() {
                 假循环
               </span>
             ) : null}
+            {adapter === "sdk" ? (
+              <span className="text-[10px] font-medium text-[#7e7d77] bg-[#edece6] px-1.5 py-0.5 rounded">
+                SDK
+              </span>
+            ) : null}
             {adapter === "rpc" ? (
               <span
                 className="text-[10px] font-medium text-[#7e7d77] bg-[#edece6] px-1.5 py-0.5 rounded"
