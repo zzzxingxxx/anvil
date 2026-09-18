@@ -3,7 +3,7 @@ import type { AnvilEvent, ModelInfo, SessionSummary, UiMessage } from "@anvil/pr
 import type { PiAdapter, PromptInput } from "./pi-adapter.ts";
 import { resetConversation, upsertMessage, type WorkspaceState } from "./state.ts";
 import { applyPiSessionEvent } from "./sdk-events.ts";
-import { toModelInfo, toSessionSummary, toUiMessage } from "./sdk-map.ts";
+import { toModelInfo, toSessionSummary, toUiMessage, usageFromSessionStats } from "./sdk-map.ts";
 import { buildTree, pathIdsFrom, seedsFromRpcTree } from "./tree.ts";
 
 /**
@@ -31,6 +31,13 @@ export class RpcPiAdapter implements PiAdapter {
 
   async openWorkspace(cwd: string): Promise<void> {
     await this.restart(cwd);
+    await this.refreshSessions();
+    try {
+      await this.listModels();
+    } catch {
+      /* sidecar may start without models configured */
+    }
+    await this.hydrateFromRpc();
   }
 
   async prompt(input: PromptInput): Promise<void> {
@@ -97,7 +104,7 @@ export class RpcPiAdapter implements PiAdapter {
       throw new Error("等当前轮结束再压缩");
     }
     await (await this.requireClient()).compact(instructions);
-    await this.refreshTreeFromRpc();
+    await this.reloadTranscript();
   }
 
   async listSessions(): Promise<SessionSummary[]> {
@@ -205,6 +212,7 @@ export class RpcPiAdapter implements PiAdapter {
         applyPiSessionEvent(this.state, event as { type: string } & Record<string, unknown>, (mapped) => this.emit(mapped), {
           onAgentEnd: () => {
             void this.refreshTreeFromRpc();
+            void this.refreshUsageFromRpc();
           },
         });
       });
@@ -229,6 +237,27 @@ export class RpcPiAdapter implements PiAdapter {
     } catch {
       /* keep a local id if sidecar state is unavailable */
     }
+    await this.reloadTranscript();
+    const summary: SessionSummary = {
+      id: sessionFile ?? this.state.sessionId ?? `rpc-${Date.now()}`,
+      title: sessionName ?? fallbackTitle ?? this.state.sessionTitle ?? "RPC 会话",
+      mtime: Date.now(),
+    };
+    this.state.sessionId = summary.id;
+    this.state.sessionTitle = summary.title;
+    if (!this.state.sessions.some((item) => item.id === summary.id)) {
+      this.state.sessions.unshift(summary);
+    }
+    await this.refreshSessions();
+    this.emit({ type: "session/replaced", sessionId: summary.id, title: summary.title });
+    return summary;
+  }
+
+  private async reloadTranscript(): Promise<void> {
+    const client = this.client;
+    if (!client) {
+      return;
+    }
     resetConversation(this.state);
     try {
       const messages = await client.getMessages();
@@ -241,20 +270,22 @@ export class RpcPiAdapter implements PiAdapter {
     } catch {
       /* empty transcript is still a valid new session */
     }
-    const summary: SessionSummary = {
-      id: sessionFile ?? this.state.sessionId ?? `rpc-${Date.now()}`,
-      title: sessionName ?? fallbackTitle ?? this.state.sessionTitle ?? "RPC 会话",
-      mtime: Date.now(),
-    };
-    this.state.sessionId = summary.id;
-    this.state.sessionTitle = summary.title;
-    if (!this.state.sessions.some((item) => item.id === summary.id)) {
-      this.state.sessions.unshift(summary);
-    }
     await this.refreshTreeFromRpc();
-    await this.refreshSessions();
-    this.emit({ type: "session/replaced", sessionId: summary.id, title: summary.title });
-    return summary;
+    await this.refreshUsageFromRpc();
+  }
+
+  private async refreshUsageFromRpc(): Promise<void> {
+    const client = this.client;
+    if (!client) {
+      return;
+    }
+    try {
+      const stats = await client.getSessionStats();
+      this.state.usage = usageFromSessionStats(stats);
+      this.emit({ type: "usage/update", tokens: this.state.usage });
+    } catch {
+      /* keep the last known usage if sidecar stats are unavailable */
+    }
   }
 
   private async refreshSessions(): Promise<void> {

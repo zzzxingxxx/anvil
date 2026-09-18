@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { AnvilEventSchema } from "@anvil/protocol";
-import { eventFromSdk, toUiMessage } from "./sdk-map.ts";
+import { eventFromSdk, toUiMessage, usageFromSessionStats } from "./sdk-map.ts";
 
 describe("sdk event mapping", () => {
   it("maps agent_start and agent_end", () => {
@@ -26,5 +26,20 @@ describe("sdk event mapping", () => {
       streaming: true,
     });
     expect(AnvilEventSchema.parse({ type: "message/upsert", message: ui }).type).toBe("message/upsert");
+  });
+
+  it("maps sidecar session stats onto Anvil usage", () => {
+    expect(
+      usageFromSessionStats({
+        tokens: { input: 12, output: 34, cacheRead: 5, cacheWrite: 7 },
+        cost: 0.0123,
+      }),
+    ).toEqual({
+      inputTokens: 12,
+      outputTokens: 34,
+      cacheReadTokens: 5,
+      cacheWriteTokens: 7,
+      costUsd: 0.0123,
+    });
   });
 });

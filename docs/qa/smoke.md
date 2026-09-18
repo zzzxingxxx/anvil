@@ -42,7 +42,7 @@
 1. 顶栏切到看板，委派后卡片出现在「进行/完成」。可拖到其他列，只改 Host 元数据。
 2. 设置页保存 bash 白名单，保存后有成功提示。已打开工作区时写入项目 `.anvil/settings.json`；下次打开该仓库会覆盖全局。底栏出错时显示「出错」而不是「就绪」。
 3. `anvil.cmd` 或 `pnpm start` 打开 http://127.0.0.1:5173。
-4. `ANVIL_PI_MODE=rpc` 时 Host 日志显示 adapter rpc（需本机 pi）。`auto` 且信任默认不是 trusted 时同样走 RPC。RPC 下新建/恢复/分叉会回灌 sidecar 消息和会话树；一轮对话会推 message/upsert 和工具卡。左侧会话列表来自 `SessionManager.list`。
+4. `ANVIL_PI_MODE=rpc` 时 Host 日志显示 adapter rpc（需本机 pi）。`auto` 且信任默认不是 trusted 时同样走 RPC。RPC 下新建/恢复/分叉/压缩会回灌 sidecar 消息、会话树和用量；一轮对话会推 message/upsert 和工具卡。左侧会话列表来自 `SessionManager.list`。打开工作区就会列出本机 Pi 会话。
 5. 设置页把 bash 设为白名单后，名单外的命令会弹审批。
 6. 没有 Docker 时设置页只显示说明。
 7. `pnpm --filter desktop dev` 能打开壳；关窗口进托盘，托盘「退出」才结束。浏览器版继续粘贴路径。

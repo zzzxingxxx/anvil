@@ -77,6 +77,19 @@ export function toUiMessage(message: unknown, streaming = false): UiMessage | nu
   return { id, role, text, createdAt, streaming: streaming || undefined };
 }
 
+export function usageFromSessionStats(stats: {
+  tokens?: { input?: number; output?: number; cacheRead?: number; cacheWrite?: number };
+  cost?: number;
+}): Usage {
+  return {
+    inputTokens: stats.tokens?.input ?? 0,
+    outputTokens: stats.tokens?.output ?? 0,
+    cacheReadTokens: stats.tokens?.cacheRead ?? 0,
+    cacheWriteTokens: stats.tokens?.cacheWrite ?? 0,
+    costUsd: stats.cost ?? 0,
+  };
+}
+
 export function usageFromMessage(message: unknown, previous: Usage): Usage | null {
   const usage = (message as LooseMessage)?.usage;
   if (!usage) {

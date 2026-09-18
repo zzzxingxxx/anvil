@@ -13,7 +13,7 @@ import type { AnvilEvent, ModelInfo, SessionSummary, UiMessage } from "@anvil/pr
 import { decideGate, previewArgs, riskFor } from "@anvil/pi-ext-gate";
 import type { ApprovalQueue } from "./approvals.ts";
 import type { PiAdapter, PromptInput } from "./pi-adapter.ts";
-import { messageText, parseModelKey, toModelInfo, toSessionSummary, toUiMessage } from "./sdk-map.ts";
+import { messageText, parseModelKey, toModelInfo, toSessionSummary, toUiMessage, usageFromSessionStats } from "./sdk-map.ts";
 import { applyPiSessionEvent } from "./sdk-events.ts";
 import { resetConversation, upsertMessage, type WorkspaceState } from "./state.ts";
 import { buildTree, type TreeSeed } from "./tree.ts";
@@ -357,14 +357,7 @@ export class SdkPiAdapter implements PiAdapter {
         upsertMessage(this.state, ui);
       }
     }
-    const stats = session.getSessionStats();
-    this.state.usage = {
-      inputTokens: stats.tokens.input,
-      outputTokens: stats.tokens.output,
-      cacheReadTokens: stats.tokens.cacheRead,
-      cacheWriteTokens: stats.tokens.cacheWrite,
-      costUsd: stats.cost,
-    };
+    this.state.usage = usageFromSessionStats(session.getSessionStats());
     if (session.model) {
       this.state.model = toModelInfo(session.model);
     }
