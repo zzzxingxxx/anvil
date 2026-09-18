@@ -216,4 +216,13 @@ describe("FakePiAdapter", () => {
     expect(state.messages.some((item) => item.role === "user" && item.text === "再列文件")).toBe(true);
     await adapter.abort();
   });
+
+  it("starts a turn immediately when follow-up is sent while idle", async () => {
+    const state = createWorkspaceState();
+    state.trust = "untrusted";
+    const adapter = new FakePiAdapter(state);
+    const turn = adapter.followUp("闲时再列文件");
+    expect(state.messages.some((item) => item.role === "user" && item.text === "闲时再列文件")).toBe(true);
+    await turn;
+  });
 });

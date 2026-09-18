@@ -159,7 +159,11 @@ function NodeMenu({
         className="w-full text-left px-3 py-1.5 text-[11px] text-[#1f1e1d] hover:bg-[#f5f4ef]"
         onClick={() =>
           void run(async () => {
-            await navigator.clipboard.writeText(menu.node.id);
+            try {
+              await navigator.clipboard.writeText(menu.node.id);
+            } catch (error) {
+              throw error instanceof Error ? error : new Error("复制失败");
+            }
           })
         }
       >

@@ -242,6 +242,10 @@ export class FakePiAdapter implements PiAdapter {
   }
 
   async steer(text: string): Promise<void> {
+    if (this.state.agentStatus !== "running") {
+      await this.prompt({ text });
+      return;
+    }
     this.queuedSteer.push(text);
     const message: UiMessage = {
       id: `steer-${Date.now()}`,
@@ -254,6 +258,10 @@ export class FakePiAdapter implements PiAdapter {
   }
 
   async followUp(text: string): Promise<void> {
+    if (this.state.agentStatus !== "running") {
+      await this.prompt({ text });
+      return;
+    }
     this.queuedFollowUp.push(text);
     const message: UiMessage = {
       id: `follow-${Date.now()}`,

@@ -97,6 +97,13 @@ class AnvilClient {
       }
     });
 
+    socket.addEventListener("error", () => {
+      if (this.generation !== generation) {
+        return;
+      }
+      useUiStore.getState().setConnection("closed");
+    });
+
     socket.addEventListener("close", () => {
       if (this.socket === socket) {
         this.socket = null;

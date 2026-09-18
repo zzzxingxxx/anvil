@@ -75,9 +75,10 @@ export function Sidebar() {
             {typeof window !== "undefined" && window.anvilDesktop ? (
               <button
                 type="button"
+                disabled={busy}
                 onClick={() => void pickFolder()}
-                className="px-2 rounded-lg border border-[#00000014] bg-white text-[#1f1e1d]"
-                title="系统文件夹对话框"
+                className="px-2 rounded-lg border border-[#00000014] bg-white text-[#1f1e1d] disabled:opacity-40"
+                title={busy ? "等当前轮结束再打开工作区" : "系统文件夹对话框"}
               >
                 选
               </button>
