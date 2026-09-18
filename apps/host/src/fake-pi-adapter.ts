@@ -361,6 +361,9 @@ export class FakePiAdapter implements PiAdapter {
   }
 
   async compact(instructions?: string): Promise<void> {
+    if (this.state.agentStatus === "running") {
+      throw new Error("等当前轮结束再压缩");
+    }
     const leaf = this.state.currentEntryId ?? this.state.messages.at(-1)?.id ?? null;
     if (!leaf) {
       return;
