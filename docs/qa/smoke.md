@@ -37,7 +37,7 @@
 
 ## Phase 4
 
-1. 顶栏切到看板，委派后卡片出现在「进行/完成」。
+1. 顶栏切到看板，委派后卡片出现在「进行/完成」。可拖到其他列，只改 Host 元数据。
 2. 设置页保存 bash 白名单。
 3. `anvil.cmd` 或 `pnpm start` 打开 http://127.0.0.1:5173。
 4. `ANVIL_PI_MODE=rpc` 时 Host 日志显示 adapter rpc（需本机 pi）。`auto` 且信任默认不是 trusted 时同样走 RPC。

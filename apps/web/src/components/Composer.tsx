@@ -8,10 +8,26 @@ interface ComposerProps {
   sending: boolean;
 }
 
-function expandAgentMention(text: string): string {
-  return text.replace(/@agent:(\S+)/g, (_match, role: string) => {
-    return `请委派给「${role}」处理：`;
-  });
+const PERSONA_ALIASES: Record<string, "architect" | "implementer" | "reviewer"> = {
+  architect: "architect",
+  implementer: "implementer",
+  reviewer: "reviewer",
+  架构师: "architect",
+  实现者: "implementer",
+  审查者: "reviewer",
+};
+
+function parseAgentMention(text: string): { persona: "architect" | "implementer" | "reviewer"; goal: string } | null {
+  const match = text.match(/^@agent:(\S+)\s+(.+)$/s);
+  if (!match) {
+    return null;
+  }
+  const persona = PERSONA_ALIASES[match[1] ?? ""];
+  const goal = match[2]?.trim();
+  if (!persona || !goal) {
+    return null;
+  }
+  return { persona, goal };
 }
 
 export function Composer({ onSend, sending }: ComposerProps) {
@@ -77,7 +93,20 @@ export function Composer({ onSend, sending }: ComposerProps) {
 
   const handleSubmit = (e?: React.FormEvent) => {
     e?.preventDefault();
-    if (!draft.trim() || sending || connection !== "open" || isRunning) return;
+    if (!draft.trim() || sending || connection !== "open") return;
+    const mention = parseAgentMention(draft.trim());
+    if (mention) {
+      void client
+        .request("task.delegate", { goal: mention.goal, persona: mention.persona })
+        .catch((error) => {
+          useUiStore.setState({
+            lastError: error instanceof Error ? error.message : String(error),
+          });
+        });
+      setDraft("");
+      return;
+    }
+    if (isRunning) return;
     if (draft.trim().startsWith("/")) {
       const id = slashCommands.find((item) => draft.trim().startsWith(item.id))?.id;
       if (id) {
@@ -85,7 +114,7 @@ export function Composer({ onSend, sending }: ComposerProps) {
         return;
       }
     }
-    onSend(expandAgentMention(draft.trim()));
+    onSend(draft.trim());
     setDraft("");
   };
 
@@ -207,7 +236,7 @@ export function Composer({ onSend, sending }: ComposerProps) {
                 ? "先在左侧粘贴工作区路径再开始"
                 : isRunning
                   ? "Agent 正在执行… Esc 中止，或插入方向 / 结束后做"
-                  : "输入需求或指令，按 Ctrl + Enter 发送..."
+                  : "输入需求，或 @agent:审查者 看这段 diff / Ctrl+Enter 发送..."
           }
           className="w-full bg-transparent px-4 pt-3 pb-2 text-[13.5px] text-[#1f1e1d] placeholder-[#abaaa2] outline-none resize-none leading-relaxed"
         />

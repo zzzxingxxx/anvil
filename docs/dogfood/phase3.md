@@ -9,6 +9,6 @@
 3. 未信任派出 implementer 被拒。
 4. 同一文件第二次 write 报锁冲突。
 
-子任务现在会 `SessionManager.create` 写出 jsonl（带 parentSession），并各自跑一轮独立 FakePiAdapter（只读 persona 不 bash）。可写子任务的 bash 审批会标「来自子任务」，拒绝后只有该子任务失败。父+子费用会滚到检查器。侧栏可 resume。
+Composer 输入 `@agent:审查者 看这段 diff` 会直接 `task.delegate`，不再只改提示词。子任务会 `SessionManager.create` 写出 jsonl（带 parentSession），并各自跑一轮独立 FakePiAdapter（只读 persona 不 bash）。可写子任务的 bash 审批会标「来自子任务」，拒绝后只有该子任务失败。父+子费用会滚到检查器。侧栏可 resume。看板可拖拽换列。
 
 真模型拆前端文案 + Host 实现 + 审查还没跑（本机无密钥）。

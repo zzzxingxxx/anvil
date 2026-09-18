@@ -25,15 +25,34 @@ export function Board() {
   return (
     <div className="grid grid-cols-4 gap-2 p-3 min-h-0 h-full">
       {COLUMNS.map((column) => (
-        <div key={column.id} className="rounded-xl bg-[#ffffff] border border-[#00000010] p-2 min-h-0 overflow-y-auto">
+        <div
+          key={column.id}
+          className="rounded-xl bg-[#ffffff] border border-[#00000010] p-2 min-h-0 overflow-y-auto"
+          onDragOver={(event) => event.preventDefault()}
+          onDrop={(event) => {
+            event.preventDefault();
+            const id = event.dataTransfer.getData("text/anvil-task");
+            if (id) {
+              void move(id, column.id);
+            }
+          }}
+        >
           <div className="text-[10.5px] font-semibold text-[#7e7d77] uppercase tracking-wider mb-2">
             {column.title}
           </div>
-          <div className="space-y-1.5">
+          <div className="space-y-1.5 min-h-16">
             {tasks
               .filter((task) => (task.column ?? columnFromStatus(task)) === column.id)
               .map((task) => (
-                <article key={task.id} className="rounded-lg border border-[#00000010] p-2 bg-[#faf9f5]">
+                <article
+                  key={task.id}
+                  draggable
+                  onDragStart={(event) => {
+                    event.dataTransfer.setData("text/anvil-task", task.id);
+                    event.dataTransfer.effectAllowed = "move";
+                  }}
+                  className="rounded-lg border border-[#00000010] p-2 bg-[#faf9f5] cursor-grab active:cursor-grabbing"
+                >
                   <div className="text-[11px] font-medium text-[#1f1e1d] truncate">{task.goal}</div>
                   <div className="text-[10px] text-[#abaaa2] mt-0.5">{task.persona}</div>
                   <div className="flex flex-wrap gap-1 mt-1.5">
