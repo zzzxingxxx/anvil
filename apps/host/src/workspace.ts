@@ -21,6 +21,8 @@ const TEXT_EXT = new Set([
   ".svg",
   ".gitignore",
   ".env.example",
+  ".before",
+  ".after",
 ]);
 
 export async function resolveWorkspacePath(input: string): Promise<string> {

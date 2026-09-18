@@ -23,6 +23,7 @@
 3. 假循环结束后 Diff 面板出现 `.anvil/demo-diff.txt`；点还原走 `artifact.restore`（不会改 README）。
 4. `Ctrl+K` 能搜到 `docs/开发计划.md`。
 5. 人用终端（node-pty）按计划减载，本阶段不做。
+6. 检查器制品面板能列出快照；Composer 输入 `/` 能看到 compact/new/abort。
 
 ## Phase 3
 

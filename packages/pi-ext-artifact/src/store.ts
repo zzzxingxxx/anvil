@@ -1,5 +1,5 @@
-import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
-import { dirname, join } from "node:path";
+import { mkdir, readdir, readFile, stat, writeFile } from "node:fs/promises";
+import { dirname, join, relative } from "node:path";
 
 export type SnapshotRecord = {
   path: string;
@@ -38,6 +38,13 @@ export class ArtifactStore {
     return { path: relPath.replace(/\\/g, "/"), before, after };
   }
 
+  async list(limit = 40): Promise<Array<{ path: string; kind: "snapshot" | "other"; mtime?: number }>> {
+    const root = this.root();
+    const items: Array<{ path: string; kind: "snapshot" | "other"; mtime?: number }> = [];
+    await walk(root, root, items, limit);
+    return items.sort((a, b) => (b.mtime ?? 0) - (a.mtime ?? 0)).slice(0, limit);
+  }
+
   async restore(relPath: string, before: string | null): Promise<void> {
     const abs = join(this.cwd, relPath);
     if (before == null) {
@@ -70,4 +77,33 @@ export function unifiedDiff(path: string, before: string | null, after: string |
     }
   }
   return lines.join("\n");
+}
+
+async function walk(
+  root: string,
+  dir: string,
+  items: Array<{ path: string; kind: "snapshot" | "other"; mtime?: number }>,
+  limit: number,
+): Promise<void> {
+  if (items.length >= limit) return;
+  let entries;
+  try {
+    entries = await readdir(dir, { withFileTypes: true });
+  } catch {
+    return;
+  }
+  for (const entry of entries) {
+    if (items.length >= limit) return;
+    const full = join(dir, entry.name);
+    if (entry.isDirectory()) {
+      await walk(root, full, items, limit);
+      continue;
+    }
+    const info = await stat(full).catch(() => null);
+    items.push({
+      path: relative(root, full).replace(/\\/g, "/"),
+      kind: "snapshot",
+      mtime: info?.mtimeMs,
+    });
+  }
 }

@@ -9,4 +9,5 @@
 - 假循环 prompt / resume / fork 会写出并回放官方 Pi jsonl。
 - 子任务各自跑独立 FakePiAdapter，只读 persona 不弹 bash 审批。
 - 立项草案清单已冻结，执行进度以开发计划和 README 为准。
+- 检查器制品列表 + Composer `/compact` `/new` `/abort`。
 - 已知问题见 README。

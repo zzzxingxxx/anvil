@@ -2,6 +2,7 @@ import { mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { ArtifactStore } from "@anvil/pi-ext-artifact";
 import { makeRequest } from "@anvil/protocol";
 import { ApprovalQueue } from "./approvals.ts";
 import { FakePiAdapter } from "./fake-pi-adapter.ts";
@@ -108,6 +109,24 @@ describe("handleRequest", () => {
     expect(response.payload).toMatchObject({ ok: true });
     const hits = (response.payload as { hits: Array<{ name: string }> }).hits;
     expect(hits.some((hit) => hit.name.includes("开发计划"))).toBe(true);
+  });
+
+  it("lists artifact snapshots after a fake write", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "anvil-art-ws-"));
+    const state = createWorkspaceState();
+    const approvals = new ApprovalQueue();
+    const adapter = new FakePiAdapter(state, approvals);
+    await handleRequest(makeRequest("workspace.open", { path: dir }, "w4"), state, adapter, approvals);
+    await new ArtifactStore(dir).snapshotWrite("notes.md", "hello");
+    const response = await handleRequest(
+      makeRequest("artifact.list", {}, "a1"),
+      state,
+      adapter,
+      approvals,
+    );
+    expect(response.payload).toMatchObject({ ok: true });
+    const items = (response.payload as { items: Array<{ path: string }> }).items;
+    expect(items.some((item) => item.path.endsWith("notes.md.after"))).toBe(true);
   });
 
   it("rejects writable delegate in untrusted workspace", async () => {

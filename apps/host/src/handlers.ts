@@ -8,6 +8,7 @@ import {
 } from "@anvil/protocol";
 import { loadConfig, rememberWorkspace, saveConfig, trustFor } from "./config.ts";
 import { writeFile } from "node:fs/promises";
+import { ArtifactStore } from "@anvil/pi-ext-artifact";
 import { listTree, readTextFile } from "./fs-ops.ts";
 import { searchFiles } from "./search.ts";
 import { logInfo } from "./log.ts";
@@ -248,6 +249,13 @@ async function dispatch(
       await writeFile(abs, snap.before, "utf8");
       state.changes = state.changes.filter((item) => item.path !== path);
       return { ok: true };
+    }
+    case "artifact.list": {
+      if (!state.cwd) {
+        throw new Error("请先打开工作区");
+      }
+      const items = await new ArtifactStore(state.cwd).list();
+      return { ok: true, items };
     }
     case "task.delegate": {
       if (!tasks) {

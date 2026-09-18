@@ -10,6 +10,7 @@ import { formatTokens } from "../lib/utils.ts";
 import { FileTree } from "./FileTree.tsx";
 import { SessionTree } from "./SessionTree.tsx";
 import { DiffPanel } from "./DiffPanel.tsx";
+import { ArtifactPanel } from "./ArtifactPanel.tsx";
 import { client } from "../ws.ts";
 
 export function Inspector() {
@@ -172,6 +173,15 @@ export function Inspector() {
             </span>
             <div className="rounded-xl border border-[#00000010] bg-[#ffffff] p-3 shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
               <DiffPanel />
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <span className="text-[10.5px] font-semibold text-[#7e7d77] uppercase tracking-wider">
+              制品
+            </span>
+            <div className="rounded-xl border border-[#00000010] bg-[#ffffff] p-3 shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
+              <ArtifactPanel />
             </div>
           </div>
 

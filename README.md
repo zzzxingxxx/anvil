@@ -2,7 +2,7 @@
 
 以 [Earendil Pi](https://pi.dev) 为引擎的本地优先 AI Agent 工作台。
 
-当前进度：**Phase 4 演示版**。看板、设置、RPC sidecar 开关、`anvil.cmd` 一键启动。真模型 dogfood 仍需密钥。
+当前进度：**Phase 4 演示版**。看板、设置、RPC sidecar 开关、`anvil.cmd` 一键启动。检查器有制品列表，Composer 支持 `/compact` `/new` `/abort`。真模型 dogfood 仍需能完成一轮推理的模型。
 
 - 产品：[docs/项目描述.md](docs/项目描述.md)
 - 计划：[docs/开发计划.md](docs/开发计划.md)

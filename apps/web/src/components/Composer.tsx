@@ -16,9 +16,15 @@ function expandAgentMention(text: string): string {
 
 export function Composer({ onSend, sending }: ComposerProps) {
   const [draft, setDraft] = useState("");
+  const [slashOpen, setSlashOpen] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { agentStatus, connection, cwd } = useUiStore();
   const isRunning = agentStatus === "running";
+  const slashCommands = [
+    { id: "/compact", hint: "压缩当前会话上下文" },
+    { id: "/new", hint: "新建会话" },
+    { id: "/abort", hint: "中止当前轮" },
+  ];
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -27,9 +33,40 @@ export function Composer({ onSend, sending }: ComposerProps) {
     }
   }, [draft]);
 
+  const runSlash = async (id: string) => {
+    setSlashOpen(false);
+    try {
+      if (id === "/compact") {
+        await client.request("session.compact", {});
+        setDraft("");
+        return;
+      }
+      if (id === "/new") {
+        await client.request("session.new", { title: "斜杠新建" });
+        setDraft("");
+        return;
+      }
+      if (id === "/abort") {
+        await client.request("agent.abort", {});
+        setDraft("");
+      }
+    } catch (error) {
+      useUiStore.setState({
+        lastError: error instanceof Error ? error.message : String(error),
+      });
+    }
+  };
+
   const handleSubmit = (e?: React.FormEvent) => {
     e?.preventDefault();
     if (!draft.trim() || sending || connection !== "open" || isRunning) return;
+    if (draft.trim().startsWith("/")) {
+      const id = slashCommands.find((item) => draft.trim().startsWith(item.id))?.id;
+      if (id) {
+        void runSlash(id);
+        return;
+      }
+    }
     onSend(expandAgentMention(draft.trim()));
     setDraft("");
   };
@@ -37,6 +74,10 @@ export function Composer({ onSend, sending }: ComposerProps) {
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Escape") {
       e.preventDefault();
+      if (slashOpen) {
+        setSlashOpen(false);
+        return;
+      }
       void handleAbort();
       return;
     }
@@ -45,6 +86,9 @@ export function Composer({ onSend, sending }: ComposerProps) {
       if (!next.includes("@agent:")) {
         useUiStore.getState().setCommandOpen(true);
       }
+    }
+    if (e.key === "/" && (draft.length === 0 || draft.startsWith("/"))) {
+      setSlashOpen(true);
     }
     if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
       e.preventDefault();
@@ -110,12 +154,32 @@ export function Composer({ onSend, sending }: ComposerProps) {
         </div>
       ) : null}
 
-      <div className="rounded-2xl border border-[#00000018] bg-[#ffffff] shadow-[0_4px_20px_rgba(0,0,0,0.04)] overflow-hidden focus-within:border-[#00000030] transition-all">
+      <div className="rounded-2xl border border-[#00000018] bg-[#ffffff] shadow-[0_4px_20px_rgba(0,0,0,0.04)] overflow-hidden focus-within:border-[#00000030] transition-all relative">
+        {slashOpen || draft.startsWith("/") ? (
+          <div className="absolute bottom-full left-0 right-0 mb-1 rounded-xl border border-[#00000012] bg-white shadow-[0_8px_24px_rgba(0,0,0,0.08)] p-1">
+            {slashCommands
+              .filter((item) => item.id.startsWith(draft.trim() || "/"))
+              .map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  className="w-full text-left px-3 py-1.5 rounded-lg text-[12px] hover:bg-[#f5f4ef]"
+                  onClick={() => void runSlash(item.id)}
+                >
+                  <span className="font-mono text-[#1f1e1d]">{item.id}</span>
+                  <span className="ml-2 text-[#7e7d77]">{item.hint}</span>
+                </button>
+              ))}
+          </div>
+        ) : null}
         <textarea
           ref={textareaRef}
           rows={2}
           value={draft}
-          onChange={(e) => setDraft(e.target.value)}
+          onChange={(e) => {
+            setDraft(e.target.value);
+            setSlashOpen(e.target.value.startsWith("/"));
+          }}
           onKeyDown={handleKeyDown}
           disabled={connection !== "open"}
           placeholder={

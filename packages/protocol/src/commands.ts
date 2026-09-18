@@ -245,6 +245,18 @@ export const ArtifactRestorePayloadSchema = z.object({
 });
 export type ArtifactRestorePayload = z.infer<typeof ArtifactRestorePayloadSchema>;
 
+export const ArtifactListPayloadSchema = z.object({}).strict();
+export const ArtifactItemSchema = z.object({
+  path: z.string(),
+  kind: z.enum(["snapshot", "other"]),
+  mtime: z.number().optional(),
+});
+export type ArtifactItem = z.infer<typeof ArtifactItemSchema>;
+export const ArtifactListResultSchema = z.object({
+  ok: z.literal(true),
+  items: z.array(ArtifactItemSchema),
+});
+
 export const TaskDelegatePayloadSchema = z.object({
   goal: z.string().min(1),
   persona: z.enum(["architect", "implementer", "reviewer"]).default("implementer"),
@@ -318,6 +330,7 @@ export const CommandTypeSchema = z.enum([
   "fs.read",
   "fs.search",
   "artifact.restore",
+  "artifact.list",
   "task.delegate",
   "task.cancel",
   "task.list",
@@ -347,6 +360,7 @@ export const CommandPayloadSchemas = {
   "fs.read": FsReadPayloadSchema,
   "fs.search": FsSearchPayloadSchema,
   "artifact.restore": ArtifactRestorePayloadSchema,
+  "artifact.list": ArtifactListPayloadSchema,
   "task.delegate": TaskDelegatePayloadSchema,
   "task.cancel": TaskCancelPayloadSchema,
   "task.list": TaskListPayloadSchema,
@@ -375,6 +389,7 @@ export const CommandResultSchemas = {
   "fs.read": FsReadResultSchema,
   "fs.search": FsSearchResultSchema,
   "artifact.restore": AgentOkResultSchema,
+  "artifact.list": ArtifactListResultSchema,
   "task.delegate": TaskDelegateResultSchema,
   "task.cancel": AgentOkResultSchema,
   "task.list": TaskListResultSchema,
