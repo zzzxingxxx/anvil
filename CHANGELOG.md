@@ -14,4 +14,5 @@
 - 子任务 bash 审批走主队列并标明来源；费用汇总；失败分类（锁冲突/用户拒绝等）。
 - `usage.export` 按天汇总本机 tokens；RPC sidecar 命令失败后最多重启 3 次。
 - 设置页默认模型接到 adapter；Electron 关窗口进托盘。
+- `ANVIL_PI_MODE=auto`：未信任默认 RPC。SDK `message_update` 映射有夹具测试。
 - 已知问题见 README。

@@ -61,6 +61,8 @@ $env:ANVIL_FAKE_PI="1"; pnpm --filter host dev
 $env:ANVIL_PI_MODE="rpc"; pnpm --filter host dev
 ```
 
+`ANVIL_PI_MODE=auto` 时：设置页信任默认不是 trusted，就走 RPC sidecar。默认仍是 SDK。
+
 测试默认走假适配器，不连网。
 
 会话文件就是官方 Pi jsonl（`~/.pi/agent/sessions/...`）。Anvil 产生的 session，终端里 `pi` 应能 resume。

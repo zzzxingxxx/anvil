@@ -65,8 +65,25 @@ export function trustFor(config: AnvilConfig, path: string): TrustLevel {
   return config.settings?.trustDefault ?? "untrusted";
 }
 
-export function useRpcPi(): boolean {
-  return process.env.ANVIL_PI_MODE === "rpc";
+export function useRpcPi(trustDefault?: "trusted" | "untrusted"): boolean {
+  const mode = process.env.ANVIL_PI_MODE?.trim().toLowerCase();
+  if (mode === "sdk") {
+    return false;
+  }
+  if (mode === "rpc") {
+    return true;
+  }
+  if (mode === "auto") {
+    return trustDefault !== "trusted";
+  }
+  return false;
+}
+
+export function chooseAdapterKind(trustDefault?: "trusted" | "untrusted"): "fake" | "sdk" | "rpc" {
+  if (useFakePi()) {
+    return "fake";
+  }
+  return useRpcPi(trustDefault) ? "rpc" : "sdk";
 }
 
 export function useFakePi(): boolean {

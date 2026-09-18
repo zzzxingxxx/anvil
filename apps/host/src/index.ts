@@ -13,7 +13,7 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { WebSocketServer, type WebSocket } from "ws";
 import { ApprovalQueue } from "./approvals.ts";
-import { loadConfig, useFakePi, useRpcPi } from "./config.ts";
+import { chooseAdapterKind, loadConfig } from "./config.ts";
 import { probeDocker } from "./docker.ts";
 import { FakePiAdapter } from "./fake-pi-adapter.ts";
 import { handleRequest } from "./handlers.ts";
@@ -25,9 +25,11 @@ import { createWorkspaceState } from "./state.ts";
 import { TaskOrchestrator } from "./tasks.ts";
 import { messagesOnPath, pathIdsFrom } from "./tree.ts";
 
-const fake = useFakePi();
-const rpc = !fake && useRpcPi();
-const state = createWorkspaceState(fake ? "fake" : rpc ? "rpc" : "sdk");
+const bootConfig = await loadConfig();
+const kind = chooseAdapterKind(bootConfig.settings?.trustDefault);
+const fake = kind === "fake";
+const rpc = kind === "rpc";
+const state = createWorkspaceState(kind);
 const approvals = new ApprovalQueue();
 const adapter: PiAdapter = fake
   ? new FakePiAdapter(state, approvals)
@@ -37,7 +39,6 @@ const adapter: PiAdapter = fake
 const tasks = new TaskOrchestrator(state, undefined, approvals);
 const sockets = new Set<WebSocket>();
 
-const bootConfig = await loadConfig();
 state.recentWorkspaces = bootConfig.recentWorkspaces;
 state.settings = bootConfig.settings ?? {};
 state.docker = await probeDocker();
