@@ -58,14 +58,14 @@ export function CommandPalette() {
   }, [open, query]);
 
   const sessionHits = useMemo(() => {
-    if (commandMode === "insert") {
+    if (commandMode === "insert" || agentStatus === "running") {
       return [];
     }
     const needle = query.trim().toLowerCase();
     return sessions
       .filter((session) => !needle || session.title.toLowerCase().includes(needle))
       .slice(0, 8);
-  }, [sessions, query, commandMode]);
+  }, [sessions, query, commandMode, agentStatus]);
 
   const commandHits = useMemo(() => {
     const needle = query.trim().toLowerCase();

@@ -123,6 +123,11 @@ export class FakePiAdapter implements PiAdapter {
         this.emit({ type: "message/upsert", message: { ...assistant } });
         this.emit({ type: "usage/update", tokens: { ...this.state.usage } });
       }
+      const steered = this.takeQueuedSteer();
+      if (steered) {
+        assistant.text += ` 已按插入方向调整：${steered}`;
+        this.emit({ type: "message/upsert", message: { ...assistant } });
+      }
 
       await sleep(80, signal);
       if (this.options.tools === "none") {
@@ -140,6 +145,7 @@ export class FakePiAdapter implements PiAdapter {
         if (this.runAbort === run) {
           this.refreshTree(assistant.id);
           this.finishIdle();
+          void this.drainQueuedFollowUp();
         }
         return;
       }
@@ -216,6 +222,7 @@ export class FakePiAdapter implements PiAdapter {
       if (this.runAbort === run) {
         this.refreshTree(assistant.id);
         this.finishIdle();
+        void this.drainQueuedFollowUp();
       }
     } catch (error) {
       if (this.runAbort !== run) {
@@ -497,11 +504,31 @@ export class FakePiAdapter implements PiAdapter {
     return true;
   }
 
+  private takeQueuedSteer(): string | undefined {
+    const text = this.queuedSteer.join("\n").trim();
+    this.queuedSteer = [];
+    return text || undefined;
+  }
+
+  private takeQueuedFollowUp(): string | undefined {
+    const text = this.queuedFollowUp.join("\n").trim();
+    this.queuedFollowUp = [];
+    return text || undefined;
+  }
+
   private takeQueuedDraft(): string | undefined {
     const text = [...this.queuedSteer, ...this.queuedFollowUp].join("\n").trim();
     this.queuedSteer = [];
     this.queuedFollowUp = [];
     return text || undefined;
+  }
+
+  private drainQueuedFollowUp(): void {
+    const next = this.takeQueuedFollowUp();
+    if (!next) {
+      return;
+    }
+    void this.prompt({ text: next });
   }
 
   private finishIdle(restoredDraft?: string): void {

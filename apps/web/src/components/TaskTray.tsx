@@ -115,6 +115,7 @@ export function TaskTray() {
 }
 
 function TaskRow({ task }: { task: TaskSummary }) {
+  const busy = useUiStore((state) => state.agentStatus) === "running";
   const live = task.status === "running" || task.status === "waiting_approval";
   const [now, setNow] = useState(Date.now());
 
@@ -151,7 +152,13 @@ function TaskRow({ task }: { task: TaskSummary }) {
 
   return (
     <div className="flex items-center gap-2 px-1.5 py-1 rounded-md hover:bg-[#f5f4ef]">
-      <button type="button" onClick={open} className="min-w-0 flex-1 text-left">
+      <button
+        type="button"
+        onClick={open}
+        disabled={busy}
+        title={busy ? "等当前轮结束再打开子会话" : undefined}
+        className="min-w-0 flex-1 text-left disabled:opacity-40"
+      >
         <div className="flex items-center gap-1.5 text-[11px] text-[#1f1e1d]">
           <span>{LABELS[task.persona] ?? task.persona}</span>
           <span className="text-[#abaaa2]">{STATUS[task.status] ?? task.status}</span>

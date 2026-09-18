@@ -201,4 +201,19 @@ describe("FakePiAdapter", () => {
     expect(restored).toBe("改成只读");
     await prompt;
   });
+
+  it("applies queued steer during the turn and drains follow-up after idle", async () => {
+    const state = createWorkspaceState();
+    state.trust = "untrusted";
+    const adapter = new FakePiAdapter(state);
+    const first = adapter.prompt({ text: "跑起来" });
+    await new Promise((resolve) => setTimeout(resolve, 40));
+    await adapter.steer("只解释不要改");
+    await adapter.followUp("再列文件");
+    await first;
+    expect(state.messages.some((item) => item.role === "assistant" && item.text.includes("只解释不要改"))).toBe(true);
+    await new Promise((resolve) => setTimeout(resolve, 80));
+    expect(state.messages.some((item) => item.role === "user" && item.text === "再列文件")).toBe(true);
+    await adapter.abort();
+  });
 });

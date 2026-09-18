@@ -18,6 +18,7 @@ const COLUMNS = [
 
 export function Board() {
   const tasks = useUiStore((state) => state.tasks);
+  const busy = useUiStore((state) => state.agentStatus) === "running";
 
   const open = async (sessionId: string | null) => {
     if (!sessionId) {
@@ -83,7 +84,8 @@ export function Board() {
                     type="button"
                     className="text-[11px] font-medium text-[#1f1e1d] truncate text-left w-full hover:underline"
                     onClick={() => void open(task.sessionId)}
-                    title={task.sessionId ? "打开子会话" : "还没有子会话文件"}
+                    disabled={busy}
+                    title={busy ? "等当前轮结束再打开子会话" : task.sessionId ? "打开子会话" : "还没有子会话文件"}
                   >
                     {task.goal}
                   </button>

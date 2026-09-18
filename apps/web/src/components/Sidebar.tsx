@@ -142,8 +142,10 @@ export function Sidebar() {
                     <button
                       key={session.id}
                       type="button"
+                      disabled={busy && !active}
+                      title={busy && !active ? "等当前轮结束再切换会话" : undefined}
                       onClick={() => handleResume(session.id)}
-                      className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-left ${
+                      className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-left disabled:opacity-40 ${
                         active
                           ? "bg-[#ffffff] border border-[#00000018] text-[#1f1e1d]"
                           : "hover:bg-[#edece6] text-[#4f4e4a]"
