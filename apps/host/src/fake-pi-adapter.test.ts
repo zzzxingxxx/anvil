@@ -40,6 +40,18 @@ describe("FakePiAdapter", () => {
     expect(items.some((item) => item.path.includes("demo-diff.txt"))).toBe(true);
   });
 
+  it("marks the current tree node compressed and appends a summary", async () => {
+    const cwd = await mkdtemp(join(tmpdir(), "anvil-fake-compact-"));
+    const state = createWorkspaceState();
+    state.cwd = cwd;
+    state.trust = "untrusted";
+    const adapter = new FakePiAdapter(state);
+    await adapter.prompt({ text: "压缩前" });
+    await adapter.compact("保留目标");
+    expect(state.treeSeeds.some((item) => item.status === "compressed")).toBe(true);
+    expect(state.messages.some((item) => item.text.includes("压缩"))).toBe(true);
+  });
+
   it("navigates and forks without mixing later messages", async () => {
     const cwd = await mkdtemp(join(tmpdir(), "anvil-fake-fork-"));
     const state = createWorkspaceState();

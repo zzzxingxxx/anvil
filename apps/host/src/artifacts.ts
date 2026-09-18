@@ -1,8 +1,12 @@
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 import { readFile } from "node:fs/promises";
 import { ArtifactStore, unifiedDiff } from "@anvil/pi-ext-artifact";
 import type { FileChange } from "@anvil/protocol";
 import { resolveInside } from "./workspace.ts";
 import type { WorkspaceState } from "./state.ts";
+
+const execFileAsync = promisify(execFile);
 
 export async function captureBefore(state: WorkspaceState, rawPath: string): Promise<void> {
   if (!state.cwd) {
@@ -45,15 +49,30 @@ export async function captureAfter(state: WorkspaceState, rawPath: string): Prom
   const prev = state.snapshots[rel] ?? { before: null, after: null };
   state.snapshots[rel] = { before: prev.before, after };
   const kind: FileChange["kind"] = prev.before == null ? "added" : after == null ? "deleted" : "modified";
+  const git = await gitDiff(state.cwd, rel);
   const change: FileChange = {
     path: rel,
     kind,
-    diff: unifiedDiff(rel, prev.before, after),
+    diff: git ?? unifiedDiff(rel, prev.before, after),
   };
   state.changes = [...state.changes.filter((item) => item.path !== rel), change];
   if (state.cwd) {
     const store = new ArtifactStore(state.cwd);
     await store.snapshotWrite(rel, after ?? "");
+  }
+}
+
+export async function gitDiff(cwd: string, rel: string): Promise<string | null> {
+  try {
+    const { stdout } = await execFileAsync("git", ["-C", cwd, "diff", "--", rel], {
+      timeout: 4000,
+      windowsHide: true,
+      maxBuffer: 200_000,
+    });
+    const text = stdout.trim();
+    return text.length > 0 ? text : null;
+  } catch {
+    return null;
   }
 }
 

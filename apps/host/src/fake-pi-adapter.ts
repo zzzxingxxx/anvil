@@ -4,6 +4,7 @@ import type { AnvilEvent, ModelInfo, SessionSummary, UiMessage } from "@anvil/pr
 import { decideGate, previewArgs, riskFor } from "@anvil/pi-ext-gate";
 import type { ApprovalQueue } from "./approvals.ts";
 import type { PiAdapter, PromptInput } from "./pi-adapter.ts";
+import { gitDiff } from "./artifacts.ts";
 import { appendPiAssistant, appendPiUser, hydrateUiFromPi, persistPiSession } from "./session-persist.ts";
 import { recordUsage } from "./usage-ledger.ts";
 import { resetConversation, upsertMessage, upsertTool, type WorkspaceState } from "./state.ts";
@@ -350,15 +351,31 @@ export class FakePiAdapter implements PiAdapter {
     this.refreshTree(entryId);
   }
 
-  async compact(): Promise<void> {
+  async compact(instructions?: string): Promise<void> {
     const leaf = this.state.currentEntryId ?? this.state.messages.at(-1)?.id ?? null;
     if (!leaf) {
       return;
     }
     const seed = this.state.treeSeeds.find((item) => item.id === leaf);
+    const summary = `压缩：${(instructions ?? seed?.summary ?? "当前分支").slice(0, 80)}`;
     if (seed) {
       seed.status = "compressed";
-      seed.summary = `压缩：${seed.summary}`;
+      seed.summary = summary;
+    }
+    const message: UiMessage = {
+      id: `compact-${Date.now()}`,
+      role: "system",
+      text: summary,
+      createdAt: Date.now(),
+    };
+    upsertMessage(this.state, message);
+    this.emit({ type: "message/upsert", message });
+    if (this.state.sessionId?.endsWith(".jsonl")) {
+      try {
+        appendPiAssistant(this.state.sessionId, summary);
+      } catch {
+        /* keep compact even if jsonl append fails */
+      }
     }
     this.refreshTree(leaf);
   }
@@ -373,11 +390,12 @@ export class FakePiAdapter implements PiAdapter {
     const before = "demo before\n";
     const after = "demo after\n";
     this.state.snapshots[path] = { before, after };
+    const git = this.state.cwd ? await gitDiff(this.state.cwd, path) : null;
     this.state.changes = [
       {
         path,
         kind: "modified",
-        diff: unifiedDiff(path, before, after),
+        diff: git ?? unifiedDiff(path, before, after),
       },
     ];
     if (this.state.cwd) {
@@ -391,9 +409,16 @@ export class FakePiAdapter implements PiAdapter {
   }
 
   private refreshTree(currentId: string | null): void {
+    const compressed = new Map(
+      this.state.treeSeeds.filter((item) => item.status === "compressed").map((item) => [item.id, item]),
+    );
     const { tree, seeds } = demoTree(this.state.messages, currentId);
-    this.state.tree = tree ?? buildTree(this.state.treeSeeds, currentId);
-    this.state.treeSeeds = seeds.length ? seeds : this.state.treeSeeds;
+    const merged = seeds.map((seed) => {
+      const previous = compressed.get(seed.id);
+      return previous ? { ...seed, status: previous.status, summary: previous.summary } : seed;
+    });
+    this.state.treeSeeds = merged.length ? merged : this.state.treeSeeds;
+    this.state.tree = buildTree(this.state.treeSeeds, currentId) ?? tree;
     this.state.currentEntryId = currentId;
     if (this.state.tree) {
       this.emit({ type: "tree/changed", root: this.state.tree });

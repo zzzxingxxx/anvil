@@ -20,10 +20,11 @@
 
 1. 假会话里能看到树节点，单击历史节点后刷新会只显示该路径消息。
 2. 对同一用户消息 Fork 两次，两条分支互不覆盖。
-3. 假循环结束后 Diff 面板出现 `.anvil/demo-diff.txt`；点还原走 `artifact.restore`（不会改 README）。
-4. `Ctrl+K` 能搜到 `docs/开发计划.md`。Composer 输入 `@开发计划` 选中后路径插入输入框。
-5. 人用终端（node-pty）按计划减载，本阶段不做。
-6. 检查器制品面板能列出快照；Composer 输入 `/` 能看到 compact/new/abort。
+3. 假循环结束后 Diff 面板出现 `.anvil/demo-diff.txt`；点还原走 `artifact.restore`（不会改 README）。有 git 时优先显示 `git diff`。
+4. 检查器点「压缩」后树节点标 compressed，对话里出现摘要。
+5. `Ctrl+K` 能搜到 `docs/开发计划.md`。Composer 输入 `@开发计划` 选中后路径插入输入框。
+6. 人用终端（node-pty）按计划减载，本阶段不做。
+7. 检查器制品面板能列出快照；Composer 输入 `/` 能看到 compact/new/abort。
 
 ## Phase 3
 
