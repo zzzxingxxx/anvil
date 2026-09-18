@@ -2,7 +2,7 @@
 
 以 [Earendil Pi](https://pi.dev) 为引擎的本地优先 AI Agent 工作台。
 
-当前进度：**Phase 4 演示版**。看板、设置、RPC sidecar 开关、`anvil.cmd` 一键启动。检查器有制品列表，Composer 支持 `/compact` `/new` `/abort`。真模型 dogfood 仍需能完成一轮推理的模型。
+当前进度：**Phase 4**。看板、设置、RPC sidecar 开关、`anvil.cmd` 一键启动。检查器有制品列表，Composer 支持 `/compact` `/new` `/abort`。真模型改文件 / 分叉 / 官方 `pi` resume / SDK 子任务已在本机跑通。
 
 - 产品：[docs/项目描述.md](docs/项目描述.md)
 - 计划：[docs/开发计划.md](docs/开发计划.md)
@@ -101,7 +101,7 @@ docs/
 
 ## 已知问题
 
-- 本机自定义 Pi provider 标 ready，但 `pi -p` 一轮失败（模型不支持 / 要 1m 上下文 / 无账号 / 流中断）。真改文件、分叉二选一、真 SDK 子 runtime 未跑通（代码已接：SDK 父会话会 spawn 独立 SdkPiAdapter）。
+- 真改文件、分叉、官方 `pi` resume、SDK 子 runtime 已在本机自定义 OpenAI 兼容端点跑通。旧自定义 provider 仍可能 `pi -p` 失败（401 / 1m 上下文 / 503 / 流中断）。
 - 子任务会写合法 Pi jsonl。假循环/RPC 用独立假循环；SDK 父会话用独立 SdkPiAdapter。
 - 桌面壳是开发版 Electron（`pnpm desktop`），没有安装包。Windows 未签名。
 - Docker 只做探测，未验证整进程进容器。

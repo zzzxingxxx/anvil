@@ -299,8 +299,7 @@ export class TaskOrchestrator {
         return;
       }
       const summary =
-        childState.messages.find((item) => item.role === "assistant")?.text ??
-        `${persona.label}完成：${task.goal.slice(0, 80)}`;
+        lastChildSummary(childState.messages) ?? `${persona.label}完成：${task.goal.slice(0, 80)}`;
       this.finish(task, "succeeded", { summary, costUsd: childState.usage.costUsd });
     } catch (error) {
       this.finish(task, "failed", {
@@ -396,6 +395,20 @@ export class TaskOrchestrator {
 
 export function childAdapterKind(parentKind: AdapterKind): "fake" | "sdk" {
   return parentKind === "sdk" ? "sdk" : "fake";
+}
+
+function lastChildSummary(messages: WorkspaceState["messages"]): string | undefined {
+  for (const item of [...messages].reverse()) {
+    if (item.role !== "assistant") {
+      continue;
+    }
+    const text = item.text.trim();
+    if (!text || text.startsWith("子任务已创建")) {
+      continue;
+    }
+    return text;
+  }
+  return undefined;
 }
 
 function classifyFailure(message: string): string {
