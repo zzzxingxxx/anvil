@@ -20,7 +20,7 @@
 
 1. 假会话里能看到树节点，单击历史节点后刷新会只显示该路径消息。右键可 Fork / 从这里继续 / 复制节点 id。运行中切换分支会提示「等当前轮结束」。
 2. 对同一用户消息 Fork 两次，两条分支互不覆盖。
-3. 假循环结束后 Diff 面板出现 `.anvil/demo-diff.txt`；点还原走 `artifact.restore`（不会改 README），该路径从 Diff 消失。有 git 时优先显示 `git diff`。
+3. 假循环结束后 Diff 面板出现 `.anvil/demo-diff.txt`；点还原走 `artifact.restore`（不会改 README），该路径从 Diff 消失。新增文件点「删除新增」会删掉该文件。有 git 时优先显示 `git diff`。刷新浏览器会清掉旧错误横幅。
 4. 检查器点「压缩」后树节点标 compressed，对话里出现摘要。
 5. `Ctrl+K` 打开即列出 `/compact` `/new` `/abort` 和最近会话，方向键/回车可选中；也能搜到 `docs/开发计划.md` 并预览。Composer 输入 `@` 只搜文件并插入路径，不列会话。设置页可改新工作区默认信任。运行中点压缩、新建或切换会话会提示「等当前轮结束」。
 6. 人用终端（node-pty）按计划减载，本阶段不做。

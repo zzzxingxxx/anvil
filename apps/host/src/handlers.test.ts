@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
+import { access, mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -192,6 +192,28 @@ describe("handleRequest", () => {
     expect(await readFile(file, "utf8")).toBe("before\n");
     expect(state.changes.some((item) => item.path === "notes.md")).toBe(false);
     expect(state.snapshots["notes.md"]?.after).toBe("before\n");
+  });
+
+  it("restores an added file by deleting it", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "anvil-restore-add-"));
+    const file = join(dir, "fresh.md");
+    await writeFile(file, "new\n", "utf8");
+    const state = createWorkspaceState();
+    const approvals = new ApprovalQueue();
+    const adapter = new FakePiAdapter(state, approvals);
+    await handleRequest(makeRequest("workspace.open", { path: dir }, "w-add"), state, adapter, approvals);
+    state.snapshots["fresh.md"] = { before: null, after: "new\n" };
+    state.changes = [{ path: "fresh.md", kind: "added", diff: "+new\n" }];
+    const response = await handleRequest(
+      makeRequest("artifact.restore", { path: "fresh.md" }, "r-add"),
+      state,
+      adapter,
+      approvals,
+    );
+    expect(response.payload).toMatchObject({ ok: true, path: "fresh.md" });
+    await expect(access(file)).rejects.toThrow();
+    expect(state.changes.some((item) => item.path === "fresh.md")).toBe(false);
+    expect(state.snapshots["fresh.md"]).toBeUndefined();
   });
 
   it("lists artifact snapshots after a fake write", async () => {

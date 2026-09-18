@@ -172,6 +172,7 @@ export const useUiStore = create<UiState & Actions>((set, get) => ({
           settings: (event.settings as UiState["settings"]) ?? {},
           docker: (event.docker as UiState["docker"]) ?? null,
           preview: null,
+          lastError: null,
         });
         break;
       case "session/replaced":
