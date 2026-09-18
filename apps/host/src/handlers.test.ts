@@ -154,6 +154,19 @@ describe("handleRequest", () => {
     expect(entries.some((entry) => entry.name === "README.md")).toBe(true);
   });
 
+  it("handles workspace.pickFolder without crashing", async () => {
+    const state = createWorkspaceState();
+    const approvals = new ApprovalQueue();
+    const adapter = new FakePiAdapter(state, approvals);
+    const response = await handleRequest(
+      makeRequest("workspace.pickFolder", {}, "pick-1"),
+      state,
+      adapter,
+      approvals,
+    );
+    expect(response.payload).toHaveProperty("ok", true);
+  });
+
   it("clears leftover tasks when opening another workspace", async () => {
     const first = await mkdtemp(join(tmpdir(), "anvil-ws-a-"));
     const second = await mkdtemp(join(tmpdir(), "anvil-ws-b-"));

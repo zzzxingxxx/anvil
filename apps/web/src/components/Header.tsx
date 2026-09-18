@@ -1,6 +1,7 @@
 import {
   Sidebar as SidebarIcon,
   FolderGit2,
+  FolderSync,
   Search,
   SlidersHorizontal,
   GitBranch,
@@ -13,6 +14,7 @@ import { useUiStore } from "../store.ts";
 import { ModelSelector } from "./ModelSelector.tsx";
 import { TrustControl } from "./TrustControl.tsx";
 import { cn } from "../lib/utils.ts";
+import { pickAndOpenWorkspace } from "../lib/workspace.ts";
 
 const TABS = [
   { id: "chat", label: "对话", icon: MessageSquare },
@@ -77,12 +79,29 @@ export function Header() {
 
           <span className="text-[#0000001f] font-light hidden md:inline">/</span>
 
-          <div className="hidden md:flex items-center gap-1.5 text-[#4f4e4a] px-1.5 py-0.5 rounded min-w-0">
-            <FolderGit2 className="w-3.5 h-3.5 text-[#7e7d77] shrink-0" />
-            <span className="font-medium truncate max-w-[160px] lg:max-w-[220px]">
-              {cwd ? cwd.split(/[\\/]/).pop() || cwd : "未打开工程"}
-            </span>
-          </div>
+          {cwd ? (
+            <div
+              className="hidden md:flex items-center gap-1.5 text-[#4f4e4a] px-2 py-0.5 rounded-lg hover:bg-[#edece6] transition-colors cursor-pointer min-w-0 group"
+              onClick={() => void pickAndOpenWorkspace()}
+              title={`当前工作区：${cwd}（点击更换目录）`}
+            >
+              <FolderGit2 className="w-3.5 h-3.5 text-[#7e7d77] group-hover:text-[#1f1e1d] shrink-0" />
+              <span className="font-medium truncate max-w-[150px] lg:max-w-[200px]">
+                {cwd.split(/[\\/]/).filter(Boolean).pop() || cwd}
+              </span>
+              <FolderSync className="w-3 h-3 text-[#abaaa2] group-hover:text-[#1f1e1d] opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => void pickAndOpenWorkspace()}
+              className="hidden md:flex items-center gap-1.5 text-[#7e7d77] hover:text-[#1f1e1d] px-2 py-0.5 rounded-lg hover:bg-[#edece6] transition-colors border border-dashed border-[#00000018]"
+              title="点击唤起系统对话框选择本地工程目录"
+            >
+              <FolderGit2 className="w-3.5 h-3.5 text-[#7e7d77] shrink-0" />
+              <span className="font-medium text-[11px]">选择本地工程目录</span>
+            </button>
+          )}
 
           <span className="text-[#0000001f] font-light hidden lg:inline">/</span>
 

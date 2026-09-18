@@ -15,6 +15,7 @@ import { TaskTray } from "./components/TaskTray.tsx";
 import { Board } from "./components/Board.tsx";
 import { SettingsPage } from "./components/SettingsPage.tsx";
 import { EmptyState } from "./components/EmptyState.tsx";
+import { WorkspaceWelcome } from "./components/WorkspaceWelcome.tsx";
 
 export function App() {
   const [sending, setSending] = useState(false);
@@ -117,43 +118,7 @@ export function App() {
                   ) : null}
 
                   {!connecting && !offline && empty ? (
-                    <EmptyState
-                      className="flex-1 pt-6"
-                      icon={<span className="font-serif font-bold text-base">π</span>}
-                      title={cwd ? "工作区已打开" : "先打开一个本机仓库"}
-                      detail={
-                        cwd
-                          ? "从下面选一个起点，或直接在底部输入需求。"
-                          : "浏览器不能弹系统文件框。请在左侧粘贴路径，例如本仓库。"
-                      }
-                    >
-                      <div className="grid gap-2 w-full text-left">
-                        <StartCard
-                          title="解释这个仓库"
-                          detail="打开工作区后，让 Agent 只读梳理模块。"
-                          prompt="解释当前仓库的模块划分，不要改文件。"
-                          disabled={!cwd}
-                        />
-                        <StartCard
-                          title="修一个小问题"
-                          detail="信任模式 + 审批后，才能 write / bash。"
-                          prompt="帮我给 README 加一节「常见问题」，先说明你打算改哪里。"
-                          disabled={!cwd}
-                        />
-                        <StartCard
-                          title="恢复上次会话"
-                          detail={sessions[0] ? sessions[0].title : "还没有可恢复的会话"}
-                          disabled={!sessions[0]}
-                          onClick={
-                            sessions[0]
-                              ? async () => {
-                                  await client.request("session.resume", { id: sessions[0]!.id });
-                                }
-                              : undefined
-                          }
-                        />
-                      </div>
-                    </EmptyState>
+                    <WorkspaceWelcome onSelectPrompt={(prompt) => void handleSend(prompt)} />
                   ) : null}
 
                   {messages.map((message) => (
@@ -221,51 +186,5 @@ function ErrorBanner({ message }: { message: string }) {
         关闭
       </button>
     </div>
-  );
-}
-
-function StartCard({
-  title,
-  detail,
-  prompt,
-  disabled,
-  onClick,
-}: {
-  title: string;
-  detail: string;
-  prompt?: string;
-  disabled?: boolean;
-  onClick?: () => Promise<void>;
-}) {
-  return (
-    <button
-      type="button"
-      disabled={disabled}
-      onClick={async () => {
-        if (onClick) {
-          try {
-            await onClick();
-          } catch (error) {
-            useUiStore.setState({
-              lastError: error instanceof Error ? error.message : String(error),
-            });
-          }
-          return;
-        }
-        if (prompt) {
-          try {
-            await client.request("agent.prompt", { text: prompt });
-          } catch (error) {
-            useUiStore.setState({
-              lastError: error instanceof Error ? error.message : String(error),
-            });
-          }
-        }
-      }}
-      className="rounded-xl border border-[#00000010] bg-white px-3.5 py-3 text-left disabled:opacity-40 disabled:cursor-not-allowed hover:border-[#00000022] hover:shadow-[var(--shadow-sm)] transition"
-    >
-      <div className="text-xs font-medium text-[#1f1e1d]">{title}</div>
-      <div className="text-[11px] text-[#7e7d77] mt-0.5">{detail}</div>
-    </button>
   );
 }

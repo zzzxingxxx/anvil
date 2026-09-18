@@ -1,5 +1,9 @@
 import { realpath, stat } from "node:fs/promises";
 import { isAbsolute, join, normalize, relative, resolve, sep } from "node:path";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
+
+const execFileAsync = promisify(execFile);
 
 const IGNORED = new Set(["node_modules", ".git", "dist", ".anvil", "coverage", ".vite"]);
 const TEXT_EXT = new Set([
@@ -77,4 +81,48 @@ function expandHome(path: string): string {
     return join(home, path.slice(2));
   }
   return path;
+}
+
+export async function pickSystemFolder(defaultPath?: string): Promise<string | null> {
+  if (process.env.VITEST || process.env.CI) {
+    return defaultPath ?? process.cwd();
+  }
+  if (process.platform === "win32") {
+    const escapedDefault = defaultPath ? defaultPath.replace(/'/g, "''") : "";
+    const script = `
+Add-Type -AssemblyName System.Windows.Forms
+$f = New-Object System.Windows.Forms.FolderBrowserDialog
+$f.Description = '选择工作区工程目录'
+$f.ShowNewFolderButton = $true
+if ('${escapedDefault}' -and (Test-Path '${escapedDefault}')) { $f.SelectedPath = '${escapedDefault}' }
+if ($f.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
+  [Console]::Out.Write($f.SelectedPath)
+}
+`.trim();
+    try {
+      const { stdout } = await execFileAsync(
+        "powershell.exe",
+        ["-NoProfile", "-STA", "-Command", script],
+        { timeout: 60000, windowsHide: true },
+      );
+      const picked = stdout.trim();
+      return picked ? picked : null;
+    } catch {
+      return null;
+    }
+  }
+  if (process.platform === "darwin") {
+    try {
+      const { stdout } = await execFileAsync(
+        "osascript",
+        ["-e", 'POSIX path of (choose folder with prompt "选择工作区工程目录")'],
+        { timeout: 60000 },
+      );
+      const picked = stdout.trim().replace(/\/$/, "");
+      return picked ? picked : null;
+    } catch {
+      return null;
+    }
+  }
+  return null;
 }

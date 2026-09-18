@@ -1,7 +1,8 @@
-import { ArrowUp, Square, Sparkles, CornerDownRight, ListPlus } from "lucide-react";
+import { ArrowUp, Square, Sparkles, CornerDownRight, ListPlus, FolderOpen } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useUiStore } from "../store.ts";
 import { client } from "../ws.ts";
+import { pickAndOpenWorkspace } from "../lib/workspace.ts";
 
 interface ComposerProps {
   onSend: (text: string) => Promise<void>;
@@ -228,8 +229,8 @@ export function Composer({ onSend, sending }: ComposerProps) {
   };
 
   const quickPrompts = cwd
-    ? ["列出当前目录文件", "解释仓库当前模块划分", "给 README 加一节常见问题"]
-    : ["先打开左侧工作区路径", "解析仓库当前模块划分"];
+    ? ["列出当前工程核心文件", "梳理工程整体架构与模块", "检查最近 Git 修改与状态"]
+    : ["请先选择本地工程目录开始"];
 
   return (
     <div className="w-full max-w-2xl mx-auto px-3 sm:px-4 pb-3 sm:pb-4 select-none z-10">
@@ -289,7 +290,7 @@ export function Composer({ onSend, sending }: ComposerProps) {
             connection !== "open"
               ? "等待与后端 Host 建立连接..."
               : !cwd
-                ? "先在左侧粘贴工作区路径再开始"
+                ? "请先选择本地工程目录开始提问..."
                 : isRunning
                   ? "Agent 正在执行… Esc 中止，或插入方向 / 结束后做"
                   : "输入需求，或 @agent:审查者 看这段 diff / Ctrl+Enter 发送..."
@@ -299,6 +300,16 @@ export function Composer({ onSend, sending }: ComposerProps) {
 
         <div className="flex items-center justify-between gap-2 px-3 py-2 bg-[#fdfdfb] border-t border-[#00000008] text-xs text-[#abaaa2]">
           <div className="flex items-center gap-2 min-w-0">
+            {!cwd ? (
+              <button
+                type="button"
+                onClick={() => void pickAndOpenWorkspace()}
+                className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-[#edece6] hover:bg-[#e0ded6] text-[#1f1e1d] font-medium text-[11px] transition-colors"
+              >
+                <FolderOpen className="w-3.5 h-3.5 text-[#5e5c54]" />
+                <span>选择工程目录</span>
+              </button>
+            ) : null}
             <span className="text-[11px] text-[#7e7d77] hidden sm:flex items-center gap-1 truncate">
               <kbd className="px-1.5 py-0.5 rounded bg-[#edece6] text-[10px] font-mono font-medium text-[#4f4e4a]">
                 Ctrl

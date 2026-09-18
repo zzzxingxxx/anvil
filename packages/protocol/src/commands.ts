@@ -50,6 +50,17 @@ export const WorkspaceOpenResultSchema = z.object({
 });
 export type WorkspaceOpenResult = z.infer<typeof WorkspaceOpenResultSchema>;
 
+export const WorkspacePickFolderPayloadSchema = z.object({
+  defaultPath: z.string().optional(),
+});
+export type WorkspacePickFolderPayload = z.infer<typeof WorkspacePickFolderPayloadSchema>;
+
+export const WorkspacePickFolderResultSchema = z.object({
+  ok: z.literal(true),
+  path: z.string().nullable(),
+});
+export type WorkspacePickFolderResult = z.infer<typeof WorkspacePickFolderResultSchema>;
+
 export const WorkspaceTrustPayloadSchema = z.object({
   trust: TrustLevelSchema,
 });
@@ -377,6 +388,7 @@ export const UsageExportResultSchema = z.object({
 
 export const CommandTypeSchema = z.enum([
   "workspace.open",
+  "workspace.pickFolder",
   "workspace.trust",
   "session.list",
   "session.new",
@@ -411,6 +423,7 @@ export type CommandType = z.infer<typeof CommandTypeSchema>;
 
 export const CommandPayloadSchemas = {
   "workspace.open": WorkspaceOpenPayloadSchema,
+  "workspace.pickFolder": WorkspacePickFolderPayloadSchema,
   "workspace.trust": WorkspaceTrustPayloadSchema,
   "session.list": SessionListPayloadSchema,
   "session.new": SessionNewPayloadSchema,
@@ -444,6 +457,7 @@ export const CommandPayloadSchemas = {
 
 export const CommandResultSchemas = {
   "workspace.open": WorkspaceOpenResultSchema,
+  "workspace.pickFolder": WorkspacePickFolderResultSchema,
   "workspace.trust": WorkspaceTrustResultSchema,
   "session.list": SessionListResultSchema,
   "session.new": SessionNewResultSchema,

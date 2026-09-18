@@ -31,7 +31,7 @@ import {
 } from "./pi-models.ts";
 import type { PiAdapter } from "./pi-adapter.ts";
 import { resetConversation, type WorkspaceState } from "./state.ts";
-import { resolveInside, resolveWorkspacePath } from "./workspace.ts";
+import { pickSystemFolder, resolveInside, resolveWorkspacePath } from "./workspace.ts";
 import type { ApprovalQueue } from "./approvals.ts";
 import type { TaskOrchestrator } from "./tasks.ts";
 
@@ -119,6 +119,11 @@ async function dispatch(
         await adapter.openWorkspace(resolved);
       }
       return { ok: true, path: resolved, trust, recent: next.recentWorkspaces };
+    }
+    case "workspace.pickFolder": {
+      const { defaultPath } = payload as { defaultPath?: string };
+      const path = await pickSystemFolder(defaultPath ?? state.cwd ?? undefined);
+      return { ok: true, path };
     }
     case "workspace.trust": {
       if (!state.cwd) {
