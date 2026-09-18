@@ -48,11 +48,11 @@ export function formatElapsed(ms: number): string {
   return `${minutes}m${rest.toString().padStart(2, "0")}s`;
 }
 
-export type TextPart = { type: "text" | "code" | "bold"; value: string };
+export type TextPart = { type: "text" | "code" | "bold" | "italic"; value: string };
 
 export function parseSafeMarkdown(text: string): TextPart[] {
   const parts: TextPart[] = [];
-  const pattern = /(`[^`]+`|\*\*[^*]+\*\*)/g;
+  const pattern = /(`[^`]+`|\*\*[^*]+\*\*|\*[^*]+\*)/g;
   let last = 0;
   let match: RegExpExecArray | null;
   while ((match = pattern.exec(text))) {
@@ -62,8 +62,10 @@ export function parseSafeMarkdown(text: string): TextPart[] {
     const token = match[0];
     if (token.startsWith("`")) {
       parts.push({ type: "code", value: token.slice(1, -1) });
-    } else {
+    } else if (token.startsWith("**")) {
       parts.push({ type: "bold", value: token.slice(2, -2) });
+    } else {
+      parts.push({ type: "italic", value: token.slice(1, -1) });
     }
     last = match.index + token.length;
   }

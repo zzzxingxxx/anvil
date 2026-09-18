@@ -81,6 +81,16 @@ describe("FakePiAdapter", () => {
     await prompt;
   });
 
+  it("rejects resumeSession while a turn is running", async () => {
+    const state = createWorkspaceState();
+    state.trust = "untrusted";
+    const adapter = new FakePiAdapter(state);
+    const prompt = adapter.prompt({ text: "还在跑" });
+    await expect(adapter.resumeSession("missing.jsonl")).rejects.toThrow(/等当前轮结束/);
+    await adapter.abort();
+    await prompt;
+  });
+
   it("rejects compact while a turn is running", async () => {
     const state = createWorkspaceState();
     state.trust = "untrusted";

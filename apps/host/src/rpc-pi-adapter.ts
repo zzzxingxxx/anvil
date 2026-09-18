@@ -2,7 +2,7 @@ import { RpcClient } from "@earendil-works/pi-coding-agent";
 import type { AnvilEvent, ModelInfo, SessionSummary, UiMessage } from "@anvil/protocol";
 import type { PiAdapter, PromptInput } from "./pi-adapter.ts";
 import { resetConversation, upsertMessage, type WorkspaceState } from "./state.ts";
-import { toModelInfo } from "./sdk-map.ts";
+import { toModelInfo, toUiMessage } from "./sdk-map.ts";
 
 /**
  * Sidecar adapter: official Pi RPC client.
@@ -46,17 +46,36 @@ export class RpcPiAdapter implements PiAdapter {
     try {
       await client.prompt(input.text);
     } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.state.agentStatus = "error";
+      this.emit({ type: "agent/error", error: message });
       await this.recoverFromCrash();
-      throw error instanceof Error ? error : new Error(String(error));
+      throw error instanceof Error ? error : new Error(message);
     }
   }
 
   async steer(text: string): Promise<void> {
     await (await this.requireClient()).steer(text);
+    const message: UiMessage = {
+      id: `steer-${Date.now()}`,
+      role: "system",
+      text: `已插入方向：${text}`,
+      createdAt: Date.now(),
+    };
+    upsertMessage(this.state, message);
+    this.emit({ type: "message/upsert", message });
   }
 
   async followUp(text: string): Promise<void> {
     await (await this.requireClient()).followUp(text);
+    const message: UiMessage = {
+      id: `follow-${Date.now()}`,
+      role: "system",
+      text: `已排队结束后再做：${text}`,
+      createdAt: Date.now(),
+    };
+    upsertMessage(this.state, message);
+    this.emit({ type: "message/upsert", message });
   }
 
   async abort(): Promise<string | void> {
@@ -94,7 +113,7 @@ export class RpcPiAdapter implements PiAdapter {
     return info;
   }
 
-  async newSession(): Promise<SessionSummary> {
+  async newSession(title?: string): Promise<SessionSummary> {
     if (this.state.agentStatus === "running") {
       throw new Error("等当前轮结束再新建会话");
     }
@@ -103,16 +122,36 @@ export class RpcPiAdapter implements PiAdapter {
     if (result.cancelled) {
       throw new Error("新建会话被取消");
     }
-    resetConversation(this.state);
-    const summary: SessionSummary = {
-      id: `rpc-${Date.now()}`,
-      title: "RPC 会话",
-      mtime: Date.now(),
-    };
-    this.state.sessionId = summary.id;
-    this.state.sessionTitle = summary.title;
-    this.state.sessions.unshift(summary);
-    return summary;
+    if (title) {
+      try {
+        await client.setSessionName(title);
+      } catch {
+        /* name is best-effort; session still opened */
+      }
+    }
+    return this.hydrateFromRpc(title);
+  }
+
+  async resumeSession(id: string): Promise<SessionSummary> {
+    if (this.state.agentStatus === "running") {
+      throw new Error("等当前轮结束再切换会话");
+    }
+    const result = await (await this.requireClient()).switchSession(id);
+    if (result.cancelled) {
+      throw new Error("恢复会话被取消");
+    }
+    return this.hydrateFromRpc();
+  }
+
+  async fork(entryId: string): Promise<SessionSummary> {
+    if (this.state.agentStatus === "running") {
+      throw new Error("等当前轮结束再分叉");
+    }
+    const result = await (await this.requireClient()).fork(entryId);
+    if (result.cancelled) {
+      throw new Error("分叉被取消");
+    }
+    return this.hydrateFromRpc(`分叉 ${entryId.slice(0, 8)}`);
   }
 
   async dispose(): Promise<void> {
@@ -157,6 +196,43 @@ export class RpcPiAdapter implements PiAdapter {
       }
       throw new Error(`RPC sidecar 启动失败：${error instanceof Error ? error.message : String(error)}`);
     }
+  }
+
+  private async hydrateFromRpc(fallbackTitle?: string): Promise<SessionSummary> {
+    const client = await this.requireClient();
+    let sessionFile: string | undefined;
+    let sessionName: string | undefined;
+    try {
+      const rpcState = await client.getState();
+      sessionFile = rpcState.sessionFile;
+      sessionName = rpcState.sessionName;
+    } catch {
+      /* keep a local id if sidecar state is unavailable */
+    }
+    resetConversation(this.state);
+    try {
+      const messages = await client.getMessages();
+      for (const message of messages) {
+        const ui = toUiMessage(message, false);
+        if (ui) {
+          upsertMessage(this.state, ui);
+        }
+      }
+    } catch {
+      /* empty transcript is still a valid new session */
+    }
+    const summary: SessionSummary = {
+      id: sessionFile ?? this.state.sessionId ?? `rpc-${Date.now()}`,
+      title: sessionName ?? fallbackTitle ?? this.state.sessionTitle ?? "RPC 会话",
+      mtime: Date.now(),
+    };
+    this.state.sessionId = summary.id;
+    this.state.sessionTitle = summary.title;
+    if (!this.state.sessions.some((item) => item.id === summary.id)) {
+      this.state.sessions.unshift(summary);
+    }
+    this.emit({ type: "session/replaced", sessionId: summary.id, title: summary.title });
+    return summary;
   }
 
   async recoverFromCrash(): Promise<void> {

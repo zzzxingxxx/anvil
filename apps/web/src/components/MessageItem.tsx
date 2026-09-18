@@ -67,6 +67,9 @@ export function MessageItem({ message }: MessageItemProps) {
               if (part.type === "bold") {
                 return <strong key={index}>{part.value}</strong>;
               }
+              if (part.type === "italic") {
+                return <em key={index}>{part.value}</em>;
+              }
               return <span key={index}>{part.value}</span>;
             })}
             {message.streaming ? <span className="streaming-dot" /> : null}
