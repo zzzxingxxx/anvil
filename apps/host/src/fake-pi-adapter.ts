@@ -32,7 +32,7 @@ export class FakePiAdapter implements PiAdapter {
   constructor(
     private readonly state: WorkspaceState,
     private readonly approvals?: ApprovalQueue,
-    private readonly options: { tools?: "bash" | "none" } = {},
+    private readonly options: { tools?: "bash" | "none"; taskId?: string } = {},
   ) {}
 
   subscribe(cb: (event: AnvilEvent) => void): () => void {
@@ -71,7 +71,7 @@ export class FakePiAdapter implements PiAdapter {
     this.state.usage = {
       inputTokens: this.state.usage.inputTokens + Math.max(8, input.text.length),
       outputTokens: this.state.usage.outputTokens,
-      costUsd: this.state.usage.costUsd,
+      costUsd: (this.state.usage.costUsd ?? 0) + 0.0002,
     };
     this.emit({ type: "agent/running" });
     this.emit({ type: "message/upsert", message: userMessage });
@@ -144,6 +144,7 @@ export class FakePiAdapter implements PiAdapter {
           toolName: "bash",
           argsPreview: previewArgs(args),
           risk: riskFor("bash", args),
+          taskId: this.options.taskId,
         };
         this.state.pendingApproval = request;
         const waited = this.approvals.wait(request);

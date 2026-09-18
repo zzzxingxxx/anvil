@@ -87,6 +87,9 @@ function TaskRow({ task }: { task: TaskSummary }) {
         </div>
         <div className="truncate text-[10.5px] text-[#7e7d77]">{task.goal}</div>
         {task.error ? <div className="text-[10px] text-amber-800">{task.error}</div> : null}
+        {task.costUsd ? (
+          <div className="text-[10px] font-mono text-[#abaaa2]">${task.costUsd.toFixed(4)}</div>
+        ) : null}
       </button>
       {task.status === "running" || task.status === "queued" ? (
         <button type="button" onClick={cancel} className="text-[10px] text-[#abaaa2] hover:text-[#1f1e1d]">

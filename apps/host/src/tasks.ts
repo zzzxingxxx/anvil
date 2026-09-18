@@ -33,6 +33,7 @@ export class TaskOrchestrator {
   constructor(
     private readonly state: WorkspaceState,
     private readonly sessionDir?: string,
+    private readonly approvals?: ApprovalQueue,
   ) {
     this.children = new Map();
   }
@@ -191,7 +192,7 @@ export class TaskOrchestrator {
         const target = task.cwd ? `${task.cwd.replace(/\\/g, "/")}/notes.md` : WRITE_TARGET;
         const lock = this.locks.tryLock(task.id, target);
         if (!lock.ok) {
-          this.finish(task, "failed", { error: `文件被任务 ${lock.owner} 锁定` });
+          this.finish(task, "failed", { error: classifyFailure(`文件被任务 ${lock.owner} 锁定`) });
           return;
         }
       }
@@ -202,13 +203,15 @@ export class TaskOrchestrator {
       childState.settings = { ...this.state.settings };
       childState.sessionId = task.sessionId;
       childState.sessionTitle = `${persona.label} · ${task.goal.slice(0, 24)}`;
-      const child = new FakePiAdapter(childState, new ApprovalQueue(), {
+      const child = new FakePiAdapter(childState, this.approvals ?? new ApprovalQueue(), {
         tools: personaAllowsWrite(task.persona) ? "bash" : "none",
+        taskId: task.id,
       });
       this.children.set(task.id, child);
       child.subscribe((event) => {
         if (event.type === "approval/needed") {
           task.status = "waiting_approval";
+          this.state.pendingApproval = { ...event.request, taskId: task.id };
           this.emitTask(task);
           this.emit({
             type: "approval/needed",
@@ -223,13 +226,24 @@ export class TaskOrchestrator {
       if (!still || still.status === "cancelled") {
         return;
       }
+      if (still.status === "waiting_approval") {
+        still.status = "running";
+        still.column = "doing";
+        this.emitTask(still);
+      }
+      this.rollUpUsage(childState.usage);
+      const denied = childState.tools.find((item) => item.status === "error");
+      if (denied) {
+        this.finish(task, "failed", { error: classifyFailure(denied.output ?? "用户拒绝"), costUsd: childState.usage.costUsd });
+        return;
+      }
       const summary =
         childState.messages.find((item) => item.role === "assistant")?.text ??
         `${persona.label}完成：${task.goal.slice(0, 80)}`;
-      this.finish(task, "succeeded", { summary });
+      this.finish(task, "succeeded", { summary, costUsd: childState.usage.costUsd });
     } catch (error) {
       this.finish(task, "failed", {
-        error: error instanceof Error ? error.message : String(error),
+        error: classifyFailure(error instanceof Error ? error.message : String(error)),
       });
     } finally {
       const child = this.children.get(task.id);
@@ -250,6 +264,9 @@ export class TaskOrchestrator {
     if (status === "succeeded") task.column = "done";
     if (status === "failed" || status === "cancelled") task.column = "blocked";
     Object.assign(task, extra);
+    if (this.state.pendingApproval?.taskId === task.id) {
+      this.state.pendingApproval = null;
+    }
     this.emitTask(task);
     if (status === "succeeded" && extra.summary) {
       const message = {
@@ -267,11 +284,31 @@ export class TaskOrchestrator {
     this.emit({ type: "task/upsert", task: { ...task } });
   }
 
+  private rollUpUsage(childUsage: WorkspaceState["usage"]): void {
+    this.state.usage = {
+      inputTokens: this.state.usage.inputTokens + childUsage.inputTokens,
+      outputTokens: this.state.usage.outputTokens + childUsage.outputTokens,
+      costUsd: (this.state.usage.costUsd ?? 0) + (childUsage.costUsd ?? 0),
+    };
+    this.emit({ type: "usage/update", tokens: { ...this.state.usage } });
+  }
+
   private emit(event: AnvilEvent): void {
     for (const listener of this.listeners) {
       listener(event);
     }
   }
+}
+
+function classifyFailure(message: string): string {
+  if (message.startsWith("锁冲突") || message.startsWith("超时") || message.startsWith("超费") || message.startsWith("用户拒绝") || message.startsWith("模型错误")) {
+    return message;
+  }
+  if (message.includes("锁定")) return `锁冲突：${message}`;
+  if (message.includes("超时")) return `超时：${message}`;
+  if (message.includes("超费") || message.toLowerCase().includes("usd")) return `超费：${message}`;
+  if (message.includes("拒绝") || message.includes("取消")) return `用户拒绝：${message}`;
+  return `模型错误：${message}`;
 }
 
 

@@ -20,6 +20,7 @@ export function Inspector() {
     tools, 
     modelLabel,
     usage,
+    tasks,
     inspectorOpen,
     toggleInspector
   } = useUiStore();
@@ -115,9 +116,15 @@ export function Inspector() {
               </div>
 
               <div className="flex items-center justify-between pt-0.5 text-[11px] text-[#7e7d77]">
-                <span>单轮估算成本:</span>
+                <span>父+子估算成本:</span>
                 <span className="font-mono font-semibold text-[#1f1e1d]">
                   ${(usage.costUsd ?? 0.00).toFixed(4)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-[11px] text-[#7e7d77]">
+                <span>子任务费用:</span>
+                <span className="font-mono text-[#1f1e1d]">
+                  ${tasks.reduce((sum, task) => sum + (task.costUsd ?? 0), 0).toFixed(4)}
                 </span>
               </div>
             </div>
@@ -138,6 +145,11 @@ export function Inspector() {
                 <span className="text-[#7e7d77]">闭环成功</span>
                 <span className="font-semibold text-emerald-700">{successTools} 次</span>
               </div>
+              {tasks.find((task) => task.error) ? (
+                <div className="text-[11px] text-amber-800 leading-relaxed">
+                  最近失败：{tasks.find((task) => task.error)?.error}
+                </div>
+              ) : null}
             </div>
           </div>
 

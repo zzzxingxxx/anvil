@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { SessionManager } from "@earendil-works/pi-coding-agent";
+import { ApprovalQueue } from "./approvals.ts";
 import { createWorkspaceState } from "./state.ts";
 import { TaskOrchestrator } from "./tasks.ts";
 
@@ -54,5 +55,29 @@ describe("TaskOrchestrator", () => {
     expect(opened.getEntries().length).toBeGreaterThan(0);
     expect(b.sessionId).not.toBe(a.sessionId);
     expect(state.messages.some((item) => item.text.includes("只读子任务结束"))).toBe(true);
+    expect((state.usage.costUsd ?? 0) > 0).toBe(true);
+  });
+
+  it("surfaces child bash approvals on the parent queue", async () => {
+    const cwd = await mkdtemp(join(tmpdir(), "anvil-child-appr-"));
+    const sessionDir = join(cwd, "sessions");
+    const state = createWorkspaceState();
+    state.cwd = cwd;
+    state.trust = "trusted";
+    const approvals = new ApprovalQueue();
+    const tasks = new TaskOrchestrator(state, sessionDir, approvals);
+    const events: string[] = [];
+    tasks.subscribe((event) => {
+      events.push(event.type);
+      if (event.type === "approval/needed") {
+        expect(event.request.taskId).toBeTruthy();
+        approvals.respond(event.request.requestId, "deny");
+      }
+    });
+    const task = await tasks.delegate({ goal: "改 notes", persona: "implementer" });
+    await new Promise((resolve) => setTimeout(resolve, 1200));
+    expect(events).toContain("approval/needed");
+    expect(state.tasks.find((item) => item.id === task.id)?.status).toBe("failed");
+    expect(state.tasks.find((item) => item.id === task.id)?.error).toMatch(/^用户拒绝/);
   });
 });

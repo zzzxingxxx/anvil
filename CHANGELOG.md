@@ -11,4 +11,5 @@
 - 立项草案清单已冻结，执行进度以开发计划和 README 为准。
 - 检查器制品列表 + Composer `/compact` `/new` `/abort`。
 - 假循环允许 bash 后把演示 Diff 写入 ArtifactStore，制品面板能列出来。
+- 子任务 bash 审批走主队列并标明来源；费用汇总；失败分类（锁冲突/用户拒绝等）。
 - 已知问题见 README。

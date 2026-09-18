@@ -34,7 +34,7 @@ const adapter: PiAdapter = fake
   : rpc
     ? new RpcPiAdapter(state)
     : new SdkPiAdapter(state, approvals);
-const tasks = new TaskOrchestrator(state);
+const tasks = new TaskOrchestrator(state, undefined, approvals);
 const sockets = new Set<WebSocket>();
 
 const bootConfig = await loadConfig();
