@@ -134,8 +134,12 @@ export function ToolItem({ tool }: ToolItemProps) {
               )}
             </div>
 
-            <pre className="p-3 rounded-lg bg-[#ffffff] font-mono text-[#1f1e1d] overflow-x-auto text-xs leading-relaxed max-h-64 border border-[#00000010] shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
-              {shownOutput || <span className="text-[#abaaa2] italic">子进程实时结果等待中...</span>}
+            <pre className="p-3 rounded-lg bg-[#ffffff] font-mono text-[#1f1e1d] overflow-x-auto text-xs leading-relaxed max-h-64 border border-[#00000010] shadow-[var(--shadow-sm)]">
+              {shownOutput || (
+                <span className="text-[#abaaa2] italic">
+                  {tool.status === "running" ? "子进程实时结果等待中…" : "没有输出。"}
+                </span>
+              )}
             </pre>
             {tool.output.length > 4000 ? (
               <button

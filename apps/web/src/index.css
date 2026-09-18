@@ -32,6 +32,12 @@
     box-sizing: border-box;
   }
 
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
   body {
     background-color: var(--bg-app);
     color: var(--text-primary);
@@ -42,6 +48,21 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    overflow: hidden;
+  }
+
+  button,
+  [role="button"] {
+    cursor: pointer;
+  }
+
+  button:focus-visible,
+  [role="button"]:focus-visible,
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible {
+    outline: 2px solid var(--border-focus);
+    outline-offset: 1px;
   }
 }
 

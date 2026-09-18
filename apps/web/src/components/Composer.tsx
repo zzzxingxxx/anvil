@@ -232,16 +232,17 @@ export function Composer({ onSend, sending }: ComposerProps) {
     : ["先打开左侧工作区路径", "解析仓库当前模块划分"];
 
   return (
-    <div className="w-full max-w-2xl mx-auto px-4 pb-4 select-none z-10">
+    <div className="w-full max-w-2xl mx-auto px-3 sm:px-4 pb-3 sm:pb-4 select-none z-10">
       {draft.length === 0 ? (
-        <div className="flex items-center gap-1.5 mb-2 overflow-x-auto text-xs text-[#7e7d77]">
+        <div className="flex items-center gap-1.5 mb-2 overflow-x-auto text-xs text-[#7e7d77] [scrollbar-width:none]">
           <span className="flex items-center gap-1 text-[#abaaa2] shrink-0 mr-0.5">
             <Sparkles className="w-3 h-3 text-[#abaaa2]" />
-            <span>灵感:</span>
+            <span>灵感</span>
           </span>
           {quickPrompts.map((text) => (
             <button
               key={text}
+              type="button"
               onClick={() => setDraft(text)}
               className="shrink-0 px-2.5 py-0.5 rounded-full bg-[#edece6]/70 hover:bg-[#e5e4dc] text-[#4f4e4a] hover:text-[#1f1e1d] transition-all text-xs border border-[#00000008]"
             >
@@ -251,23 +252,26 @@ export function Composer({ onSend, sending }: ComposerProps) {
         </div>
       ) : null}
 
-      <div className="rounded-2xl border border-[#00000018] bg-[#ffffff] shadow-[0_4px_20px_rgba(0,0,0,0.04)] overflow-hidden focus-within:border-[#00000030] transition-all relative">
+      <form
+        onSubmit={handleSubmit}
+        className="rounded-2xl border border-[#00000018] bg-[#ffffff] shadow-[0_4px_20px_rgba(0,0,0,0.04)] overflow-hidden focus-within:border-[#00000030] transition-all relative"
+      >
         {(slashOpen || draft.startsWith("/")) && visibleSlash.length > 0 ? (
-          <div className="absolute bottom-full left-0 right-0 mb-1 rounded-xl border border-[#00000012] bg-white shadow-[0_8px_24px_rgba(0,0,0,0.08)] p-1">
+          <div className="absolute bottom-full left-0 right-0 mb-1 rounded-xl border border-[#00000012] bg-white shadow-[var(--shadow-float)] p-1">
             {visibleSlash.map((item, index) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  className={`w-full text-left px-3 py-1.5 rounded-lg text-[12px] ${
-                    index === slashIndex ? "bg-[#f5f4ef]" : "hover:bg-[#f5f4ef]"
-                  }`}
-                  onMouseEnter={() => setSlashIndex(index)}
-                  onClick={() => void runSlash(item.id)}
-                >
-                  <span className="font-mono text-[#1f1e1d]">{item.id}</span>
-                  <span className="ml-2 text-[#7e7d77]">{item.hint}</span>
-                </button>
-              ))}
+              <button
+                key={item.id}
+                type="button"
+                className={`w-full text-left px-3 py-1.5 rounded-lg text-[12px] ${
+                  index === slashIndex ? "bg-[#f5f4ef]" : "hover:bg-[#f5f4ef]"
+                }`}
+                onMouseEnter={() => setSlashIndex(index)}
+                onClick={() => void runSlash(item.id)}
+              >
+                <span className="font-mono text-[#1f1e1d]">{item.id}</span>
+                <span className="ml-2 text-[#7e7d77]">{item.hint}</span>
+              </button>
+            ))}
           </div>
         ) : null}
         <textarea
@@ -280,6 +284,7 @@ export function Composer({ onSend, sending }: ComposerProps) {
           }}
           onKeyDown={handleKeyDown}
           disabled={connection !== "open"}
+          aria-label="对话输入"
           placeholder={
             connection !== "open"
               ? "等待与后端 Host 建立连接..."
@@ -292,20 +297,22 @@ export function Composer({ onSend, sending }: ComposerProps) {
           className="w-full bg-transparent px-4 pt-3 pb-2 text-[13.5px] text-[#1f1e1d] placeholder-[#abaaa2] outline-none resize-none leading-relaxed"
         />
 
-        <div className="flex items-center justify-between px-3.5 py-2 bg-[#fdfdfb] border-t border-[#00000008] text-xs text-[#abaaa2]">
-          <div className="flex items-center gap-2">
-            <span className="text-[11px] text-[#7e7d77] flex items-center gap-1">
-              <kbd className="px-1.5 py-0.5 rounded bg-[#edece6] text-[10px] font-mono font-medium text-[#4f4e4a]">Ctrl</kbd>
+        <div className="flex items-center justify-between gap-2 px-3 py-2 bg-[#fdfdfb] border-t border-[#00000008] text-xs text-[#abaaa2]">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="text-[11px] text-[#7e7d77] hidden sm:flex items-center gap-1 truncate">
+              <kbd className="px-1.5 py-0.5 rounded bg-[#edece6] text-[10px] font-mono font-medium text-[#4f4e4a]">
+                Ctrl
+              </kbd>
               +
-              <kbd className="px-1.5 py-0.5 rounded bg-[#edece6] text-[10px] font-mono font-medium text-[#4f4e4a]">Enter</kbd>
+              <kbd className="px-1.5 py-0.5 rounded bg-[#edece6] text-[10px] font-mono font-medium text-[#4f4e4a]">
+                Enter
+              </kbd>
               发送
-              {isRunning ? (
-                <span className="ml-2 text-[#abaaa2]">Esc 中止</span>
-              ) : null}
+              {isRunning ? <span className="ml-2 text-[#abaaa2]">Esc 中止</span> : null}
             </span>
           </div>
 
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 shrink-0">
             {isRunning ? (
               <>
                 <button
@@ -315,7 +322,7 @@ export function Composer({ onSend, sending }: ComposerProps) {
                   className="flex items-center gap-1 px-2 py-1 rounded-lg border border-[#00000012] text-[#4f4e4a] hover:bg-[#edece6] disabled:opacity-30"
                 >
                   <CornerDownRight className="w-3 h-3" />
-                  插入方向
+                  <span className="hidden sm:inline">插入方向</span>
                 </button>
                 <button
                   type="button"
@@ -324,7 +331,7 @@ export function Composer({ onSend, sending }: ComposerProps) {
                   className="flex items-center gap-1 px-2 py-1 rounded-lg border border-[#00000012] text-[#4f4e4a] hover:bg-[#edece6] disabled:opacity-30"
                 >
                   <ListPlus className="w-3 h-3" />
-                  结束后做
+                  <span className="hidden sm:inline">结束后做</span>
                 </button>
                 <button
                   type="button"
@@ -337,9 +344,9 @@ export function Composer({ onSend, sending }: ComposerProps) {
               </>
             ) : (
               <button
-                type="button"
-                onClick={() => handleSubmit()}
+                type="submit"
                 disabled={!draft.trim() || sending || connection !== "open" || !cwd}
+                aria-label="发送"
                 className="flex items-center justify-center w-7 h-7 rounded-lg bg-[#1f1e1d] hover:bg-[#0a0a09] text-white disabled:opacity-20 transition-all"
               >
                 <ArrowUp className="w-4 h-4 stroke-[2.5]" />
@@ -347,7 +354,7 @@ export function Composer({ onSend, sending }: ComposerProps) {
             )}
           </div>
         </div>
-      </div>
+      </form>
     </div>
   );
 }

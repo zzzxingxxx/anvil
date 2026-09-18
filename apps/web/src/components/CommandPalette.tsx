@@ -206,8 +206,12 @@ export function CommandPalette() {
             </button>
           ))}
           {rows.length === 0 ? (
-            <div className="px-3 py-4 text-[#abaaa2]">
-              {commandMode === "insert" ? "选中文件后插入相对路径。" : "输入关键字搜索命令、会话或预览文件。Composer 输入 @ 可插入路径。"}
+            <div className="px-3 py-6 text-center text-[#abaaa2] leading-relaxed">
+              {commandMode === "insert"
+                ? "输入文件名，选中后插入相对路径。"
+                : query.trim()
+                  ? "没有匹配的命令、会话或文件。"
+                  : "输入关键字搜索命令、会话或预览文件。对话输入 @ 可插入路径。"}
             </div>
           ) : null}
         </div>

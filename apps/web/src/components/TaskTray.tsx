@@ -58,7 +58,7 @@ export function TaskTray() {
   }
 
   return (
-    <div className="w-full max-w-2xl mx-auto px-4 pb-2 space-y-1.5">
+    <div className="w-full max-w-2xl mx-auto px-3 sm:px-4 pb-2 space-y-1.5">
       {banner ? (
         <div
           className={`rounded-xl px-3 py-2 flex items-center justify-between gap-2 border ${

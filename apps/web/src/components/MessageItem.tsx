@@ -68,10 +68,10 @@ export function MessageItem({ message }: MessageItemProps) {
       {/* Bubble / Container */}
       <div className="group relative max-w-2xl">
         <div
-          className={`px-4.5 py-3.5 rounded-2xl text-[13.5px] leading-relaxed select-text transition-all ${
+          className={`px-4 py-3.5 rounded-2xl text-[13.5px] leading-relaxed select-text transition-all ${
             isUser
               ? "bg-[#e8e7e1] text-[#1f1e1d] font-normal"
-              : "bg-[#ffffff] text-[#1f1e1d] border border-[#00000010] shadow-[0_1px_4px_rgba(0,0,0,0.03)]"
+              : "bg-[#ffffff] text-[#1f1e1d] border border-[#00000010] shadow-[var(--shadow-card)]"
           }`}
         >
           <div className="whitespace-pre-wrap">
@@ -123,7 +123,7 @@ export function MessageItem({ message }: MessageItemProps) {
             onClick={copyContent}
             className={`absolute top-2.5 ${
               isUser ? "-left-7" : "-right-7"
-            } opacity-0 group-hover:opacity-100 transition p-1 text-[#abaaa2] hover:text-[#1f1e1d]`}
+            } opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition p-1 text-[#abaaa2] hover:text-[#1f1e1d]`}
             title="复制"
           >
             {copied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}

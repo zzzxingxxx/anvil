@@ -119,7 +119,7 @@ export const useUiStore = create<UiState & Actions>((set, get) => ({
 
   activeTab: "chat",
   sidebarOpen: true,
-  inspectorOpen: true,
+  inspectorOpen: false,
 
   setConnection: (connection) => set({ connection }),
   setActiveTab: (activeTab) => set({ activeTab }),

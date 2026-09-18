@@ -10,6 +10,7 @@ export function FileTree() {
   const changes = useUiStore((state) => state.changes);
   const [entries, setEntries] = useState<FsEntry[]>([]);
   const [path, setPath] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (!cwd) {
@@ -28,6 +29,7 @@ export function FileTree() {
   }, [changes]);
 
   const load = async (next: string) => {
+    setLoading(true);
     try {
       const response = await client.request("fs.tree", { path: next });
       const payload = response.payload as { path: string; entries: FsEntry[] };
@@ -37,6 +39,8 @@ export function FileTree() {
       useUiStore.setState({
         lastError: error instanceof Error ? error.message : String(error),
       });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -85,7 +89,9 @@ export function FileTree() {
         ) : null}
       </div>
       <div className="space-y-0.5 max-h-48 overflow-y-auto">
-        {entries.length === 0 ? (
+        {loading ? (
+          <div className="px-1 py-2 text-[10.5px] text-[#abaaa2]">正在读取目录…</div>
+        ) : entries.length === 0 ? (
           <div className="px-1 py-2 text-[10.5px] text-[#abaaa2]">这个目录没有可预览的文件。</div>
         ) : null}
         {entries.map((entry) => {

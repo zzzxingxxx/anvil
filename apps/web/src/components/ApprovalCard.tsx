@@ -38,8 +38,8 @@ export function ApprovalCard() {
     pendingApproval.risk === "high" ? "高风险" : pendingApproval.risk === "medium" ? "中风险" : "低风险";
 
   return (
-    <div className="w-full max-w-2xl mx-auto px-4 pb-2">
-      <div className="rounded-xl border border-amber-200 bg-amber-50/80 p-3.5 shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
+    <div className="w-full max-w-2xl mx-auto px-3 sm:px-4 pb-2">
+      <div className="rounded-xl border border-amber-200 bg-amber-50/80 p-3.5 shadow-[var(--shadow-card)]">
         <div className="flex items-start gap-2.5">
           <ShieldAlert className="w-4 h-4 text-amber-700 mt-0.5 shrink-0" />
           <div className="min-w-0 flex-1">
