@@ -53,6 +53,19 @@ export function SettingsPage() {
         全局写到 `~/.anvil/config.json`。已打开工作区时还会写项目 `.anvil/settings.json`（覆盖本仓库策略）。浏览器不能直接读盘。白名单之外的 bash 仍会弹审批。
       </p>
       <label className="block space-y-1">
+        <span className="text-[11px] text-[#7e7d77]">新工作区默认信任</span>
+        <select
+          value={settings.trustDefault ?? "untrusted"}
+          onChange={(event) =>
+            setSettings((prev) => ({ ...prev, trustDefault: event.target.value as Settings["trustDefault"] }))
+          }
+          className="w-full rounded-lg border border-[#00000014] bg-white px-2 py-1.5"
+        >
+          <option value="untrusted">未信任（禁止 bash / write）</option>
+          <option value="trusted">信任（bash 仍会询问）</option>
+        </select>
+      </label>
+      <label className="block space-y-1">
         <span className="text-[11px] text-[#7e7d77]">Bash 策略</span>
         <select
           value={settings.bashPolicy ?? "ask"}

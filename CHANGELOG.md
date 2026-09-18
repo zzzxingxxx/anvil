@@ -20,4 +20,5 @@
 - 看板卡片可拖到其他列；Composer `@agent:审查者 …` 直接委派。
 - 启动时写入 `~/.anvil/personas/` 三份默认角色（不覆盖已改文件）；文件树可上一级。
 - 打开工作区合并项目 `.anvil/settings.json`；设置页保存会写回该文件。
+- 设置页可选新工作区默认信任；Ctrl+K 预览文件，Composer `@` 才插入路径。
 - 已知问题见 README。

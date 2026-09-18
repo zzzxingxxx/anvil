@@ -29,7 +29,7 @@ export function App() {
     const onKey = (event: KeyboardEvent) => {
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
         event.preventDefault();
-        useUiStore.getState().setCommandOpen(true);
+        useUiStore.getState().setCommandOpen(true, "search");
       }
     };
     window.addEventListener("keydown", onKey);

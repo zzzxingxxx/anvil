@@ -92,6 +92,13 @@ async function dispatch(
       state.recentWorkspaces = next.recentWorkspaces;
       const project = await loadProjectSettings(resolved);
       state.settings = mergeSettings(next.settings ?? {}, project);
+      if (state.settings.defaultModel && adapter.setModel) {
+        try {
+          await adapter.setModel(state.settings.defaultModel);
+        } catch {
+          /* keep opening the workspace even if the model id is unknown */
+        }
+      }
       resetConversation(state);
       if (adapter.openWorkspace) {
         await adapter.openWorkspace(resolved);

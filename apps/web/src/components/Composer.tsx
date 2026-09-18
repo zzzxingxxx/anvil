@@ -131,7 +131,7 @@ export function Composer({ onSend, sending }: ComposerProps) {
     if (e.key === "@") {
       const next = `${draft}@`;
       if (!next.includes("@agent:")) {
-        useUiStore.getState().setCommandOpen(true);
+        useUiStore.getState().setCommandOpen(true, "insert");
       }
     }
     if (e.key === "/" && (draft.length === 0 || draft.startsWith("/"))) {

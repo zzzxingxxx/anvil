@@ -52,6 +52,7 @@ export type UiState = {
   changes: FileChange[];
   currentEntryId: string | null;
   commandOpen: boolean;
+  commandMode: "search" | "insert";
   pendingInsert: string | null;
   tasks: TaskSummary[];
   settings: {
@@ -75,7 +76,7 @@ type Actions = {
   applyEvent: (payload: unknown) => void;
   resetTransient: () => void;
   setPreview: (preview: FilePreview | null) => void;
-  setCommandOpen: (open: boolean) => void;
+  setCommandOpen: (open: boolean, mode?: "search" | "insert") => void;
   insertPath: (path: string) => void;
   consumeInsert: () => string | null;
 };
@@ -105,6 +106,7 @@ export const useUiStore = create<UiState & Actions>((set, get) => ({
   changes: [],
   currentEntryId: null,
   commandOpen: false,
+  commandMode: "search",
   pendingInsert: null,
   tasks: [],
   settings: {},
@@ -120,7 +122,7 @@ export const useUiStore = create<UiState & Actions>((set, get) => ({
   toggleInspector: () => set((state) => ({ inspectorOpen: !state.inspectorOpen })),
   resetTransient: () => set({ lastError: null }),
   setPreview: (preview) => set({ preview }),
-  setCommandOpen: (commandOpen) => set({ commandOpen }),
+  setCommandOpen: (commandOpen, commandMode = "search") => set({ commandOpen, commandMode }),
   insertPath: (path) => set({ pendingInsert: path, commandOpen: false }),
   consumeInsert: () => {
     const path = get().pendingInsert;

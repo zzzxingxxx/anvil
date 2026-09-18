@@ -6,6 +6,7 @@ type Hit = { path: string; name: string };
 
 export function CommandPalette() {
   const open = useUiStore((state) => state.commandOpen);
+  const commandMode = useUiStore((state) => state.commandMode);
   const sessions = useUiStore((state) => state.sessions);
   const [query, setQuery] = useState("");
   const [files, setFiles] = useState<Hit[]>([]);
@@ -80,15 +81,24 @@ export function CommandPalette() {
               key={file.path}
               type="button"
               className="w-full text-left px-3 py-2 rounded-lg hover:bg-[#f5f4ef] font-mono"
-              onClick={() => {
-                useUiStore.getState().insertPath(file.path);
+              onClick={async () => {
+                if (commandMode === "insert") {
+                  useUiStore.getState().insertPath(file.path);
+                  return;
+                }
+                const response = await client.request("fs.read", { path: file.path });
+                const payload = response.payload as { path: string; content: string; truncated?: boolean };
+                useUiStore.getState().setPreview(payload);
+                useUiStore.getState().setCommandOpen(false);
               }}
             >
               文件 · {file.path}
             </button>
           ))}
           {sessionHits.length === 0 && files.length === 0 ? (
-            <div className="px-3 py-4 text-[#abaaa2]">输入关键字搜索。也可用 @文件名 在输入框插入路径。</div>
+            <div className="px-3 py-4 text-[#abaaa2]">
+              {commandMode === "insert" ? "选中文件后插入相对路径。" : "输入关键字搜索会话或预览文件。Composer 输入 @ 可插入路径。"}
+            </div>
           ) : null}
         </div>
       </div>

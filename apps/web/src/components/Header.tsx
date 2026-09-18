@@ -190,7 +190,7 @@ export function Header() {
         <button
           type="button"
           title="命令面板 Ctrl+K"
-          onClick={() => useUiStore.getState().setCommandOpen(true)}
+          onClick={() => useUiStore.getState().setCommandOpen(true, "search")}
           className="hidden sm:flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-[#00000006] border border-[#0000000a] text-[#4f4e4a] text-[11px] hover:bg-[#edece6]"
         >
           <Search className="w-3 h-3" />
