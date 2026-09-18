@@ -283,6 +283,8 @@ async function dispatch(
         goal: string;
         persona?: "architect" | "implementer" | "reviewer";
         cwd?: string;
+        timeoutSec?: number;
+        maxUsd?: number;
       };
       const task = await tasks.delegate(payloadIn);
       return { ok: true, task };

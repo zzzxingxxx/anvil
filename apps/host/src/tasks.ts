@@ -41,6 +41,7 @@ export class TaskOrchestrator {
   }
 
   private children: Map<string, FakePiAdapter>;
+  private limits = new Map<string, { timeoutSec?: number; maxUsd?: number }>();
 
   subscribe(cb: (event: AnvilEvent) => void): () => void {
     this.listeners.add(cb);
@@ -79,6 +80,9 @@ export class TaskOrchestrator {
       cwd: input.cwd,
       startedAt: Date.now(),
     };
+    if (input.timeoutSec != null || input.maxUsd != null) {
+      this.limits.set(task.id, { timeoutSec: input.timeoutSec, maxUsd: input.maxUsd });
+    }
     this.state.tasks = [task, ...this.state.tasks];
     this.emitTask(task);
     void this.pump();
@@ -222,9 +226,25 @@ export class TaskOrchestrator {
           });
         }
       });
-      await child.prompt({
-        text: `${persona.system}\n\n目标：${task.goal}\n范围：${task.cwd ?? "."}\n禁止再委派。`,
-      });
+      const limits = this.limits.get(task.id) ?? {};
+      const timeoutMs = (limits.timeoutSec ?? 0) * 1000;
+      let timedOut = false;
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      if (timeoutMs > 0) {
+        timer = setTimeout(() => {
+          timedOut = true;
+          void child.abort();
+        }, timeoutMs);
+      }
+      try {
+        await child.prompt({
+          text: `${persona.system}\n\n目标：${task.goal}\n范围：${task.cwd ?? "."}\n禁止再委派。`,
+        });
+      } finally {
+        if (timer) {
+          clearTimeout(timer);
+        }
+      }
       const still = this.state.tasks.find((item) => item.id === task.id);
       if (!still || still.status === "cancelled") {
         return;
@@ -235,6 +255,17 @@ export class TaskOrchestrator {
         this.emitTask(still);
       }
       this.rollUpUsage(childState.usage);
+      if (timedOut) {
+        this.finish(task, "failed", { error: classifyFailure("超时：子任务超过时限") });
+        return;
+      }
+      if (limits.maxUsd != null && (childState.usage.costUsd ?? 0) > limits.maxUsd) {
+        this.finish(task, "failed", {
+          error: classifyFailure(`超费：$${childState.usage.costUsd?.toFixed(4)} 超过 $${limits.maxUsd}`),
+          costUsd: childState.usage.costUsd,
+        });
+        return;
+      }
       const denied = childState.tools.find((item) => item.status === "error");
       if (denied) {
         this.finish(task, "failed", { error: classifyFailure(denied.output ?? "用户拒绝"), costUsd: childState.usage.costUsd });
@@ -251,6 +282,7 @@ export class TaskOrchestrator {
     } finally {
       const child = this.children.get(task.id);
       this.children.delete(task.id);
+      this.limits.delete(task.id);
       void child?.dispose();
       this.inFlight.delete(task.id);
       this.locks.release(task.id);

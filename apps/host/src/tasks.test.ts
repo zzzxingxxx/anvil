@@ -80,4 +80,17 @@ describe("TaskOrchestrator", () => {
     expect(state.tasks.find((item) => item.id === task.id)?.status).toBe("failed");
     expect(state.tasks.find((item) => item.id === task.id)?.error).toMatch(/^用户拒绝/);
   });
+
+  it("fails a child that exceeds maxUsd", async () => {
+    const cwd = await mkdtemp(join(tmpdir(), "anvil-child-cost-"));
+    const sessionDir = join(cwd, "sessions");
+    const state = createWorkspaceState();
+    state.cwd = cwd;
+    state.trust = "trusted";
+    const tasks = new TaskOrchestrator(state, sessionDir);
+    const task = await tasks.delegate({ goal: "只读分析", persona: "reviewer", maxUsd: 0 });
+    await new Promise((resolve) => setTimeout(resolve, 1200));
+    expect(state.tasks.find((item) => item.id === task.id)?.status).toBe("failed");
+    expect(state.tasks.find((item) => item.id === task.id)?.error).toMatch(/^超费/);
+  });
 });

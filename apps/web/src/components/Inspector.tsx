@@ -163,7 +163,9 @@ export function Inspector() {
                 className="text-[10px] text-[#7e7d77] hover:text-[#1f1e1d]"
                 onClick={async () => {
                   try {
-                    await client.request("session.compact", {});
+                    await client.request("session.compact", {
+                      instructions: "保留目标、未完成项和关键结论",
+                    });
                   } catch (error) {
                     useUiStore.setState({
                       lastError: error instanceof Error ? error.message : String(error),

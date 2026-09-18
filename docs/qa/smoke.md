@@ -31,7 +31,7 @@
 1. 信任后委派 2 个只读子任务，托盘同时更新。
 2. 子任务不能再委派。
 3. 两个实现者抢同一文件，第二个失败。
-4. 未信任不能派出可写子 Agent。
+4. 未信任不能派出可写子 Agent。`maxUsd: 0` 的子任务失败原因为「超费」。
 5. 子任务卡片能 resume 到一份 `.jsonl`。
 6. `pnpm --filter host compat` 能打开本机最多 5 个真实 session。
 7. Host 启动后 `~/.anvil/personas/` 有 architect/implementer/reviewer.md；改过的文件不会被覆盖。
