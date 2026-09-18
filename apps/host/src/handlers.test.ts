@@ -74,6 +74,29 @@ describe("handleRequest", () => {
     expect(entries.some((entry) => entry.name === "README.md")).toBe(true);
   });
 
+  it("clears leftover tasks when opening another workspace", async () => {
+    const first = await mkdtemp(join(tmpdir(), "anvil-ws-a-"));
+    const second = await mkdtemp(join(tmpdir(), "anvil-ws-b-"));
+    const state = createWorkspaceState();
+    const approvals = new ApprovalQueue();
+    const adapter = new FakePiAdapter(state, approvals);
+    const tasks = new TaskOrchestrator(state);
+    await handleRequest(makeRequest("workspace.open", { path: first }, "w-a"), state, adapter, approvals, tasks);
+    state.tasks = [
+      {
+        id: "task-old",
+        parentSessionId: "sess-old",
+        sessionId: "sess-old.jsonl",
+        persona: "reviewer",
+        goal: "旧仓库审查",
+        status: "succeeded",
+        startedAt: Date.now(),
+      },
+    ];
+    await handleRequest(makeRequest("workspace.open", { path: second }, "w-b"), state, adapter, approvals, tasks);
+    expect(state.tasks).toEqual([]);
+  });
+
   it("applies bash allowlist settings to the workspace state", async () => {
     const state = createWorkspaceState();
     const approvals = new ApprovalQueue();

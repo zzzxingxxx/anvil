@@ -124,6 +124,7 @@ function TaskRow({ task }: { task: TaskSummary }) {
     if (!task.sessionId) return;
     try {
       await client.request("session.resume", { id: task.sessionId });
+      useUiStore.getState().setActiveTab("chat");
     } catch (error) {
       useUiStore.setState({
         lastError: error instanceof Error ? error.message : String(error),

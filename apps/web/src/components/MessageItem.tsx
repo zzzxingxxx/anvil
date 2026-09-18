@@ -28,11 +28,21 @@ export function MessageItem({ message }: MessageItemProps) {
   };
 
   if (isSystem) {
+    const short = message.text.length > 96 ? `${message.text.slice(0, 96)}…` : message.text;
     return (
-      <div className="flex items-center justify-center my-3 select-none">
-        <span className="text-xs text-[#7e7d77] bg-[#edece6]/70 px-3 py-1 rounded-full border border-[#0000000a]">
-          {message.text}
-        </span>
+      <div className="flex justify-center my-3 select-text">
+        <div className="max-w-xl rounded-xl border border-[#0000000a] bg-[#edece6]/70 px-3 py-2">
+          <div className="whitespace-pre-wrap text-xs text-[#4f4e4a]">{expanded ? message.text : short}</div>
+          {message.text.length > 96 ? (
+            <button
+              type="button"
+              onClick={() => setExpanded((value) => !value)}
+              className="mt-1 text-[10px] text-[#7e7d77] hover:text-[#1f1e1d]"
+            >
+              {expanded ? "收起" : "展开摘要"}
+            </button>
+          ) : null}
+        </div>
       </div>
     );
   }

@@ -54,6 +54,19 @@ export class TaskOrchestrator {
     return this.state.tasks;
   }
 
+  reset(): void {
+    for (const [id, child] of this.children) {
+      void child.abort();
+      void child.dispose();
+      this.locks.release(id);
+    }
+    this.children.clear();
+    this.inFlight.clear();
+    this.limits.clear();
+    this.state.tasks = [];
+    this.state.pendingApproval = null;
+  }
+
   async delegate(input: DelegateInput): Promise<TaskSummary> {
     if (!this.state.cwd) {
       throw new Error("请先打开工作区");

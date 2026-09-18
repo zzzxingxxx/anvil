@@ -100,6 +100,7 @@ async function dispatch(
         }
       }
       resetConversation(state);
+      tasks?.reset();
       if (adapter.openWorkspace) {
         await adapter.openWorkspace(resolved);
       }

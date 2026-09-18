@@ -119,6 +119,15 @@ export function Inspector() {
                 </div>
               </div>
 
+              {(usage.cacheReadTokens || usage.cacheWriteTokens) ? (
+                <div className="flex items-center justify-between text-[11px] text-[#7e7d77]">
+                  <span>Cache:</span>
+                  <span className="font-mono text-[#1f1e1d]">
+                    ↓{formatTokens(usage.cacheReadTokens ?? 0)} ↑{formatTokens(usage.cacheWriteTokens ?? 0)}
+                  </span>
+                </div>
+              ) : null}
+
               <div className="flex items-center justify-between pt-0.5 text-[11px] text-[#7e7d77]">
                 <span>父+子估算成本:</span>
                 <span className="font-mono font-semibold text-[#1f1e1d]">
