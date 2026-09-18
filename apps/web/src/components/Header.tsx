@@ -125,18 +125,24 @@ export function Header() {
           type="button"
           onClick={handleTrust}
           disabled={busy}
-          title={busy ? "等当前轮结束再改信任" : undefined}
+          title={
+            busy
+              ? "等当前轮结束再改信任"
+              : trust === "trusted"
+                ? "当前工作区已信任，bash / write 仍会询问。点此改回沙箱。"
+                : "当前工作区未信任，禁止 bash / write。点此信任本仓库。"
+          }
           className="hidden sm:flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-[#00000006] border border-[#0000000a] text-[#4f4e4a] text-[11px] hover:bg-[#edece6] disabled:opacity-40 disabled:hover:bg-[#00000006]"
         >
           {trust === "trusted" ? (
             <>
               <ShieldCheck className="w-3 h-3 text-emerald-600" />
-              <span>信任模式</span>
+              <span>已信任</span>
             </>
           ) : (
             <>
               <ShieldAlert className="w-3 h-3 text-amber-600" />
-              <span>沙箱保护</span>
+              <span>未信任</span>
             </>
           )}
         </button>
@@ -168,7 +174,7 @@ export function Header() {
             >
               {models.length === 0 ? (
                 <div className="px-3 py-3 text-[11px] text-[#7e7d77] leading-relaxed">
-                  没有可用模型。请设置 ANTHROPIC_API_KEY / DEEPSEEK_API_KEY，或在终端运行 pi 登录。
+                  没有可用模型。到设置页用 URL + Key 拉取，或在终端运行 pi 登录。
                 </div>
               ) : (
                 models.map((model) => (

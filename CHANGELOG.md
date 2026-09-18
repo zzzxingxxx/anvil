@@ -58,4 +58,5 @@
 - SDK/RPC 闲时同样立刻开一轮；设置表单忙时只读；WS 请求 30 秒超时。
 - 真模型 dogfood：Anvil SDK 改文件、分叉、官方 `pi` resume、SDK 子任务已跑通。子任务摘要取最后一条真实回复。
 - 设置页可用 URL + Key 拉取 OpenAI 兼容模型，写入本机 Pi `models.json`。
+- 信任只在对话顶栏切换当前工作区；设置页不再放默认信任。
 - 已知问题见 README。

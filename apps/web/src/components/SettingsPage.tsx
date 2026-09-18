@@ -87,22 +87,8 @@ export function SettingsPage() {
     <div className="max-w-xl mx-auto p-6 space-y-4 text-sm">
       <h2 className="text-base font-semibold">设置</h2>
       <p className="text-[12px] text-[#7e7d77]">
-        全局写到 `~/.anvil/config.json`。已打开工作区时还会写项目 `.anvil/settings.json`（覆盖本仓库策略）。浏览器不能直接读盘。白名单之外的 bash 仍会弹审批。
+        当前工作区是否信任在对话顶栏切换。这里只改模型、bash 白名单。已打开仓库时还会写项目 `.anvil/settings.json`。
       </p>
-      <label className="block space-y-1">
-        <span className="text-[11px] text-[#7e7d77]">新工作区默认信任</span>
-        <select
-          value={settings.trustDefault ?? "untrusted"}
-          disabled={busy}
-          onChange={(event) =>
-            setSettings((prev) => ({ ...prev, trustDefault: event.target.value as Settings["trustDefault"] }))
-          }
-          className="w-full rounded-lg border border-[#00000014] bg-white px-2 py-1.5 disabled:opacity-40"
-        >
-          <option value="untrusted">未信任（禁止 bash / write）</option>
-          <option value="trusted">信任（bash 仍会询问）</option>
-        </select>
-      </label>
       <label className="block space-y-1">
         <span className="text-[11px] text-[#7e7d77]">Bash 策略</span>
         <select
@@ -126,9 +112,9 @@ export function SettingsPage() {
         />
       </label>
       <div className="space-y-2 rounded-xl border border-[#00000010] bg-white p-3">
-        <div className="text-[11px] text-[#7e7d77]">从接口拉取模型</div>
+        <div className="text-[11px] text-[#7e7d77]">添加模型</div>
         <p className="text-[11px] text-[#abaaa2] leading-relaxed">
-          填写 OpenAI 兼容地址和密钥，Host 会请求 `/models` 并写入本机 `~/.pi/agent/models.json`。密钥不进 Anvil 仓库，也不会出现在 snapshot。
+          OpenAI 兼容地址 + Key。密钥只写本机 Pi 配置。
         </p>
         <input
           value={importUrl}
