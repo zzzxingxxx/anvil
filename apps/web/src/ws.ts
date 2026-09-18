@@ -53,6 +53,9 @@ class AnvilClient {
     if (payloadOut && payloadOut.ok === false) {
       throw new Error(payloadOut.error || "命令失败");
     }
+    if (useUiStore.getState().lastError) {
+      useUiStore.setState({ lastError: null });
+    }
     return response;
   }
 

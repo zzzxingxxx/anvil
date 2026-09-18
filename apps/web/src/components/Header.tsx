@@ -35,7 +35,7 @@ export function Header() {
   } = useUiStore();
 
   return (
-    <header className="h-12 border-b border-[var(--border-subtle)] bg-[#faf9f5]/90 backdrop-blur-md px-2 sm:px-3.5 flex items-center justify-between gap-2 select-none shrink-0 z-20">
+    <header className="h-12 border-b border-[var(--border-subtle)] bg-[#faf9f5]/90 backdrop-blur-md px-2 sm:px-3.5 flex items-center justify-between gap-2 select-none shrink-0 z-20 overflow-visible">
       <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0">
         <button
           type="button"
@@ -93,7 +93,7 @@ export function Header() {
         </div>
       </div>
 
-      <div className="flex items-center gap-1 sm:gap-2 min-w-0">
+      <div className="flex items-center gap-1 sm:gap-2 min-w-0 overflow-visible">
         <TrustControl compact />
         <ModelSelector compact />
 
