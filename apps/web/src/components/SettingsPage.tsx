@@ -170,9 +170,23 @@ export function SettingsPage() {
       <div className="space-y-1">
         <h2 className="text-base font-semibold tracking-tight">设置</h2>
         <p className="text-[12px] text-[#7e7d77] leading-relaxed">
-          模型接口和当前模型在这里立刻生效。工作区信任只在顶栏切换（需已打开仓库且空闲）。高级 bash 选项默认收起。
+          模型接口和当前模型在这里立刻生效。高级 bash 选项默认收起。
         </p>
       </div>
+
+      <section className="rounded-2xl border border-[#00000010] bg-[#faf9f5] p-4 space-y-1.5">
+        <h3 className="text-xs font-semibold text-[#1f1e1d]">工作区信任</h3>
+        <p className="text-[11px] text-[#7e7d77] leading-relaxed">
+          信任开关只在对话顶栏。需先打开仓库且空闲；未信任禁止 bash / write，已信任后工具仍会询问。
+        </p>
+        <button
+          type="button"
+          onClick={() => useUiStore.getState().setActiveTab("chat")}
+          className="text-[11px] text-[#1f1e1d] underline underline-offset-2 hover:text-[#4f4e4a]"
+        >
+          回到对话顶栏
+        </button>
+      </section>
 
       <section className="rounded-2xl border border-[#00000010] bg-white p-4 space-y-3 shadow-[var(--shadow-card)]">
         <div className="flex items-center gap-2">
