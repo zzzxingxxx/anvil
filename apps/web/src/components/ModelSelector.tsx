@@ -103,6 +103,7 @@ export function ModelSelector({ compact = false }: { compact?: boolean }) {
         aria-expanded={open}
         aria-controls={listId}
         disabled={busy}
+        aria-label={busy ? "等当前轮结束再切换模型" : `当前模型 ${provider} ${label}`}
         title={busy ? "等当前轮结束再切换模型" : `${provider} · ${label}`}
         onClick={() => {
           if (busy) {
@@ -111,21 +112,25 @@ export function ModelSelector({ compact = false }: { compact?: boolean }) {
           setOpen((value) => !value);
         }}
         className={cn(
-          "flex items-center gap-2 min-w-0 rounded-lg bg-white hover:bg-[#fcfbf9] text-[#1f1e1d] border border-[#00000014] shadow-[var(--shadow-sm)] disabled:opacity-40",
-          compact ? "px-2 py-1" : "px-2.5 py-1.5",
+          "flex items-center gap-1.5 min-w-0 rounded-lg bg-white hover:bg-[#fcfbf9] text-[#1f1e1d] border border-[#00000014] shadow-[var(--shadow-sm)] disabled:opacity-40",
+          compact ? "h-7 px-1.5 sm:px-2" : "px-2.5 py-1.5",
         )}
       >
         <Cpu className="w-3.5 h-3.5 text-[#7e7d77] shrink-0" />
         <span className="min-w-0 flex-1 text-left leading-tight">
-          <span className="block text-[10px] uppercase tracking-wider text-[#7e7d77] truncate">{provider}</span>
-          <span
-            className={cn(
-              "block font-medium truncate",
-              compact ? "text-[11px] max-w-[9rem] sm:max-w-[14rem]" : "text-xs max-w-[16rem]",
-            )}
-          >
-            {label}
-          </span>
+          {compact ? (
+            <span className="flex items-baseline gap-1 min-w-0">
+              <span className="hidden md:inline text-[10px] uppercase tracking-wider text-[#7e7d77] truncate max-w-[5rem]">
+                {provider}
+              </span>
+              <span className="text-[11px] font-medium truncate max-w-[6.5rem] sm:max-w-[10rem]">{label}</span>
+            </span>
+          ) : (
+            <>
+              <span className="block text-[10px] uppercase tracking-wider text-[#7e7d77] truncate">{provider}</span>
+              <span className="block text-xs font-medium truncate max-w-[16rem]">{label}</span>
+            </>
+          )}
         </span>
         <ChevronDown className={cn("w-3 h-3 text-[#abaaa2] shrink-0 transition", open && "rotate-180")} />
       </button>

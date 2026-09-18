@@ -25,10 +25,9 @@ export function App() {
   useEffect(() => {
     client.connect();
     const wideSidebar = window.matchMedia("(min-width: 1024px)");
-    const wideInspector = window.matchMedia("(min-width: 1280px)");
     useUiStore.setState({
       sidebarOpen: wideSidebar.matches,
-      inspectorOpen: wideInspector.matches,
+      inspectorOpen: false,
     });
     return () => client.disconnect();
   }, []);

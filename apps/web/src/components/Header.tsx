@@ -44,21 +44,12 @@ export function Header() {
           aria-label={sidebarOpen ? "隐藏侧边栏" : "显示侧边栏"}
           aria-pressed={sidebarOpen}
           className={cn(
-            "p-1.5 rounded-lg text-[#7e7d77] hover:text-[#1f1e1d] hover:bg-[#edece6]/70 transition active:scale-95 lg:inline-flex",
+            "p-1.5 rounded-lg text-[#7e7d77] hover:text-[#1f1e1d] hover:bg-[#edece6]/70 transition active:scale-95",
             !sidebarOpen ? "bg-[#edece6]/70 text-[#1f1e1d]" : "",
-            "hidden sm:inline-flex",
           )}
         >
-          <SidebarIcon className="w-4 h-4 stroke-[1.8]" />
-        </button>
-        <button
-          type="button"
-          onClick={toggleSidebar}
-          title={sidebarOpen ? "隐藏侧边栏" : "显示侧边栏"}
-          aria-label={sidebarOpen ? "隐藏侧边栏" : "显示侧边栏"}
-          className="p-1.5 rounded-lg text-[#7e7d77] hover:text-[#1f1e1d] hover:bg-[#edece6]/70 sm:hidden"
-        >
-          <Menu className="w-4 h-4 stroke-[1.8]" />
+          <Menu className="w-4 h-4 stroke-[1.8] sm:hidden" />
+          <SidebarIcon className="w-4 h-4 stroke-[1.8] hidden sm:block" />
         </button>
 
         <div className="flex items-center gap-2 text-xs min-w-0">
@@ -102,7 +93,7 @@ export function Header() {
         </div>
       </div>
 
-      <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 min-w-0 overflow-x-auto [scrollbar-width:none]">
+      <div className="flex items-center gap-1 sm:gap-2 min-w-0">
         <TrustControl compact />
         <ModelSelector compact />
 
