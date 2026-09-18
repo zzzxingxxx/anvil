@@ -1,5 +1,14 @@
 # apps/desktop
 
-Electron / Tauri 壳仍未打包。当前用仓库根目录 `anvil.cmd` 或 `pnpm start` 起 Host + Web。
-系统文件对话框要等原生壳；浏览器版继续粘贴路径。
-Windows 未签名，SmartScreen 可能提示。
+Electron 薄壳：加载 `http://127.0.0.1:5173`，用系统对话框选文件夹，托盘可退出。
+
+特权仍在 Host。渲染进程没有 Node、不能读盘。
+
+```bash
+pnpm start
+pnpm desktop
+```
+
+Electron 用 `npx electron@37.2.3` 拉，不进工作区 lockfile，避免 pnpm 忽略 postinstall 导致根目录 `pnpm install` 失败。
+
+开发版仍需本机 Node。Windows 未签名，SmartScreen 可能提示。没有 Docker 时设置页只显示说明，不阻断启动。

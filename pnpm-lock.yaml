@@ -8,6 +8,8 @@ importers:
 
   .: {}
 
+  apps/desktop: {}
+
   apps/host:
     dependencies:
       '@anvil/pi-ext-artifact':

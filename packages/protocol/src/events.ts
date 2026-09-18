@@ -179,6 +179,21 @@ export const SnapshotEventSchema = z.object({
   changes: z.array(FileChangeSchema).optional(),
   currentEntryId: z.string().nullable().optional(),
   tasks: z.array(TaskSummarySchema).optional(),
+  settings: z
+    .object({
+      trustDefault: TrustLevelSchema.optional(),
+      bashPolicy: z.enum(["ask", "allowlist"]).optional(),
+      bashAllowlist: z.array(z.string()).optional(),
+      defaultModel: z.string().optional(),
+    })
+    .optional(),
+  docker: z
+    .object({
+      available: z.boolean(),
+      version: z.string().optional(),
+      reason: z.string().optional(),
+    })
+    .optional(),
 });
 
 export const AnvilEventSchema = z.discriminatedUnion("type", [

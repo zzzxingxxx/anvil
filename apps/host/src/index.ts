@@ -14,6 +14,7 @@ import { cors } from "hono/cors";
 import { WebSocketServer, type WebSocket } from "ws";
 import { ApprovalQueue } from "./approvals.ts";
 import { loadConfig, useFakePi, useRpcPi } from "./config.ts";
+import { probeDocker } from "./docker.ts";
 import { FakePiAdapter } from "./fake-pi-adapter.ts";
 import { handleRequest } from "./handlers.ts";
 import { logError, logInfo } from "./log.ts";
@@ -38,6 +39,8 @@ const sockets = new Set<WebSocket>();
 
 const bootConfig = await loadConfig();
 state.recentWorkspaces = bootConfig.recentWorkspaces;
+state.settings = bootConfig.settings ?? {};
+state.docker = await probeDocker();
 
 adapter.subscribe((event) => {
   if (event.type === "session/replaced") {
@@ -71,6 +74,7 @@ app.get("/health", (c) =>
       tasks: state.tasks.length,
       running: state.tasks.filter((item) => item.status === "running").length,
     },
+    docker: state.docker,
   }),
 );
 
@@ -174,6 +178,8 @@ function snapshot() {
     changes: state.changes,
     currentEntryId: state.currentEntryId,
     tasks: state.tasks,
+    settings: state.settings,
+    docker: state.docker,
   });
 }
 

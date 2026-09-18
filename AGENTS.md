@@ -22,7 +22,7 @@
 - `ANVIL_FAKE_PI=1` 或测试环境走 `FakePiAdapter`。
 - 审批策略在 `packages/pi-ext-gate`，SDK 用内联 extension 的 `tool_call` 挂钩。
 - 设计系统仍写在 `apps/web`，不要急着抽 `packages/ui`。
-- `apps/desktop` 空着，Phase 4 再做壳。
+- `apps/desktop` 是 Electron 薄壳，加载 5173；系统文件夹对话框走 preload。
 - SDK 实际 API 记在 `docs/rfc/pi-sdk-notes.md`。
 
 ## 工程

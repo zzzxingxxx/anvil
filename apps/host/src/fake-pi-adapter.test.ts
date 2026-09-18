@@ -52,6 +52,24 @@ describe("FakePiAdapter", () => {
     }
   });
 
+  it("asks for bash outside the allowlist even when trusted", async () => {
+    const state = createWorkspaceState();
+    state.trust = "trusted";
+    state.settings = { bashPolicy: "allowlist", bashAllowlist: ["git log"] };
+    const approvals = new ApprovalQueue();
+    const adapter = new FakePiAdapter(state, approvals);
+    const events: AnvilEvent["type"][] = [];
+    adapter.subscribe((event) => {
+      events.push(event.type);
+      if (event.type === "approval/needed") {
+        approvals.respond(event.request.requestId, "deny");
+      }
+    });
+    await adapter.prompt({ text: "git status" });
+    expect(events).toContain("approval/needed");
+    expect(state.tools[0]?.status).toBe("error");
+  });
+
   it("denies bash in untrusted workspaces", async () => {
     const state = createWorkspaceState();
     state.trust = "untrusted";

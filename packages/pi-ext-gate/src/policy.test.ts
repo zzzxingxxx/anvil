@@ -47,11 +47,23 @@ describe("decideGate", () => {
     expect(
       decideGate({
         toolName: "bash",
-        args: { command: "rm -rf tmp" },
+        args: { command: "ls" },
         trust: "trusted",
         bashPolicy: "allowlist",
         bashAllowlist: ["git status"],
       }).decision,
     ).toBe("ask");
+  });
+
+  it("allows commands on the bash allowlist", () => {
+    expect(
+      decideGate({
+        toolName: "bash",
+        args: { command: "git status" },
+        trust: "trusted",
+        bashPolicy: "allowlist",
+        bashAllowlist: ["git status"],
+      }).decision,
+    ).toBe("allow");
   });
 });

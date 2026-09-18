@@ -294,6 +294,7 @@ async function dispatch(
       const config = await loadConfig();
       config.settings = { ...config.settings, ...nextSettings };
       await saveConfig(config);
+      state.settings = { ...config.settings };
       return { ok: true, settings: config.settings };
     }
   }

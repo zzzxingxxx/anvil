@@ -53,6 +53,13 @@ export type UiState = {
   currentEntryId: string | null;
   commandOpen: boolean;
   tasks: TaskSummary[];
+  settings: {
+    trustDefault?: "trusted" | "untrusted";
+    bashPolicy?: "ask" | "allowlist";
+    bashAllowlist?: string[];
+    defaultModel?: string;
+  };
+  docker: { available: boolean; version?: string; reason?: string } | null;
 
   activeTab: ActiveTab;
   sidebarOpen: boolean;
@@ -96,6 +103,8 @@ export const useUiStore = create<UiState & Actions>((set) => ({
   currentEntryId: null,
   commandOpen: false,
   tasks: [],
+  settings: {},
+  docker: null,
 
   activeTab: "chat",
   sidebarOpen: true,
@@ -138,6 +147,8 @@ export const useUiStore = create<UiState & Actions>((set) => ({
           changes: Array.isArray(event.changes) ? (event.changes as FileChange[]) : [],
           currentEntryId: (event.currentEntryId as string | null) ?? null,
           tasks: Array.isArray(event.tasks) ? (event.tasks as TaskSummary[]) : [],
+          settings: (event.settings as UiState["settings"]) ?? {},
+          docker: (event.docker as UiState["docker"]) ?? null,
         });
         break;
       case "session/replaced":

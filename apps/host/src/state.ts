@@ -43,6 +43,13 @@ export type WorkspaceState = {
   changes: FileChange[];
   snapshots: Record<string, { before: string | null; after: string | null }>;
   tasks: TaskSummary[];
+  settings: {
+    trustDefault?: "trusted" | "untrusted";
+    bashPolicy?: "ask" | "allowlist";
+    bashAllowlist?: string[];
+    defaultModel?: string;
+  };
+  docker: { available: boolean; version?: string; reason?: string };
 };
 
 export function createWorkspaceState(kind: AdapterKind = "fake"): WorkspaceState {
@@ -88,6 +95,8 @@ export function createWorkspaceState(kind: AdapterKind = "fake"): WorkspaceState
     changes: [],
     snapshots: {},
     tasks: [],
+    settings: {},
+    docker: { available: false, reason: "未探测" },
   };
 }
 

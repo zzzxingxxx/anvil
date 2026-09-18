@@ -1,0 +1,11 @@
+{
+  "name": "desktop",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "src/main.mjs",
+  "scripts": {
+    "dev": "npx --yes electron@37.2.3 .",
+    "start": "npx --yes electron@37.2.3 ."
+  }
+}

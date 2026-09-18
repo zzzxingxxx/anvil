@@ -10,6 +10,7 @@ type Settings = {
 };
 
 export function SettingsPage() {
+  const docker = useUiStore((state) => state.docker);
   const [settings, setSettings] = useState<Settings>({ bashPolicy: "ask" });
   const [allowlist, setAllowlist] = useState("git status");
 
@@ -82,6 +83,11 @@ export function SettingsPage() {
       <button type="button" onClick={save} className="px-3 py-1.5 rounded-lg bg-[#1f1e1d] text-white text-xs">
         保存
       </button>
+      <div className="pt-2 text-[12px] text-[#7e7d77] border-t border-[#00000010]">
+        {docker?.available
+          ? `已检测到 Docker ${docker.version ?? ""}。整进程进容器仍是可选能力，默认不启用。`
+          : docker?.reason ?? "未探测 Docker。没有 Docker 时入口保持隐藏，不阻断启动。"}
+      </div>
     </div>
   );
 }

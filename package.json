@@ -8,6 +8,7 @@
   "scripts": {
     "dev": "pnpm -r --parallel --filter host --filter web dev",
     "start": "pnpm dev",
+    "desktop": "pnpm --filter desktop dev",
     "check": "pnpm -r --filter @anvil/protocol --filter @anvil/pi-ext-gate --filter @anvil/pi-ext-artifact --filter @anvil/pi-ext-delegate --filter host --filter web check",
     "test": "pnpm -r --filter @anvil/protocol --filter @anvil/pi-ext-gate --filter @anvil/pi-ext-artifact --filter @anvil/pi-ext-delegate --filter host test",
     "build": "pnpm -r --filter @anvil/protocol --filter host --filter web build"

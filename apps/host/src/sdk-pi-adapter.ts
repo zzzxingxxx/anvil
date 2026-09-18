@@ -420,6 +420,8 @@ export class SdkPiAdapter implements PiAdapter {
             args,
             trust: this.state.trust,
             cwd: this.state.cwd,
+            bashPolicy: this.state.settings.bashPolicy,
+            bashAllowlist: this.state.settings.bashAllowlist,
           });
           if (gate.decision === "allow") {
             return;

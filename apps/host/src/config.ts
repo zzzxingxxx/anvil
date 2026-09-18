@@ -59,7 +59,10 @@ export function rememberWorkspace(config: AnvilConfig, path: string, trust: Trus
 }
 
 export function trustFor(config: AnvilConfig, path: string): TrustLevel {
-  return config.trustedWorkspaces.includes(path) ? "trusted" : "untrusted";
+  if (config.trustedWorkspaces.includes(path)) {
+    return "trusted";
+  }
+  return config.settings?.trustDefault ?? "untrusted";
 }
 
 export function useRpcPi(): boolean {

@@ -73,6 +73,25 @@ describe("handleRequest", () => {
     expect(entries.some((entry) => entry.name === "README.md")).toBe(true);
   });
 
+  it("applies bash allowlist settings to the workspace state", async () => {
+    const state = createWorkspaceState();
+    const approvals = new ApprovalQueue();
+    const adapter = new FakePiAdapter(state, approvals);
+    const response = await handleRequest(
+      makeRequest(
+        "settings.set",
+        { bashPolicy: "allowlist", bashAllowlist: ["git status"] },
+        "s1",
+      ),
+      state,
+      adapter,
+      approvals,
+    );
+    expect(response.payload).toMatchObject({ ok: true });
+    expect(state.settings.bashPolicy).toBe("allowlist");
+    expect(state.settings.bashAllowlist).toEqual(["git status"]);
+  });
+
   it("searches files after opening a workspace", async () => {
     const dir = await mkdtemp(join(tmpdir(), "anvil-search-ws-"));
     await writeFile(join(dir, "开发计划.md"), "# plan\n", "utf8");

@@ -33,6 +33,15 @@ export function Sidebar() {
     }
   };
 
+  const pickFolder = async () => {
+    const native = window.anvilDesktop;
+    if (!native) return;
+    const picked = await native.pickFolder();
+    if (!picked) return;
+    setPathDraft(picked);
+    await handleOpen(picked);
+  };
+
   const handleResume = async (id: string) => {
     try {
       await client.request("session.resume", { id });
@@ -57,6 +66,16 @@ export function Sidebar() {
               placeholder="粘贴本机目录路径"
               className="flex-1 min-w-0 px-2 py-1.5 rounded-lg border border-[#00000012] bg-white text-[11px] outline-none focus:border-[#00000030]"
             />
+            {typeof window !== "undefined" && window.anvilDesktop ? (
+              <button
+                type="button"
+                onClick={() => void pickFolder()}
+                className="px-2 rounded-lg border border-[#00000014] bg-white text-[#1f1e1d]"
+                title="系统文件夹对话框"
+              >
+                选
+              </button>
+            ) : null}
             <button
               type="button"
               onClick={() => handleOpen(pathDraft)}

@@ -93,6 +93,8 @@ export class FakePiAdapter implements PiAdapter {
         args,
         trust: this.state.trust,
         cwd: this.state.cwd,
+        bashPolicy: this.state.settings.bashPolicy,
+        bashAllowlist: this.state.settings.bashAllowlist,
       });
       upsertTool(this.state, {
         callId,
