@@ -18,6 +18,26 @@ export function formatTokens(tokens: number) {
   return `${(tokens / 1000).toFixed(1)}k`;
 }
 
+export function agentStatusDot(status: "idle" | "running" | "error"): string {
+  if (status === "running") {
+    return "bg-amber-500 animate-pulse";
+  }
+  if (status === "error") {
+    return "bg-rose-500";
+  }
+  return "bg-emerald-500";
+}
+
+export function agentStatusLabel(status: "idle" | "running" | "error", kind: "footer" | "inspector" = "footer"): string {
+  if (status === "running") {
+    return kind === "inspector" ? "正在执行任务" : "执行中";
+  }
+  if (status === "error") {
+    return kind === "inspector" ? "出错待处理" : "出错";
+  }
+  return kind === "inspector" ? "待命就绪" : "就绪";
+}
+
 export function formatElapsed(ms: number): string {
   const seconds = Math.max(0, Math.floor(ms / 1000));
   if (seconds < 60) {

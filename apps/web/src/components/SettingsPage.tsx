@@ -11,8 +11,10 @@ type Settings = {
 
 export function SettingsPage() {
   const docker = useUiStore((state) => state.docker);
+  const cwd = useUiStore((state) => state.cwd);
   const [settings, setSettings] = useState<Settings>({ bashPolicy: "ask" });
   const [allowlist, setAllowlist] = useState("git status");
+  const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => {
     void client
@@ -39,7 +41,13 @@ export function SettingsPage() {
           .map((item) => item.trim())
           .filter(Boolean),
       });
+      setNotice(
+        cwd
+          ? "已保存到 ~/.anvil/config.json 和项目 .anvil/settings.json"
+          : "已保存到 ~/.anvil/config.json",
+      );
     } catch (error) {
+      setNotice(null);
       useUiStore.setState({
         lastError: error instanceof Error ? error.message : String(error),
       });
@@ -93,9 +101,12 @@ export function SettingsPage() {
           className="w-full rounded-lg border border-[#00000014] bg-white px-2 py-1.5"
         />
       </label>
-      <button type="button" onClick={save} className="px-3 py-1.5 rounded-lg bg-[#1f1e1d] text-white text-xs">
-        保存
-      </button>
+      <div className="flex items-center gap-2">
+        <button type="button" onClick={save} className="px-3 py-1.5 rounded-lg bg-[#1f1e1d] text-white text-xs">
+          保存
+        </button>
+        {notice ? <span className="text-[11px] text-emerald-800">{notice}</span> : null}
+      </div>
       <div className="pt-2 text-[12px] text-[#7e7d77] border-t border-[#00000010]">
         <p>
           费用按天记在本机 `~/.anvil/usage.json`，底栏「复制本周 tokens」只复制脱敏摘要，不上传。

@@ -23,6 +23,9 @@ const TEXT_EXT = new Set([
   ".env.example",
   ".before",
   ".after",
+  ".cmd",
+  ".ps1",
+  ".sh",
 ]);
 
 export async function resolveWorkspacePath(input: string): Promise<string> {

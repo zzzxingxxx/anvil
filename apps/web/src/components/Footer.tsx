@@ -1,5 +1,5 @@
 import { useUiStore } from "../store.ts";
-import { formatTokens } from "../lib/utils.ts";
+import { agentStatusDot, agentStatusLabel, formatTokens } from "../lib/utils.ts";
 import { UsageExport } from "./UsageExport.tsx";
 
 export function Footer() {
@@ -26,11 +26,9 @@ export function Footer() {
         <span className="text-[#00000018]">·</span>
 
         <div className="flex items-center gap-1.5 font-sans">
-          <span className={`w-1.5 h-1.5 rounded-full ${
-            agentStatus === "running" ? "bg-amber-500 animate-pulse" : "bg-emerald-500"
-          }`} />
+          <span className={`w-1.5 h-1.5 rounded-full ${agentStatusDot(agentStatus)}`} />
           <span className="text-[#4f4e4a] text-[11px]">
-            {agentStatus === "running" ? "执行中" : "就绪"}
+            {agentStatusLabel(agentStatus)}
           </span>
         </div>
       </div>

@@ -6,7 +6,7 @@ import {
   Activity,
 } from "lucide-react";
 import { useUiStore } from "../store.ts";
-import { formatTokens } from "../lib/utils.ts";
+import { agentStatusDot, agentStatusLabel, formatTokens } from "../lib/utils.ts";
 import { FileTree } from "./FileTree.tsx";
 import { SessionTree } from "./SessionTree.tsx";
 import { DiffPanel } from "./DiffPanel.tsx";
@@ -58,10 +58,8 @@ export function Inspector() {
               <div className="flex items-center justify-between">
                 <span className="text-[#7e7d77]">生命周期</span>
                 <span className="flex items-center gap-1.5 font-medium text-[#1f1e1d]">
-                  <span className={`w-1.5 h-1.5 rounded-full ${
-                    agentStatus === "running" ? "bg-amber-500 animate-pulse" : "bg-emerald-500"
-                  }`} />
-                  <span>{agentStatus === "running" ? "正在执行任务" : "待命就绪"}</span>
+                  <span className={`w-1.5 h-1.5 rounded-full ${agentStatusDot(agentStatus)}`} />
+                  <span>{agentStatusLabel(agentStatus, "inspector")}</span>
                 </span>
               </div>
 

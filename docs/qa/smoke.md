@@ -40,11 +40,11 @@
 ## Phase 4
 
 1. 顶栏切到看板，委派后卡片出现在「进行/完成」。可拖到其他列，只改 Host 元数据。
-2. 设置页保存 bash 白名单。已打开工作区时写入项目 `.anvil/settings.json`；下次打开该仓库会覆盖全局。
+2. 设置页保存 bash 白名单，保存后有成功提示。已打开工作区时写入项目 `.anvil/settings.json`；下次打开该仓库会覆盖全局。底栏出错时显示「出错」而不是「就绪」。
 3. `anvil.cmd` 或 `pnpm start` 打开 http://127.0.0.1:5173。
 4. `ANVIL_PI_MODE=rpc` 时 Host 日志显示 adapter rpc（需本机 pi）。`auto` 且信任默认不是 trusted 时同样走 RPC。
 5. 设置页把 bash 设为白名单后，名单外的命令会弹审批。
 6. 没有 Docker 时设置页只显示说明。
 7. `pnpm --filter desktop dev` 能打开壳；关窗口进托盘，托盘「退出」才结束。浏览器版继续粘贴路径。
-8. 底栏「复制本周 tokens」得到本地摘要，不含密钥；有 cache 时含 cacheRead/cacheWrite。
+8. 底栏「复制本周 tokens」得到本地摘要，不含密钥；有 cache 时含 cacheRead/cacheWrite。复制成功后按钮变成「已复制」。
 9. `/health.metrics.rpcRestarts` 在 SDK/假循环为 0；RPC sidecar 崩溃后递增，最多 3。`/health.metrics` 含 cacheReadTokens / cacheWriteTokens。
