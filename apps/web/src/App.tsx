@@ -71,7 +71,11 @@ export function App() {
         {/* Central Workspace Stage */}
         <main className="flex min-h-0 flex-1 flex-col bg-[#faf9f5] relative overflow-hidden">
           {activeTab === "board" ? <Board /> : null}
-          {activeTab === "settings" ? <SettingsPage /> : null}
+          {activeTab === "settings" ? (
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+              <SettingsPage />
+            </div>
+          ) : null}
           {activeTab === "chat" ? (
           <>
           <div
@@ -161,7 +165,7 @@ function ErrorBanner({ message }: { message: string }) {
   const short = message.length > 80 ? `${message.slice(0, 80)}…` : message;
   const long = message.length > 80;
   return (
-    <div className="absolute bottom-24 left-1/2 -translate-x-1/2 px-3.5 py-2 bg-[#ffffff] border border-rose-200 text-rose-800 text-xs rounded-xl shadow-[0_4px_16px_rgba(0,0,0,0.08)] flex items-start gap-3 max-w-lg">
+    <div className="absolute bottom-24 left-1/2 -translate-x-1/2 z-40 px-3.5 py-2 bg-[#ffffff] border border-rose-200 text-rose-800 text-xs rounded-xl shadow-[0_4px_16px_rgba(0,0,0,0.08)] flex items-start gap-3 max-w-lg">
       <div className="min-w-0">
         <div>{open || !long ? message : short}</div>
         {long ? (

@@ -45,6 +45,9 @@ export function Header() {
   }, [openModels]);
 
   const handleTrust = async () => {
+    if (!cwd || busy) {
+      return;
+    }
     try {
       await client.request("workspace.trust", {
         trust: trust === "trusted" ? "untrusted" : "trusted",
@@ -124,16 +127,18 @@ export function Header() {
       <div className="flex items-center gap-2">
         <button
           type="button"
-          onClick={handleTrust}
-          disabled={busy}
+          onClick={() => void handleTrust()}
+          disabled={busy || !cwd}
           title={
-            busy
-              ? "等当前轮结束再改信任"
-              : trust === "trusted"
-                ? "当前工作区已信任，bash / write 仍会询问。点此改回沙箱。"
-                : "当前工作区未信任，禁止 bash / write。点此信任本仓库。"
+            !cwd
+              ? "先打开工作区再切换信任"
+              : busy
+                ? "等当前轮结束再改信任"
+                : trust === "trusted"
+                  ? "当前工作区已信任，bash / write 仍会询问。点此改回沙箱。"
+                  : "当前工作区未信任，禁止 bash / write。点此信任本仓库。"
           }
-          className="hidden sm:flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-[#00000006] border border-[#0000000a] text-[#4f4e4a] text-[11px] hover:bg-[#edece6] disabled:opacity-40 disabled:hover:bg-[#00000006]"
+          className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-[#00000006] border border-[#0000000a] text-[#4f4e4a] text-[11px] hover:bg-[#edece6] disabled:opacity-40 disabled:hover:bg-[#00000006]"
         >
           {trust === "trusted" ? (
             <>
