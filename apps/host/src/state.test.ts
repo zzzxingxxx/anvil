@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createWorkspaceState, resetConversation, settleIdleTools, upsertTool } from "./state.ts";
+import { createWorkspaceState, dropExpiredApproval, resetConversation, settleIdleTools, upsertTool } from "./state.ts";
 
 describe("tool snapshot settling", () => {
   it("stamps startedAt and endedAt", () => {
@@ -26,5 +26,20 @@ describe("resetConversation", () => {
     state.usage = { inputTokens: 12, outputTokens: 8, cacheReadTokens: 3, costUsd: 0.02 };
     resetConversation(state);
     expect(state.usage).toEqual({ inputTokens: 0, outputTokens: 0 });
+  });
+});
+
+describe("dropExpiredApproval", () => {
+  it("drops a timed-out approval so snapshot cannot revive it", () => {
+    const state = createWorkspaceState();
+    state.pendingApproval = {
+      requestId: "appr-old",
+      toolName: "bash",
+      argsPreview: "git status",
+      risk: "medium",
+      expiresAt: Date.now() - 1,
+    };
+    dropExpiredApproval(state);
+    expect(state.pendingApproval).toBeNull();
   });
 });

@@ -42,7 +42,8 @@ export function Composer({ onSend, sending }: ComposerProps) {
     { id: "/new", hint: "新建会话" },
     { id: "/abort", hint: "中止当前轮" },
   ];
-  const visibleSlash = slashCommands.filter((item) => item.id.startsWith(draft.trim() || "/"));
+  const availableSlash = isRunning ? slashCommands.filter((item) => item.id === "/abort") : slashCommands;
+  const visibleSlash = availableSlash.filter((item) => item.id.startsWith(draft.trim() || "/"));
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -132,7 +133,7 @@ export function Composer({ onSend, sending }: ComposerProps) {
     }
     if (isRunning) return;
     if (draft.trim().startsWith("/")) {
-      const id = slashCommands.find((item) => draft.trim().startsWith(item.id))?.id;
+      const id = availableSlash.find((item) => draft.trim().startsWith(item.id))?.id;
       if (id) {
         void runSlash(id);
         return;

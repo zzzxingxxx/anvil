@@ -22,7 +22,7 @@ import { logError, logInfo } from "./log.ts";
 import type { PiAdapter } from "./pi-adapter.ts";
 import { RpcPiAdapter } from "./rpc-pi-adapter.ts";
 import { SdkPiAdapter } from "./sdk-pi-adapter.ts";
-import { createWorkspaceState, settleIdleTools } from "./state.ts";
+import { createWorkspaceState, dropExpiredApproval, settleIdleTools } from "./state.ts";
 import { TaskOrchestrator } from "./tasks.ts";
 import { messagesOnPath, pathIdsFrom } from "./tree.ts";
 
@@ -181,7 +181,7 @@ function snapshot() {
     sessions: state.sessions,
     models: state.models,
     recentWorkspaces: state.recentWorkspaces,
-    pendingApproval: state.pendingApproval,
+    pendingApproval: settleSnapshotApproval(state),
     adapter: state.adapterKind,
     tree: state.tree,
     changes: state.changes,
@@ -211,6 +211,11 @@ function send(socket: WebSocket, type: string, payload: unknown): void {
 function settleSnapshotTools(state: ReturnType<typeof createWorkspaceState>) {
   settleIdleTools(state);
   return state.tools;
+}
+
+function settleSnapshotApproval(state: ReturnType<typeof createWorkspaceState>) {
+  dropExpiredApproval(state);
+  return state.pendingApproval;
 }
 
 function visibleMessages(state: ReturnType<typeof createWorkspaceState>) {

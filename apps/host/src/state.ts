@@ -140,6 +140,13 @@ export function upsertTool(state: WorkspaceState, card: ToolCard): void {
   state.tools[index] = next;
 }
 
+export function dropExpiredApproval(state: WorkspaceState, now = Date.now()): void {
+  const expiresAt = state.pendingApproval?.expiresAt;
+  if (expiresAt != null && expiresAt <= now) {
+    state.pendingApproval = null;
+  }
+}
+
 export function settleIdleTools(state: WorkspaceState): void {
   if (state.agentStatus === "running") {
     return;

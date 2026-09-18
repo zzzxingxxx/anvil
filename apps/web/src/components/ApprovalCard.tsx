@@ -66,14 +66,16 @@ export function ApprovalCard() {
               <button
                 type="button"
                 onClick={() => respond("allow-once")}
-                className="px-3 py-1 rounded-lg bg-[#1f1e1d] text-white text-xs"
+                disabled={remainingMs === 0}
+                className="px-3 py-1 rounded-lg bg-[#1f1e1d] text-white text-xs disabled:opacity-40"
               >
                 允许一次
               </button>
               <button
                 type="button"
                 onClick={() => respond("deny")}
-                className="px-3 py-1 rounded-lg border border-[#00000014] bg-white text-xs text-[#4f4e4a]"
+                disabled={remainingMs === 0}
+                className="px-3 py-1 rounded-lg border border-[#00000014] bg-white text-xs text-[#4f4e4a] disabled:opacity-40"
               >
                 拒绝
               </button>

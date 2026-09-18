@@ -45,6 +45,14 @@ export function TaskTray() {
     }
   }, [tasks]);
 
+  useEffect(() => {
+    if (!banner) {
+      return;
+    }
+    const handle = window.setTimeout(() => setBanner(null), 8_000);
+    return () => window.clearTimeout(handle);
+  }, [banner]);
+
   if (tasks.length === 0 && !banner) {
     return null;
   }
