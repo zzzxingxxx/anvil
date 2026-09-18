@@ -232,6 +232,9 @@ export class TaskOrchestrator {
             request: { ...event.request, taskId: task.id },
           });
         }
+        if (event.type === "fs/changed") {
+          this.mergeChildArtifacts(task, childState, event.changes);
+        }
       });
       const limits = this.limits.get(task.id) ?? {};
       const timeoutMs = (limits.timeoutSec ?? 0) * 1000;
@@ -264,6 +267,7 @@ export class TaskOrchestrator {
         still.column = "doing";
         this.emitTask(still);
       }
+      this.mergeChildArtifacts(task, childState);
       this.rollUpUsage(childState.usage);
       if (timedOut) {
         this.finish(task, "failed", { error: classifyFailure("超时：子任务超过时限") });
@@ -329,10 +333,42 @@ export class TaskOrchestrator {
     this.emit({ type: "task/upsert", task: { ...task } });
   }
 
+  private mergeChildArtifacts(
+    task: TaskSummary,
+    childState: WorkspaceState,
+    liveChanges?: WorkspaceState["changes"],
+  ): void {
+    const prefix = task.cwd?.replace(/\\/g, "/").replace(/\/+$/, "") ?? "";
+    const rebase = (path: string): string => {
+      const rel = path.replace(/\\/g, "/").replace(/^\/+/, "");
+      if (!prefix || rel.startsWith(`${prefix}/`) || rel === prefix) {
+        return rel;
+      }
+      return `${prefix}/${rel}`;
+    };
+    for (const [path, snap] of Object.entries(childState.snapshots)) {
+      this.state.snapshots[rebase(path)] = snap;
+    }
+    const incoming = liveChanges ?? childState.changes;
+    if (incoming.length === 0) {
+      return;
+    }
+    const next = incoming.map((change) => ({ ...change, path: rebase(change.path) }));
+    const kept = this.state.changes.filter((item) => !next.some((change) => change.path === item.path));
+    this.state.changes = [...kept, ...next];
+    this.emit({
+      type: "fs/changed",
+      paths: next.map((item) => item.path),
+      changes: this.state.changes,
+    });
+  }
+
   private rollUpUsage(childUsage: WorkspaceState["usage"]): void {
     this.state.usage = {
       inputTokens: this.state.usage.inputTokens + childUsage.inputTokens,
       outputTokens: this.state.usage.outputTokens + childUsage.outputTokens,
+      cacheReadTokens: (this.state.usage.cacheReadTokens ?? 0) + (childUsage.cacheReadTokens ?? 0),
+      cacheWriteTokens: (this.state.usage.cacheWriteTokens ?? 0) + (childUsage.cacheWriteTokens ?? 0),
       costUsd: (this.state.usage.costUsd ?? 0) + (childUsage.costUsd ?? 0),
     };
     this.emit({ type: "usage/update", tokens: { ...this.state.usage } });

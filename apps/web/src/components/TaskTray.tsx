@@ -21,7 +21,9 @@ const STATUS: Record<string, string> = {
 
 export function TaskTray() {
   const tasks = useUiStore((state) => state.tasks);
-  const [banner, setBanner] = useState<string | null>(null);
+  const [banner, setBanner] = useState<{ text: string; tone: "succeeded" | "failed" | "cancelled" } | null>(
+    null,
+  );
   const previous = useRef(new Map<string, TaskSummary["status"]>());
 
   useEffect(() => {
@@ -36,7 +38,10 @@ export function TaskTray() {
       }
       const label = LABELS[task.persona] ?? task.persona;
       const result = STATUS[task.status] ?? task.status;
-      setBanner(`${label}${result}：${task.goal.slice(0, 48)}`);
+      setBanner({
+        text: `${label}${result}：${task.goal.slice(0, 48)}`,
+        tone: task.status,
+      });
     }
   }, [tasks]);
 
@@ -47,11 +52,29 @@ export function TaskTray() {
   return (
     <div className="w-full max-w-2xl mx-auto px-4 pb-2 space-y-1.5">
       {banner ? (
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50/80 px-3 py-2 flex items-center justify-between gap-2">
-          <span className="text-[11px] text-emerald-900 truncate">{banner}</span>
+        <div
+          className={`rounded-xl px-3 py-2 flex items-center justify-between gap-2 border ${
+            banner.tone === "failed"
+              ? "border-rose-200 bg-rose-50/80"
+              : banner.tone === "cancelled"
+                ? "border-amber-200 bg-amber-50/80"
+                : "border-emerald-200 bg-emerald-50/80"
+          }`}
+        >
+          <span
+            className={`text-[11px] truncate ${
+              banner.tone === "failed"
+                ? "text-rose-900"
+                : banner.tone === "cancelled"
+                  ? "text-amber-900"
+                  : "text-emerald-900"
+            }`}
+          >
+            {banner.text}
+          </span>
           <button
             type="button"
-            className="text-[10px] text-emerald-800 hover:text-emerald-950 shrink-0"
+            className="text-[10px] text-[#7e7d77] hover:text-[#1f1e1d] shrink-0"
             onClick={() => setBanner(null)}
           >
             关闭
@@ -65,17 +88,8 @@ export function TaskTray() {
             <button
               type="button"
               className="text-[10px] text-[#7e7d77] hover:text-[#1f1e1d]"
-              onClick={async () => {
-                try {
-                  await client.request("task.delegate", {
-                    goal: "给 Host 加一个 /metrics 健康扩展字段",
-                    persona: "architect",
-                  });
-                } catch (error) {
-                  useUiStore.setState({
-                    lastError: error instanceof Error ? error.message : String(error),
-                  });
-                }
+              onClick={() => {
+                useUiStore.setState({ restoredDraft: "@agent:架构师 " });
               }}
             >
               新子任务

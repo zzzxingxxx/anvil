@@ -64,6 +64,25 @@ describe("TaskOrchestrator", () => {
     expect((state.usage.costUsd ?? 0) > 0).toBe(true);
   });
 
+  it("rolls child file changes and cache tokens onto the parent", async () => {
+    const cwd = await mkdtemp(join(tmpdir(), "anvil-child-diff-"));
+    const sessionDir = join(cwd, "sessions");
+    const state = createWorkspaceState();
+    state.cwd = cwd;
+    state.trust = "trusted";
+    const approvals = new ApprovalQueue();
+    const tasks = new TaskOrchestrator(state, sessionDir, approvals);
+    tasks.subscribe((event) => {
+      if (event.type === "approval/needed" && event.request.requestId) {
+        approvals.respond(event.request.requestId, "allow-once");
+      }
+    });
+    const task = await tasks.delegate({ goal: "改 notes", persona: "implementer" });
+    await new Promise((resolve) => setTimeout(resolve, 1200));
+    expect(state.tasks.find((item) => item.id === task.id)?.status).toBe("succeeded");
+    expect(state.changes.some((item) => item.path.includes("demo-diff.txt"))).toBe(true);
+  });
+
   it("surfaces child bash approvals on the parent queue", async () => {
     const cwd = await mkdtemp(join(tmpdir(), "anvil-child-appr-"));
     const sessionDir = join(cwd, "sessions");

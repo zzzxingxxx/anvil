@@ -43,4 +43,5 @@
 - SDK 父会话的子任务走独立 SdkPiAdapter，审批卡带 taskId；假循环/RPC 子任务仍用 Fake。
 - SDK 子任务按 persona 限制工具；文件树对本轮变更标「改」。
 - Diff 还原后清掉该路径；看板卡片可打开子会话；工具卡显示 write/edit 路径。
+- 子任务写文件会滚到父 Diff；父用量汇总 cache tokens；托盘「新子任务」填入 `@agent:`；完成横幅按成败着色。
 - 已知问题见 README。
