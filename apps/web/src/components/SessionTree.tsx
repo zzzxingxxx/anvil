@@ -1,24 +1,50 @@
 import type { TreeNode } from "@anvil/protocol";
 import { GitFork } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useUiStore } from "../store.ts";
 import { client } from "../ws.ts";
+
+type MenuState = { x: number; y: number; node: TreeNode } | null;
 
 export function SessionTree() {
   const tree = useUiStore((state) => state.tree);
   const currentEntryId = useUiStore((state) => state.currentEntryId);
+  const [menu, setMenu] = useState<MenuState>(null);
+
+  useEffect(() => {
+    if (!menu) {
+      return;
+    }
+    const close = () => setMenu(null);
+    window.addEventListener("click", close);
+    window.addEventListener("scroll", close, true);
+    return () => {
+      window.removeEventListener("click", close);
+      window.removeEventListener("scroll", close, true);
+    };
+  }, [menu]);
 
   if (!tree) {
     return <p className="text-[11px] text-[#abaaa2] px-1">对话开始后会在这里长出分支树。</p>;
   }
 
   return (
-    <div className="overflow-x-auto">
-      <TreeBranch node={tree} currentId={currentEntryId} />
+    <div className="overflow-x-auto relative">
+      <TreeBranch node={tree} currentId={currentEntryId} onMenu={setMenu} />
+      {menu ? <NodeMenu menu={menu} onClose={() => setMenu(null)} /> : null}
     </div>
   );
 }
 
-function TreeBranch({ node, currentId }: { node: TreeNode; currentId: string | null }) {
+function TreeBranch({
+  node,
+  currentId,
+  onMenu,
+}: {
+  node: TreeNode;
+  currentId: string | null;
+  onMenu: (menu: MenuState) => void;
+}) {
   const active = node.current || node.id === currentId;
   const navigate = async () => {
     try {
@@ -44,23 +70,78 @@ function TreeBranch({ node, currentId }: { node: TreeNode; currentId: string | n
       <div className="flex items-center gap-1 py-0.5">
         <button
           type="button"
-          onDoubleClick={navigate}
-          onClick={navigate}
+          onDoubleClick={() => void navigate()}
+          onClick={() => void navigate()}
+          onContextMenu={(event) => {
+            event.preventDefault();
+            onMenu({ x: event.clientX, y: event.clientY, node });
+          }}
           className={`text-left text-[11px] px-1.5 py-0.5 rounded-md max-w-[180px] truncate ${
             active ? "bg-[#1f1e1d] text-white" : "hover:bg-[#edece6] text-[#4f4e4a]"
           }`}
-          title="单击切换到此节点"
+          title="单击切换到此节点，右键更多操作"
         >
-          {node.status === "compressed" ? "▾ " : ""}
+          {node.status === "compressed" ? "▾ " : node.status === "error" ? "! " : ""}
           {node.summary}
         </button>
-        <button type="button" onClick={fork} className="p-0.5 text-[#abaaa2] hover:text-[#1f1e1d]" title="从此分叉">
+        <button type="button" onClick={() => void fork()} className="p-0.5 text-[#abaaa2] hover:text-[#1f1e1d]" title="从此分叉">
           <GitFork className="w-3 h-3" />
         </button>
       </div>
       {node.children.map((child) => (
-        <TreeBranch key={child.id} node={child} currentId={currentId} />
+        <TreeBranch key={child.id} node={child} currentId={currentId} onMenu={onMenu} />
       ))}
+    </div>
+  );
+}
+
+function NodeMenu({ menu, onClose }: { menu: NonNullable<MenuState>; onClose: () => void }) {
+  const run = async (action: () => Promise<unknown> | void) => {
+    onClose();
+    try {
+      await action();
+    } catch (error) {
+      useUiStore.setState({
+        lastError: error instanceof Error ? error.message : String(error),
+      });
+    }
+  };
+
+  return (
+    <div
+      className="fixed z-40 min-w-36 rounded-lg border border-[#00000014] bg-white py-1 shadow-[0_8px_24px_rgba(0,0,0,0.08)]"
+      style={{ left: menu.x, top: menu.y }}
+      onClick={(event) => event.stopPropagation()}
+    >
+      <button
+        type="button"
+        className="w-full text-left px-3 py-1.5 text-[11px] text-[#1f1e1d] hover:bg-[#f5f4ef]"
+        onClick={() =>
+          void run(() => client.request("session.fork", { entryId: menu.node.id }))
+        }
+      >
+        Fork
+      </button>
+      <button
+        type="button"
+        className="w-full text-left px-3 py-1.5 text-[11px] text-[#1f1e1d] hover:bg-[#f5f4ef]"
+        onClick={() =>
+          void run(() => client.request("tree.navigate", { entryId: menu.node.id }))
+        }
+      >
+        从这里继续
+      </button>
+      <button
+        type="button"
+        className="w-full text-left px-3 py-1.5 text-[11px] text-[#1f1e1d] hover:bg-[#f5f4ef]"
+        onClick={() =>
+          void run(async () => {
+            await navigator.clipboard.writeText(menu.node.id);
+          })
+        }
+      >
+        复制节点 id
+      </button>
     </div>
   );
 }

@@ -17,6 +17,8 @@ export function Footer() {
         <div className="flex items-center gap-2 text-[#4f4e4a]">
           <span>↑{formatTokens(usage.inputTokens)}</span>
           <span>↓{formatTokens(usage.outputTokens)}</span>
+          {usage.cacheReadTokens ? <span>cache↓{formatTokens(usage.cacheReadTokens)}</span> : null}
+          {usage.cacheWriteTokens ? <span>cache↑{formatTokens(usage.cacheWriteTokens)}</span> : null}
           <span>${(usage.costUsd ?? 0.00).toFixed(4)}</span>
           <UsageExport />
         </div>

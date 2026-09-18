@@ -142,17 +142,7 @@ export function App() {
           ) : null}
 
           {/* Toast / Error Banner */}
-          {lastError && (
-            <div className="absolute bottom-24 left-1/2 -translate-x-1/2 px-3.5 py-2 bg-[#ffffff] border border-rose-200 text-rose-800 text-xs rounded-xl shadow-[0_4px_16px_rgba(0,0,0,0.08)] flex items-center gap-3">
-              <span>{lastError}</span>
-              <button 
-                onClick={() => useUiStore.setState({ lastError: null })}
-                className="text-rose-600 hover:text-rose-900 text-[11px] underline"
-              >
-                关闭
-              </button>
-            </div>
-          )}
+          {lastError ? <ErrorBanner message={lastError} /> : null}
         </main>
 
         {/* Right Inspector Drawer */}
@@ -162,6 +152,35 @@ export function App() {
       {/* Global Status Footer */}
       <Footer />
       <CommandPalette />
+    </div>
+  );
+}
+
+function ErrorBanner({ message }: { message: string }) {
+  const [open, setOpen] = useState(false);
+  const short = message.length > 80 ? `${message.slice(0, 80)}…` : message;
+  const long = message.length > 80;
+  return (
+    <div className="absolute bottom-24 left-1/2 -translate-x-1/2 px-3.5 py-2 bg-[#ffffff] border border-rose-200 text-rose-800 text-xs rounded-xl shadow-[0_4px_16px_rgba(0,0,0,0.08)] flex items-start gap-3 max-w-lg">
+      <div className="min-w-0">
+        <div>{open || !long ? message : short}</div>
+        {long ? (
+          <button
+            type="button"
+            onClick={() => setOpen((value) => !value)}
+            className="mt-1 text-[11px] text-rose-600 hover:text-rose-900 underline"
+          >
+            {open ? "收起详情" : "详情"}
+          </button>
+        ) : null}
+      </div>
+      <button
+        type="button"
+        onClick={() => useUiStore.setState({ lastError: null })}
+        className="text-rose-600 hover:text-rose-900 text-[11px] underline shrink-0"
+      >
+        关闭
+      </button>
     </div>
   );
 }

@@ -315,6 +315,9 @@ export class FakePiAdapter implements PiAdapter {
   }
 
   async fork(entryId: string): Promise<SessionSummary> {
+    if (this.state.agentStatus === "running") {
+      throw new Error("等当前轮结束再分叉");
+    }
     const found = this.state.messages.find((item) => item.id === entryId);
     if (!found) {
       throw new Error("找不到要分叉的节点");

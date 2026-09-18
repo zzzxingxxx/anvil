@@ -71,6 +71,16 @@ describe("FakePiAdapter", () => {
     }
   });
 
+  it("rejects navigate while a turn is running", async () => {
+    const state = createWorkspaceState();
+    state.trust = "untrusted";
+    const adapter = new FakePiAdapter(state);
+    const prompt = adapter.prompt({ text: "还在跑" });
+    await expect(adapter.navigate("missing")).rejects.toThrow(/等当前轮结束/);
+    await adapter.abort();
+    await prompt;
+  });
+
   it("asks for bash outside the allowlist even when trusted", async () => {
     const state = createWorkspaceState();
     state.trust = "trusted";
