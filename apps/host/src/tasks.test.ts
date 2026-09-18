@@ -5,9 +5,15 @@ import { describe, expect, it } from "vitest";
 import { SessionManager } from "@earendil-works/pi-coding-agent";
 import { ApprovalQueue } from "./approvals.ts";
 import { createWorkspaceState } from "./state.ts";
-import { TaskOrchestrator } from "./tasks.ts";
+import { childAdapterKind, TaskOrchestrator } from "./tasks.ts";
 
 describe("TaskOrchestrator", () => {
+  it("spawns SDK children only when the parent is SDK", () => {
+    expect(childAdapterKind("sdk")).toBe("sdk");
+    expect(childAdapterKind("fake")).toBe("fake");
+    expect(childAdapterKind("rpc")).toBe("fake");
+  });
+
   it("rejects writable children in untrusted workspaces", async () => {
     const state = createWorkspaceState();
     state.cwd = "C:\\repo";

@@ -43,6 +43,7 @@ AgentSession 订阅的是 `AgentSessionEvent`，Anvil 映射：
 ## 切换
 
 - 默认走 SDK。CI / 无密钥：`ANVIL_FAKE_PI=1`
+- 子任务：父 adapter 是 SDK 时各自 `new SdkPiAdapter`，审批带 `taskId`；RPC/假循环父会话仍用 Fake 子循环
 - 测试里 `useFakePi()` 在 `NODE_ENV=test` 或 `VITEST` 时也走假适配器
 - RPC sidecar：`switchSession` / `fork` / `getState` / `getMessages` / `getTree` / `getSessionStats` 用来 resume、分叉、压缩后回灌 UI / 树 / 用量
 - RPC 会话列表走官方 `SessionManager.list(cwd)`，与 SDK 同一套 jsonl

@@ -28,6 +28,7 @@ export class SdkPiAdapter implements PiAdapter {
   constructor(
     private readonly state: WorkspaceState,
     private readonly approvals: ApprovalQueue,
+    private readonly options: { taskId?: string } = {},
   ) {}
 
   subscribe(cb: (event: AnvilEvent) => void): () => void {
@@ -462,6 +463,7 @@ export class SdkPiAdapter implements PiAdapter {
             toolName: event.toolName,
             argsPreview: previewArgs(args),
             risk: riskFor(event.toolName, args),
+            taskId: this.options.taskId,
           };
           this.state.pendingApproval = request;
           const waited = this.approvals.wait(request);

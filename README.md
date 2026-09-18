@@ -101,8 +101,8 @@ docs/
 
 ## 已知问题
 
-- 本机自定义 Pi provider 标 ready，但 `pi -p` 一轮失败（模型不支持 / 要 1m 上下文 / 无账号 / 流中断）。真改文件、分叉二选一、真 SDK 子 runtime 未跑。
-- 子任务会写合法 Pi jsonl，并跑独立假循环。
+- 本机自定义 Pi provider 标 ready，但 `pi -p` 一轮失败（模型不支持 / 要 1m 上下文 / 无账号 / 流中断）。真改文件、分叉二选一、真 SDK 子 runtime 未跑通（代码已接：SDK 父会话会 spawn 独立 SdkPiAdapter）。
+- 子任务会写合法 Pi jsonl。假循环/RPC 用独立假循环；SDK 父会话用独立 SdkPiAdapter。
 - 桌面壳是开发版 Electron（`pnpm desktop`），没有安装包。Windows 未签名。
 - Docker 只做探测，未验证整进程进容器。
 - 人用 PTY 终端按 Phase 2 减载推迟。

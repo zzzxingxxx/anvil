@@ -10,7 +10,9 @@ import type { PersonaSpec } from "./personas.ts";
 import type { AnvilEvent, TaskSummary } from "@anvil/protocol";
 import { ApprovalQueue } from "./approvals.ts";
 import { FakePiAdapter } from "./fake-pi-adapter.ts";
+import type { AdapterKind, PiAdapter } from "./pi-adapter.ts";
 import { persistPiSession } from "./session-persist.ts";
+import { SdkPiAdapter } from "./sdk-pi-adapter.ts";
 import { createWorkspaceState, type WorkspaceState } from "./state.ts";
 import { resolveInside } from "./workspace.ts";
 
@@ -40,7 +42,7 @@ export class TaskOrchestrator {
     this.children = new Map();
   }
 
-  private children: Map<string, FakePiAdapter>;
+  private children: Map<string, PiAdapter>;
   private limits = new Map<string, { timeoutSec?: number; maxUsd?: number }>();
 
   subscribe(cb: (event: AnvilEvent) => void): () => void {
@@ -204,16 +206,21 @@ export class TaskOrchestrator {
         }
       }
       const childCwd = task.cwd && this.state.cwd ? resolveInside(this.state.cwd, task.cwd) : this.state.cwd;
-      const childState = createWorkspaceState("fake");
+      const childKind = childAdapterKind(this.state.adapterKind);
+      const childState = createWorkspaceState(childKind);
       childState.cwd = childCwd;
       childState.trust = personaAllowsWrite(task.persona) ? this.state.trust : "untrusted";
       childState.settings = { ...this.state.settings };
       childState.sessionId = task.sessionId;
       childState.sessionTitle = `${persona.label} · ${task.goal.slice(0, 24)}`;
-      const child = new FakePiAdapter(childState, this.approvals ?? new ApprovalQueue(), {
-        tools: personaAllowsWrite(task.persona) ? "bash" : "none",
-        taskId: task.id,
-      });
+      const approvals = this.approvals ?? new ApprovalQueue();
+      const child =
+        childKind === "sdk"
+          ? new SdkPiAdapter(childState, approvals, { taskId: task.id })
+          : new FakePiAdapter(childState, approvals, {
+              tools: personaAllowsWrite(task.persona) ? "bash" : "none",
+              taskId: task.id,
+            });
       this.children.set(task.id, child);
       child.subscribe((event) => {
         if (event.type === "approval/needed") {
@@ -237,6 +244,9 @@ export class TaskOrchestrator {
         }, timeoutMs);
       }
       try {
+        if (childKind === "sdk" && task.sessionId?.endsWith(".jsonl")) {
+          await child.resumeSession?.(task.sessionId);
+        }
         await child.prompt({
           text: `${persona.system}\n\n目标：${task.goal}\n范围：${task.cwd ?? "."}\n禁止再委派。`,
         });
@@ -333,6 +343,10 @@ export class TaskOrchestrator {
       listener(event);
     }
   }
+}
+
+export function childAdapterKind(parentKind: AdapterKind): "fake" | "sdk" {
+  return parentKind === "sdk" ? "sdk" : "fake";
 }
 
 function classifyFailure(message: string): string {
