@@ -80,11 +80,8 @@ export function CommandPalette() {
               key={file.path}
               type="button"
               className="w-full text-left px-3 py-2 rounded-lg hover:bg-[#f5f4ef] font-mono"
-              onClick={async () => {
-                const response = await client.request("fs.read", { path: file.path });
-                const payload = response.payload as { path: string; content: string; truncated?: boolean };
-                useUiStore.getState().setPreview(payload);
-                useUiStore.getState().setCommandOpen(false);
+              onClick={() => {
+                useUiStore.getState().insertPath(file.path);
               }}
             >
               文件 · {file.path}

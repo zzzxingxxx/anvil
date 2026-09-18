@@ -18,7 +18,7 @@ export function Composer({ onSend, sending }: ComposerProps) {
   const [draft, setDraft] = useState("");
   const [slashOpen, setSlashOpen] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const { agentStatus, connection, cwd } = useUiStore();
+  const { agentStatus, connection, cwd, pendingInsert } = useUiStore();
   const isRunning = agentStatus === "running";
   const slashCommands = [
     { id: "/compact", hint: "压缩当前会话上下文" },
@@ -32,6 +32,24 @@ export function Composer({ onSend, sending }: ComposerProps) {
       textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 220)}px`;
     }
   }, [draft]);
+
+  useEffect(() => {
+    if (!pendingInsert) {
+      return;
+    }
+    const path = useUiStore.getState().consumeInsert();
+    if (!path) {
+      return;
+    }
+    setDraft((current) => {
+      const at = current.lastIndexOf("@");
+      if (at >= 0) {
+        return `${current.slice(0, at)}@${path} `;
+      }
+      return current ? `${current} @${path} ` : `@${path} `;
+    });
+    textareaRef.current?.focus();
+  }, [pendingInsert]);
 
   const runSlash = async (id: string) => {
     setSlashOpen(false);

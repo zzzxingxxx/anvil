@@ -15,4 +15,5 @@
 - `usage.export` 按天汇总本机 tokens；RPC sidecar 命令失败后最多重启 3 次。
 - 设置页默认模型接到 adapter；Electron 关窗口进托盘。
 - `ANVIL_PI_MODE=auto`：未信任默认 RPC。SDK `message_update` 映射有夹具测试。
+- Composer `@` 选中文件后插入相对路径；`/health` 带本会话 tokens。
 - 已知问题见 README。

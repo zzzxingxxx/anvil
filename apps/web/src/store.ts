@@ -52,6 +52,7 @@ export type UiState = {
   changes: FileChange[];
   currentEntryId: string | null;
   commandOpen: boolean;
+  pendingInsert: string | null;
   tasks: TaskSummary[];
   settings: {
     trustDefault?: "trusted" | "untrusted";
@@ -75,11 +76,13 @@ type Actions = {
   resetTransient: () => void;
   setPreview: (preview: FilePreview | null) => void;
   setCommandOpen: (open: boolean) => void;
+  insertPath: (path: string) => void;
+  consumeInsert: () => string | null;
 };
 
 const emptyUsage: Usage = { inputTokens: 0, outputTokens: 0 };
 
-export const useUiStore = create<UiState & Actions>((set) => ({
+export const useUiStore = create<UiState & Actions>((set, get) => ({
   connection: "connecting",
   cwd: null,
   trust: "untrusted",
@@ -102,6 +105,7 @@ export const useUiStore = create<UiState & Actions>((set) => ({
   changes: [],
   currentEntryId: null,
   commandOpen: false,
+  pendingInsert: null,
   tasks: [],
   settings: {},
   docker: null,
@@ -117,6 +121,12 @@ export const useUiStore = create<UiState & Actions>((set) => ({
   resetTransient: () => set({ lastError: null }),
   setPreview: (preview) => set({ preview }),
   setCommandOpen: (commandOpen) => set({ commandOpen }),
+  insertPath: (path) => set({ pendingInsert: path, commandOpen: false }),
+  consumeInsert: () => {
+    const path = get().pendingInsert;
+    set({ pendingInsert: null });
+    return path;
+  },
 
   applyEvent: (payload) => {
     if (!payload || typeof payload !== "object" || !("type" in payload)) {

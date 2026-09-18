@@ -74,6 +74,9 @@ app.get("/health", (c) =>
     metrics: {
       tasks: state.tasks.length,
       running: state.tasks.filter((item) => item.status === "running").length,
+      inputTokens: state.usage.inputTokens,
+      outputTokens: state.usage.outputTokens,
+      costUsd: state.usage.costUsd ?? 0,
     },
     docker: state.docker,
   }),
