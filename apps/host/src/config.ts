@@ -3,15 +3,17 @@ import { join } from "node:path";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import type { TrustLevel } from "@anvil/protocol";
 
+export type AnvilSettings = {
+  trustDefault?: "trusted" | "untrusted";
+  bashPolicy?: "ask" | "allowlist";
+  bashAllowlist?: string[];
+  defaultModel?: string;
+};
+
 export type AnvilConfig = {
   recentWorkspaces: string[];
   trustedWorkspaces: string[];
-  settings: {
-    trustDefault?: "trusted" | "untrusted";
-    bashPolicy?: "ask" | "allowlist";
-    bashAllowlist?: string[];
-    defaultModel?: string;
-  };
+  settings: AnvilSettings;
 };
 
 const EMPTY: AnvilConfig = { recentWorkspaces: [], trustedWorkspaces: [], settings: {} };
@@ -77,6 +79,33 @@ export function useRpcPi(trustDefault?: "trusted" | "untrusted"): boolean {
     return trustDefault !== "trusted";
   }
   return false;
+}
+
+export function projectSettingsPath(cwd: string): string {
+  return join(cwd, ".anvil", "settings.json");
+}
+
+export function mergeSettings(base: AnvilSettings, overlay: AnvilSettings): AnvilSettings {
+  return {
+    ...base,
+    ...overlay,
+    bashAllowlist: overlay.bashAllowlist ?? base.bashAllowlist,
+  };
+}
+
+export async function loadProjectSettings(cwd: string): Promise<AnvilSettings> {
+  try {
+    const raw = await readFile(projectSettingsPath(cwd), "utf8");
+    const parsed = JSON.parse(raw) as AnvilSettings;
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+export async function saveProjectSettings(cwd: string, settings: AnvilSettings): Promise<void> {
+  await mkdir(join(cwd, ".anvil"), { recursive: true });
+  await writeFile(projectSettingsPath(cwd), `${JSON.stringify(settings, null, 2)}\n`, "utf8");
 }
 
 export function chooseAdapterKind(trustDefault?: "trusted" | "untrusted"): "fake" | "sdk" | "rpc" {

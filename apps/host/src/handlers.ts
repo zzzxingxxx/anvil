@@ -6,7 +6,15 @@ import {
   ErrorPayloadSchema,
   makeResponse,
 } from "@anvil/protocol";
-import { loadConfig, rememberWorkspace, saveConfig, trustFor } from "./config.ts";
+import {
+  loadConfig,
+  loadProjectSettings,
+  mergeSettings,
+  rememberWorkspace,
+  saveConfig,
+  saveProjectSettings,
+  trustFor,
+} from "./config.ts";
 import { exportUsage } from "./usage-ledger.ts";
 import { writeFile } from "node:fs/promises";
 import { ArtifactStore } from "@anvil/pi-ext-artifact";
@@ -82,6 +90,8 @@ async function dispatch(
       const next = rememberWorkspace(config, resolved, trust);
       await saveConfig(next);
       state.recentWorkspaces = next.recentWorkspaces;
+      const project = await loadProjectSettings(resolved);
+      state.settings = mergeSettings(next.settings ?? {}, project);
       resetConversation(state);
       if (adapter.openWorkspace) {
         await adapter.openWorkspace(resolved);
@@ -291,7 +301,8 @@ async function dispatch(
     }
     case "settings.get": {
       const config = await loadConfig();
-      return { ok: true, settings: config.settings ?? {} };
+      const project = state.cwd ? await loadProjectSettings(state.cwd) : {};
+      return { ok: true, settings: mergeSettings(config.settings ?? {}, project) };
     }
     case "settings.set": {
       const nextSettings = payload as {
@@ -303,7 +314,14 @@ async function dispatch(
       const config = await loadConfig();
       config.settings = { ...config.settings, ...nextSettings };
       await saveConfig(config);
-      state.settings = { ...config.settings };
+      if (state.cwd) {
+        const project = await loadProjectSettings(state.cwd);
+        const merged = mergeSettings(project, nextSettings);
+        await saveProjectSettings(state.cwd, merged);
+        state.settings = mergeSettings(config.settings, merged);
+      } else {
+        state.settings = { ...config.settings };
+      }
       if (nextSettings.defaultModel && adapter.setModel) {
         try {
           await adapter.setModel(nextSettings.defaultModel);
@@ -311,7 +329,7 @@ async function dispatch(
           /* settings persist even if the current adapter cannot switch models */
         }
       }
-      return { ok: true, settings: config.settings };
+      return { ok: true, settings: state.settings };
     }
     case "usage.export": {
       const exported = await exportUsage(state.sessionId);

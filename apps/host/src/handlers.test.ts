@@ -1,4 +1,4 @@
-import { mkdtemp, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -150,6 +150,41 @@ describe("handleRequest", () => {
     const response = await handleRequest(makeRequest("usage.export", {}, "u1"), state, adapter, approvals);
     expect(response.payload).toMatchObject({ ok: true });
     expect(String((response.payload as { text: string }).text)).toContain("未上传");
+  });
+
+  it("applies project .anvil/settings.json when opening a workspace", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "anvil-proj-settings-"));
+    await mkdir(join(dir, ".anvil"), { recursive: true });
+    await writeFile(
+      join(dir, ".anvil", "settings.json"),
+      `${JSON.stringify({ bashPolicy: "allowlist", bashAllowlist: ["git status"] }, null, 2)}\n`,
+      "utf8",
+    );
+    const state = createWorkspaceState();
+    const approvals = new ApprovalQueue();
+    const adapter = new FakePiAdapter(state, approvals);
+    const response = await handleRequest(
+      makeRequest("workspace.open", { path: dir }, "w5"),
+      state,
+      adapter,
+      approvals,
+    );
+    expect(response.payload).toMatchObject({ ok: true });
+    expect(state.settings.bashPolicy).toBe("allowlist");
+    expect(state.settings.bashAllowlist).toEqual(["git status"]);
+
+    await handleRequest(
+      makeRequest("settings.set", { defaultModel: "fake/anvil-echo" }, "s3"),
+      state,
+      adapter,
+      approvals,
+    );
+    const written = JSON.parse(await readFile(join(dir, ".anvil", "settings.json"), "utf8")) as {
+      defaultModel?: string;
+      bashPolicy?: string;
+    };
+    expect(written.bashPolicy).toBe("allowlist");
+    expect(written.defaultModel).toBe("fake/anvil-echo");
   });
 
   it("rejects writable delegate in untrusted workspace", async () => {

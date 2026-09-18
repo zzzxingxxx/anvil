@@ -50,7 +50,7 @@ export function SettingsPage() {
     <div className="max-w-xl mx-auto p-6 space-y-4 text-sm">
       <h2 className="text-base font-semibold">设置</h2>
       <p className="text-[12px] text-[#7e7d77]">
-        写到 Host 的 `~/.anvil/config.json`。浏览器不能直接读盘。白名单之外的 bash 仍会弹审批。
+        全局写到 `~/.anvil/config.json`。已打开工作区时还会写项目 `.anvil/settings.json`（覆盖本仓库策略）。浏览器不能直接读盘。白名单之外的 bash 仍会弹审批。
       </p>
       <label className="block space-y-1">
         <span className="text-[11px] text-[#7e7d77]">Bash 策略</span>

@@ -19,4 +19,5 @@
 - Diff 优先 `git diff`，没有 git 再用快照；假循环 compact 写摘要并落 jsonl。
 - 看板卡片可拖到其他列；Composer `@agent:审查者 …` 直接委派。
 - 启动时写入 `~/.anvil/personas/` 三份默认角色（不覆盖已改文件）；文件树可上一级。
+- 打开工作区合并项目 `.anvil/settings.json`；设置页保存会写回该文件。
 - 已知问题见 README。
