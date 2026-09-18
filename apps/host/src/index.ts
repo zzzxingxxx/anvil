@@ -79,6 +79,7 @@ app.get("/health", (c) =>
       inputTokens: state.usage.inputTokens,
       outputTokens: state.usage.outputTokens,
       costUsd: state.usage.costUsd ?? 0,
+      rpcRestarts: adapter instanceof RpcPiAdapter ? adapter.restartsUsed() : 0,
     },
     docker: state.docker,
   }),

@@ -47,3 +47,4 @@
 6. 没有 Docker 时设置页只显示说明。
 7. `pnpm --filter desktop dev` 能打开壳；关窗口进托盘，托盘「退出」才结束。浏览器版继续粘贴路径。
 8. 底栏「复制本周 tokens」得到本地摘要，不含密钥。
+9. `/health.metrics.rpcRestarts` 在 SDK/假循环为 0；RPC sidecar 崩溃后递增，最多 3。

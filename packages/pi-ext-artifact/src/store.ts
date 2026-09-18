@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { mkdir, readdir, readFile, stat, writeFile } from "node:fs/promises";
 import { dirname, join, relative } from "node:path";
 
@@ -7,7 +8,15 @@ export type SnapshotRecord = {
   after: string | null;
 };
 
-const MAX_BYTES = 2 * 1024 * 1024;
+export const MAX_SNAPSHOT_BYTES = 2 * 1024 * 1024;
+
+export function snapshotMarker(size: number, hash: string): string {
+  return `<skipped ${(size / 1024).toFixed(0)}KB sha256:${hash}>`;
+}
+
+export function hashBytes(value: string | Buffer): string {
+  return createHash("sha256").update(value).digest("hex").slice(0, 16);
+}
 
 export class ArtifactStore {
   constructor(private readonly cwd: string) {}
@@ -16,20 +25,29 @@ export class ArtifactStore {
     return join(this.cwd, ".anvil", "artifacts", "snapshots");
   }
 
-  async snapshotWrite(relPath: string, nextContent: string | Buffer): Promise<SnapshotRecord> {
+  async snapshotWrite(
+    relPath: string,
+    nextContent: string | Buffer,
+    maxBytes = MAX_SNAPSHOT_BYTES,
+  ): Promise<SnapshotRecord> {
     const abs = join(this.cwd, relPath);
     let before: string | null = null;
     try {
       const info = await stat(abs);
-      if (info.size > MAX_BYTES) {
-        before = `<skipped ${(info.size / 1024).toFixed(0)}KB>`;
+      if (info.size > maxBytes) {
+        const buf = await readFile(abs);
+        before = snapshotMarker(info.size, hashBytes(buf));
       } else {
         before = await readFile(abs, "utf8");
       }
     } catch {
       before = null;
     }
-    const after = typeof nextContent === "string" ? nextContent : nextContent.toString("utf8");
+    const afterRaw = typeof nextContent === "string" ? nextContent : nextContent.toString("utf8");
+    const after =
+      Buffer.byteLength(afterRaw) > maxBytes
+        ? snapshotMarker(Buffer.byteLength(afterRaw), hashBytes(afterRaw))
+        : afterRaw;
     const turn = String(Date.now());
     const dest = join(this.root(), turn, relPath);
     await mkdir(dirname(dest), { recursive: true });

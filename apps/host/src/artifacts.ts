@@ -1,7 +1,7 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import { readFile } from "node:fs/promises";
-import { ArtifactStore, unifiedDiff } from "@anvil/pi-ext-artifact";
+import { readFile, stat } from "node:fs/promises";
+import { ArtifactStore, MAX_SNAPSHOT_BYTES, hashBytes, snapshotMarker, unifiedDiff } from "@anvil/pi-ext-artifact";
 import type { FileChange } from "@anvil/protocol";
 import { resolveInside } from "./workspace.ts";
 import type { WorkspaceState } from "./state.ts";
@@ -21,7 +21,7 @@ export async function captureBefore(state: WorkspaceState, rawPath: string): Pro
   const rel = abs.slice(state.cwd.length).replace(/^[/\\]/, "").replace(/\\/g, "/");
   let before: string | null = null;
   try {
-    before = await readFile(abs, "utf8");
+    before = await readSnapshotText(abs);
   } catch {
     before = null;
   }
@@ -42,7 +42,7 @@ export async function captureAfter(state: WorkspaceState, rawPath: string): Prom
   const rel = abs.slice(state.cwd.length).replace(/^[/\\]/, "").replace(/\\/g, "/");
   let after: string | null = null;
   try {
-    after = await readFile(abs, "utf8");
+    after = await readSnapshotText(abs);
   } catch {
     after = null;
   }
@@ -74,6 +74,15 @@ export async function gitDiff(cwd: string, rel: string): Promise<string | null> 
   } catch {
     return null;
   }
+}
+
+async function readSnapshotText(abs: string): Promise<string> {
+  const info = await stat(abs);
+  if (info.size > MAX_SNAPSHOT_BYTES) {
+    const buf = await readFile(abs);
+    return snapshotMarker(info.size, hashBytes(buf));
+  }
+  return readFile(abs, "utf8");
 }
 
 export function toolPath(args: unknown): string | null {

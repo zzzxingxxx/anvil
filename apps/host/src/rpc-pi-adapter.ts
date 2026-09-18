@@ -16,6 +16,10 @@ export class RpcPiAdapter implements PiAdapter {
   private crashRestarts = 0;
   private lastCwd: string | null = null;
 
+  restartsUsed(): number {
+    return this.crashRestarts;
+  }
+
   constructor(private readonly state: WorkspaceState) {}
 
   subscribe(cb: (event: AnvilEvent) => void): () => void {

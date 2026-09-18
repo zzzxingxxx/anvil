@@ -1,2 +1,9 @@
-export { ArtifactStore, unifiedDiff, type SnapshotRecord } from "./store.ts";
+export {
+  ArtifactStore,
+  MAX_SNAPSHOT_BYTES,
+  hashBytes,
+  snapshotMarker,
+  unifiedDiff,
+  type SnapshotRecord,
+} from "./store.ts";
 
