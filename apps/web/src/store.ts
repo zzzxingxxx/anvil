@@ -181,6 +181,7 @@ export const useUiStore = create<UiState & Actions>((set, get) => ({
           messages: [],
           tools: [],
           pendingApproval: null,
+          preview: null,
         });
         break;
       case "message/upsert": {

@@ -85,6 +85,9 @@ export function FileTree() {
         ) : null}
       </div>
       <div className="space-y-0.5 max-h-48 overflow-y-auto">
+        {entries.length === 0 ? (
+          <div className="px-1 py-2 text-[10.5px] text-[#abaaa2]">这个目录没有可预览的文件。</div>
+        ) : null}
         {entries.map((entry) => {
           const changed = cwd ? isChangedEntry(cwd, entry.path, changes) : false;
           return (

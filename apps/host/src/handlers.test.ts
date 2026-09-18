@@ -48,6 +48,24 @@ describe("handleRequest", () => {
     await adapter.abort();
   });
 
+  it("rejects opening another workspace while a turn is running", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "anvil-busy-ws-"));
+    const state = createWorkspaceState();
+    const approvals = new ApprovalQueue();
+    const adapter = new FakePiAdapter(state, approvals);
+    const prompt = adapter.prompt({ text: "还在跑" });
+    const response = await handleRequest(
+      makeRequest("workspace.open", { path: dir }, "w-busy"),
+      state,
+      adapter,
+      approvals,
+    );
+    expect(response.payload).toMatchObject({ ok: false });
+    expect(String((response.payload as { error?: string }).error)).toMatch(/等当前轮结束/);
+    await adapter.abort();
+    await prompt;
+  });
+
   it("opens a real directory as untrusted workspace", async () => {
     const dir = await mkdtemp(join(tmpdir(), "anvil-ws-"));
     await writeFile(join(dir, "README.md"), "# hi\n", "utf8");

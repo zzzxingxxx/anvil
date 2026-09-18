@@ -1,5 +1,5 @@
 import { SquarePen, GitBranch, Compass, FolderOpen } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useUiStore } from "../store.ts";
 import { formatRelativeTime } from "../lib/utils.ts";
 import { client } from "../ws.ts";
@@ -7,6 +7,10 @@ import { client } from "../ws.ts";
 export function Sidebar() {
   const { sessionId, sessions, sidebarOpen, cwd, recentWorkspaces } = useUiStore();
   const [pathDraft, setPathDraft] = useState(cwd ?? "");
+
+  useEffect(() => {
+    setPathDraft(cwd ?? "");
+  }, [cwd]);
 
   if (!sidebarOpen) return null;
 

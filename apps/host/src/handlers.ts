@@ -81,6 +81,9 @@ async function dispatch(
 ): Promise<HandlerResult> {
   switch (type) {
     case "workspace.open": {
+      if (state.agentStatus === "running") {
+        throw new Error("等当前轮结束再打开工作区");
+      }
       const { path, trust: requested } = payload as { path: string; trust?: "trusted" | "untrusted" };
       const resolved = await resolveWorkspacePath(path);
       const config = await loadConfig();
