@@ -13,8 +13,11 @@ import type { AnvilEvent, ModelInfo, SessionSummary, UiMessage } from "@anvil/pr
 import { decideGate, previewArgs, riskFor } from "@anvil/pi-ext-gate";
 import type { ApprovalQueue } from "./approvals.ts";
 import type { PiAdapter, PromptInput } from "./pi-adapter.ts";
+import { type McpHub } from "./mcp.ts";
 import { latestSession, messageText, parseModelKey, toModelInfo, toSessionSummary, toUiMessage, usageFromSessionStats } from "./sdk-map.ts";
 import { applyPiSessionEvent } from "./sdk-events.ts";
+import { deleteSessionFile, renameSessionFile } from "./session-ops.ts";
+import { expandSkillPrompt } from "./skills.ts";
 import { resetConversation, upsertMessage, type WorkspaceState } from "./state.ts";
 import { buildTree, type TreeSeed } from "./tree.ts";
 
@@ -28,7 +31,7 @@ export class SdkPiAdapter implements PiAdapter {
   constructor(
     private readonly state: WorkspaceState,
     private readonly approvals: ApprovalQueue,
-    private readonly options: { taskId?: string; allowedTools?: string[] } = {},
+    private readonly options: { taskId?: string; allowedTools?: string[]; mcp?: McpHub } = {},
   ) {}
 
   subscribe(cb: (event: AnvilEvent) => void): () => void {
@@ -47,10 +50,19 @@ export class SdkPiAdapter implements PiAdapter {
 
   async prompt(input: PromptInput): Promise<void> {
     const session = await this.requireSession();
+    let text = input.text;
+    try {
+      text = await expandSkillPrompt(input.text, this.state.cwd);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.state.agentStatus = "error";
+      this.emit({ type: "agent/error", error: message });
+      return;
+    }
     const user: UiMessage = {
       id: `user-${Date.now()}`,
       role: "user",
-      text: input.text,
+      text,
       createdAt: Date.now(),
     };
     upsertMessage(this.state, user);
@@ -58,7 +70,7 @@ export class SdkPiAdapter implements PiAdapter {
     this.state.agentStatus = "running";
     this.emit({ type: "agent/running" });
     try {
-      await session.prompt(input.text, session.isStreaming ? { streamingBehavior: "followUp" } : undefined);
+      await session.prompt(text, session.isStreaming ? { streamingBehavior: "followUp" } : undefined);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       this.state.agentStatus = "error";
@@ -191,6 +203,65 @@ export class SdkPiAdapter implements PiAdapter {
     this.emit({ type: "session/replaced", sessionId: summary.id, title: summary.title });
     await this.refreshSessions();
     return summary;
+  }
+
+  async renameSession(id: string, title: string): Promise<SessionSummary> {
+    if (this.state.agentStatus === "running") {
+      throw new Error("等当前轮结束再重命名会话");
+    }
+    if (this.state.sessionId === id && this.runtime) {
+      this.runtime.session.sessionManager.appendSessionInfo(title.trim());
+      this.state.sessionTitle = title.trim();
+      const summary: SessionSummary = {
+        id,
+        title: title.trim(),
+        mtime: Date.now(),
+        tokens: this.state.sessions.find((item) => item.id === id)?.tokens,
+        preview: this.state.sessions.find((item) => item.id === id)?.preview,
+      };
+      this.state.sessions = this.state.sessions.map((item) => (item.id === id ? { ...item, ...summary } : item));
+      await this.refreshSessions();
+      return summary;
+    }
+    const summary = renameSessionFile(id, title);
+    this.state.sessions = this.state.sessions.map((item) => (item.id === id ? { ...item, ...summary } : item));
+    await this.refreshSessions();
+    return summary;
+  }
+
+  async deleteSession(id: string): Promise<SessionSummary | null> {
+    if (this.state.agentStatus === "running") {
+      throw new Error("等当前轮结束再删除会话");
+    }
+    this.requireCwd();
+    const deletingCurrent = this.state.sessionId === id;
+    if (deletingCurrent) {
+      const remaining = this.state.sessions.filter((item) => item.id !== id);
+      if (remaining[0]) {
+        await this.resumeSession(remaining[0].id);
+      } else {
+        await this.newSession("新会话");
+      }
+    }
+    await deleteSessionFile(id);
+    this.state.sessions = this.state.sessions.filter((item) => item.id !== id);
+    await this.refreshSessions();
+    return this.state.sessions.find((item) => item.id === this.state.sessionId) ?? null;
+  }
+
+  async reloadExtensions(): Promise<void> {
+    if (!this.state.cwd || !this.runtime) {
+      return;
+    }
+    if (this.state.agentStatus === "running") {
+      throw new Error("等当前轮结束再刷新 MCP");
+    }
+    const current = this.runtime.session.sessionFile;
+    await this.replaceRuntime(
+      this.state.cwd,
+      current ? SessionManager.open(current) : SessionManager.create(this.state.cwd),
+    );
+    this.hydrateFromSession();
   }
 
   async listModels(): Promise<ModelInfo[]> {
@@ -339,6 +410,7 @@ export class SdkPiAdapter implements PiAdapter {
           sessionManager,
           sessionStartEvent,
           tools: this.options.allowedTools,
+          customTools: this.options.mcp?.customTools(),
         });
         return { ...created, services, diagnostics: services.diagnostics };
       },
@@ -488,6 +560,7 @@ export class SdkPiAdapter implements PiAdapter {
             bashPolicy: this.state.settings.bashPolicy,
             bashAllowlist: this.state.settings.bashAllowlist,
             allowedTools: this.options.allowedTools,
+            mcpAllowed: !this.options.taskId,
           });
           if (gate.decision === "allow") {
             return;

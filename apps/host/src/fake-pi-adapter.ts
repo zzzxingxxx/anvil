@@ -6,7 +6,9 @@ import type { ApprovalQueue } from "./approvals.ts";
 import type { PiAdapter, PromptInput } from "./pi-adapter.ts";
 import { gitDiff } from "./artifacts.ts";
 import { latestSession, toSessionSummary } from "./sdk-map.ts";
+import { deleteSessionFile, renameSessionFile } from "./session-ops.ts";
 import { appendPiAssistant, appendPiUser, hydrateUiFromPi, persistPiSession } from "./session-persist.ts";
+import { expandSkillPrompt } from "./skills.ts";
 import { recordUsage } from "./usage-ledger.ts";
 import { resetConversation, upsertMessage, upsertTool, type WorkspaceState } from "./state.ts";
 import { buildTree, demoTree, pathIdsFrom } from "./tree.ts";
@@ -68,12 +70,25 @@ export class FakePiAdapter implements PiAdapter {
     const run = new AbortController();
     this.runAbort = run;
     const signal = run.signal;
+    this.state.agentStatus = "running";
+    this.emit({ type: "agent/running" });
     const turn = ++this.counter;
     const now = Date.now();
+    let text = input.text;
+    if (/^\/skill:/i.test(input.text)) {
+      try {
+        text = await expandSkillPrompt(input.text, this.state.cwd);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        this.state.agentStatus = "error";
+        this.emit({ type: "agent/error", error: message });
+        return;
+      }
+    }
     const userMessage: UiMessage = {
       id: `user-${turn}`,
       role: "user",
-      text: input.text,
+      text,
       createdAt: now,
     };
     const assistantId = `assistant-${turn}`;
@@ -81,22 +96,20 @@ export class FakePiAdapter implements PiAdapter {
     const chunks = ["收到。", "这是假 Agent 循环：先流式回复，再跑一张 bash 工具卡。"];
 
     upsertMessage(this.state, userMessage);
-    const created = this.ensureSessionFile(input.text);
+    const created = this.ensureSessionFile(text);
     if (!created && this.state.sessionId?.endsWith(".jsonl")) {
       try {
-        appendPiUser(this.state.sessionId, input.text);
+        appendPiUser(this.state.sessionId, text);
       } catch {
         /* keep the fake loop even if jsonl append fails */
       }
     }
     this.state.tools = [];
-    this.state.agentStatus = "running";
     this.state.usage = {
       inputTokens: this.state.usage.inputTokens + Math.max(8, input.text.length),
       outputTokens: this.state.usage.outputTokens,
       costUsd: (this.state.usage.costUsd ?? 0) + 0.0002,
     };
-    this.emit({ type: "agent/running" });
     this.emit({ type: "message/upsert", message: userMessage });
     this.emit({ type: "usage/update", tokens: this.state.usage });
     void recordUsage({
@@ -356,6 +369,56 @@ export class FakePiAdapter implements PiAdapter {
     resetConversation(this.state);
     this.emit({ type: "session/replaced", sessionId: found.id, title: found.title });
     return found;
+  }
+
+  async renameSession(id: string, title: string): Promise<SessionSummary> {
+    if (this.state.agentStatus === "running") {
+      throw new Error("等当前轮结束再重命名会话");
+    }
+    const found = this.state.sessions.find((item) => item.id === id);
+    if (!found) {
+      throw new Error("会话不存在");
+    }
+    const nextTitle = title.trim();
+    if (id.endsWith(".jsonl")) {
+      const summary = renameSessionFile(id, nextTitle);
+      this.state.sessions = this.state.sessions.map((item) => (item.id === id ? { ...item, ...summary } : item));
+      if (this.state.sessionId === id) {
+        this.state.sessionTitle = summary.title;
+      }
+      return { ...found, ...summary };
+    }
+    found.title = nextTitle;
+    found.mtime = Date.now();
+    if (this.state.sessionId === id) {
+      this.state.sessionTitle = nextTitle;
+    }
+    return found;
+  }
+
+  async deleteSession(id: string): Promise<SessionSummary | null> {
+    if (this.state.agentStatus === "running") {
+      throw new Error("等当前轮结束再删除会话");
+    }
+    const found = this.state.sessions.find((item) => item.id === id);
+    if (!found) {
+      throw new Error("会话不存在");
+    }
+    const deletingCurrent = this.state.sessionId === id;
+    if (deletingCurrent) {
+      const remaining = this.state.sessions.filter((item) => item.id !== id);
+      if (remaining[0]) {
+        await this.resumeSession(remaining[0].id);
+      } else {
+        await this.newSession("新会话");
+      }
+    }
+    if (id.endsWith(".jsonl")) {
+      await deleteSessionFile(id);
+    }
+    this.state.sessions = this.state.sessions.filter((item) => item.id !== id);
+    await this.refreshSessions();
+    return this.state.sessions.find((item) => item.id === this.state.sessionId) ?? null;
   }
 
   async fork(entryId: string): Promise<SessionSummary> {

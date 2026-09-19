@@ -9,12 +9,22 @@ export type PersonaModels = {
   reviewer?: string;
 };
 
+export type McpServerConfig = {
+  id: string;
+  name: string;
+  command: string;
+  args?: string[];
+  env?: Record<string, string>;
+  enabled?: boolean;
+};
+
 export type AnvilSettings = {
   trustDefault?: "trusted" | "untrusted";
   bashPolicy?: "ask" | "allowlist";
   bashAllowlist?: string[];
   defaultModel?: string;
   personaModels?: PersonaModels;
+  mcpServers?: McpServerConfig[];
 };
 
 export type AnvilConfig = {
@@ -101,6 +111,7 @@ export function mergeSettings(base: AnvilSettings, overlay: AnvilSettings): Anvi
       ...(base.personaModels ?? {}),
       ...(overlay.personaModels ?? {}),
     },
+    mcpServers: overlay.mcpServers ?? base.mcpServers,
   };
 }
 

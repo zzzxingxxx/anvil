@@ -269,6 +269,61 @@ describe("handleRequest", () => {
     expect(state.model?.id).toBe("fake/anvil-echo");
   });
 
+  it("renames and deletes sessions from the fake adapter", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "anvil-session-ops-"));
+    const state = createWorkspaceState();
+    const approvals = new ApprovalQueue();
+    const adapter = new FakePiAdapter(state, approvals);
+    await handleRequest(makeRequest("workspace.open", { path: dir }, "w-sess"), state, adapter, approvals);
+    const created = await handleRequest(
+      makeRequest("session.new", { title: "旧标题" }, "s-new"),
+      state,
+      adapter,
+      approvals,
+    );
+    const id = (created.payload as { session: { id: string } }).session.id;
+    const renamed = await handleRequest(
+      makeRequest("session.rename", { id, title: "新标题" }, "s-ren"),
+      state,
+      adapter,
+      approvals,
+    );
+    expect(renamed.payload).toMatchObject({ ok: true, session: { title: "新标题" } });
+    expect(state.sessionTitle).toBe("新标题");
+    const deleted = await handleRequest(
+      makeRequest("session.delete", { id }, "s-del"),
+      state,
+      adapter,
+      approvals,
+    );
+    expect(deleted.payload).toMatchObject({ ok: true, deletedId: id });
+    expect(state.sessions.some((item) => item.id === id)).toBe(false);
+  });
+
+  it("lists skills from the current workspace", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "anvil-skill-list-"));
+    await mkdir(join(dir, ".pi", "skills", "demo-skill"), { recursive: true });
+    await writeFile(
+      join(dir, ".pi", "skills", "demo-skill", "SKILL.md"),
+      `---
+name: demo-skill
+description: Demo skill for Anvil.
+---
+Do the demo.
+`,
+      "utf8",
+    );
+    process.env.PI_CODING_AGENT_DIR = join(dir, "agent-home");
+    const state = createWorkspaceState();
+    state.cwd = dir;
+    const approvals = new ApprovalQueue();
+    const adapter = new FakePiAdapter(state, approvals);
+    const response = await handleRequest(makeRequest("skill.list", {}, "sk1"), state, adapter, approvals);
+    expect(response.payload).toMatchObject({ ok: true });
+    const skills = (response.payload as { skills: Array<{ name: string }> }).skills;
+    expect(skills.some((item) => item.name === "demo-skill")).toBe(true);
+  });
+
   it("saves persona model assignments", async () => {
     const state = createWorkspaceState();
     const approvals = new ApprovalQueue();

@@ -17,6 +17,7 @@ const SLASH_COMMANDS = [
   { id: "/compact", hint: "压缩当前会话上下文" },
   { id: "/new", hint: "新建探索分支会话" },
   { id: "/abort", hint: "中止当前正在执行的轮次" },
+  { id: "/skill:", hint: "注入已发现的 Skill" },
 ] as const;
 
 type PaletteRow =

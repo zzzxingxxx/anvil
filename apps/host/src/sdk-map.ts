@@ -45,16 +45,20 @@ export function toSessionSummary(info: {
   path: string;
   id: string;
   name?: string;
+  created?: Date;
   modified: Date;
   firstMessage: string;
   messageCount: number;
 }): SessionSummary {
-  const title = info.name?.trim() || firstLine(info.firstMessage) || `会话 ${info.id.slice(0, 8)}`;
+  const preview = firstLine(info.firstMessage);
+  const title = info.name?.trim() || preview || `会话 ${info.id.slice(0, 8)}`;
   return {
     id: info.path,
     title,
     mtime: info.modified.getTime(),
     tokens: info.messageCount,
+    preview: preview || undefined,
+    createdAt: info.created instanceof Date ? info.created.getTime() : undefined,
   };
 }
 

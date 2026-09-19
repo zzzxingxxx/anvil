@@ -29,6 +29,21 @@ describe("sdk event mapping", () => {
     expect(AnvilEventSchema.parse({ type: "message/upsert", message: ui }).type).toBe("message/upsert");
   });
 
+  it("keeps preview and createdAt on session summaries", () => {
+    expect(
+      latestSession([
+        {
+          id: "a.jsonl",
+          title: "命名会话",
+          mtime: 10,
+          preview: "第一句",
+          createdAt: 1,
+        },
+        { id: "b.jsonl", title: "新", mtime: 99, preview: "最新一句" },
+      ]),
+    ).toMatchObject({ id: "b.jsonl", preview: "最新一句" });
+  });
+
   it("picks the newest session by mtime", () => {
     expect(
       latestSession([

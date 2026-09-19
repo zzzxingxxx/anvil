@@ -19,6 +19,7 @@ import { probeDocker } from "./docker.ts";
 import { FakePiAdapter } from "./fake-pi-adapter.ts";
 import { handleRequest } from "./handlers.ts";
 import { logError, logInfo } from "./log.ts";
+import { McpHub } from "./mcp.ts";
 import { listConfiguredModels } from "./pi-models.ts";
 import type { PiAdapter } from "./pi-adapter.ts";
 import { RpcPiAdapter } from "./rpc-pi-adapter.ts";
@@ -33,11 +34,12 @@ const fake = kind === "fake";
 const rpc = kind === "rpc";
 const state = createWorkspaceState(kind);
 const approvals = new ApprovalQueue();
+const mcp = new McpHub();
 const adapter: PiAdapter = fake
   ? new FakePiAdapter(state, approvals)
   : rpc
     ? new RpcPiAdapter(state)
-    : new SdkPiAdapter(state, approvals);
+    : new SdkPiAdapter(state, approvals, { mcp });
 const personas = await ensurePersonas();
 const tasks = new TaskOrchestrator(state, undefined, approvals, personas);
 const sockets = new Set<WebSocket>();
@@ -57,6 +59,9 @@ if (state.settings.defaultModel) {
   state.model = state.models[0];
 }
 state.docker = await probeDocker();
+if (state.settings.mcpServers?.length) {
+  void mcp.replace(state.settings.mcpServers);
+}
 
 adapter.subscribe((event) => {
   if (event.type === "session/replaced") {
@@ -132,7 +137,7 @@ wss.on("connection", (socket) => {
       logInfo("drop invalid envelope");
       return;
     }
-    const response = await handleRequest(envelope.data, state, adapter, approvals, tasks);
+    const response = await handleRequest(envelope.data, state, adapter, approvals, tasks, mcp);
     if (socket.readyState === socket.OPEN) {
       socket.send(JSON.stringify(response));
     }
@@ -141,6 +146,8 @@ wss.on("connection", (socket) => {
       envelope.data.type === "workspace.trust" ||
       envelope.data.type === "session.new" ||
       envelope.data.type === "session.resume" ||
+      envelope.data.type === "session.rename" ||
+      envelope.data.type === "session.delete" ||
       envelope.data.type === "session.fork" ||
       envelope.data.type === "session.compact" ||
       envelope.data.type === "tree.navigate" ||
@@ -151,7 +158,8 @@ wss.on("connection", (socket) => {
       envelope.data.type === "settings.set" ||
       envelope.data.type === "model.set" ||
       envelope.data.type === "model.import" ||
-      envelope.data.type === "model.remove"
+      envelope.data.type === "model.remove" ||
+      envelope.data.type === "mcp.set"
     ) {
       broadcast("snapshot", snapshot());
     }

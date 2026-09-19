@@ -74,6 +74,31 @@ describe("decideGate", () => {
     ).toBe("allow");
   });
 
+  it("asks for MCP tools only in trusted workspaces", () => {
+    expect(
+      decideGate({
+        toolName: "mcp__github__search",
+        args: { q: "anvil" },
+        trust: "untrusted",
+      }).decision,
+    ).toBe("deny");
+    expect(
+      decideGate({
+        toolName: "mcp__github__search",
+        args: { q: "anvil" },
+        trust: "trusted",
+      }).decision,
+    ).toBe("ask");
+    expect(
+      decideGate({
+        toolName: "mcp__github__search",
+        args: { q: "anvil" },
+        trust: "trusted",
+        mcpAllowed: false,
+      }).decision,
+    ).toBe("deny");
+  });
+
   it("allows commands on the bash allowlist", () => {
     expect(
       decideGate({

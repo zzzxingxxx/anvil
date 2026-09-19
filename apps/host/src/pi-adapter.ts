@@ -20,6 +20,9 @@ export interface PiAdapter {
   listSessions?(): Promise<SessionSummary[]>;
   newSession?(title?: string): Promise<SessionSummary>;
   resumeSession?(id: string): Promise<SessionSummary>;
+  renameSession?(id: string, title: string): Promise<SessionSummary>;
+  deleteSession?(id: string): Promise<SessionSummary | null>;
+  reloadExtensions?(): Promise<void>;
   listModels?(): Promise<ModelInfo[]>;
   setModel?(id: string): Promise<ModelInfo>;
   reloadModels?(): Promise<ModelInfo[]>;

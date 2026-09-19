@@ -11,6 +11,7 @@ export type GateInput = {
   bashPolicy?: "ask" | "allowlist";
   bashAllowlist?: string[];
   allowedTools?: string[];
+  mcpAllowed?: boolean;
 };
 
 const WRITE_TOOLS = new Set(["write", "edit", "bash", "powershell"]);
@@ -47,6 +48,9 @@ export function riskFor(toolName: string, args: unknown): ApprovalRequest["risk"
   if (WRITE_TOOLS.has(toolName)) {
     return toolName === "bash" || toolName === "powershell" ? "high" : "medium";
   }
+  if (toolName.toLowerCase().startsWith("mcp__")) {
+    return "medium";
+  }
   return "low";
 }
 
@@ -57,6 +61,16 @@ export function decideGate(input: GateInput): { decision: GateDecision; reason: 
 
   if (protectedHit) {
     return { decision: "deny", reason: `命中保护路径：${protectedHit}` };
+  }
+
+  if (name.startsWith("mcp__")) {
+    if (input.mcpAllowed === false) {
+      return { decision: "deny", reason: "子任务不能调用 MCP 外部工具" };
+    }
+    if (input.trust !== "trusted") {
+      return { decision: "deny", reason: "未信任仓库禁止 MCP 外部工具" };
+    }
+    return { decision: "ask", reason: "MCP 外部工具需要确认" };
   }
 
   if (input.allowedTools && !input.allowedTools.some((item) => item.toLowerCase() === name)) {

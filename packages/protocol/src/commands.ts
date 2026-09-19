@@ -82,6 +82,8 @@ export const SessionSummarySchema = z.object({
   title: z.string(),
   mtime: z.number(),
   tokens: z.number().optional(),
+  preview: z.string().optional(),
+  createdAt: z.number().optional(),
 });
 export type SessionSummary = z.infer<typeof SessionSummarySchema>;
 
@@ -116,6 +118,86 @@ export type SessionResumePayload = z.infer<typeof SessionResumePayloadSchema>;
 
 export const SessionResumeResultSchema = SessionNewResultSchema;
 export type SessionResumeResult = z.infer<typeof SessionResumeResultSchema>;
+
+export const SessionRenamePayloadSchema = z.object({
+  id: z.string().min(1),
+  title: z.string().min(1).max(80),
+});
+export type SessionRenamePayload = z.infer<typeof SessionRenamePayloadSchema>;
+
+export const SessionRenameResultSchema = SessionNewResultSchema;
+export type SessionRenameResult = z.infer<typeof SessionRenameResultSchema>;
+
+export const SessionDeletePayloadSchema = z.object({
+  id: z.string().min(1),
+});
+export type SessionDeletePayload = z.infer<typeof SessionDeletePayloadSchema>;
+
+export const SessionDeleteResultSchema = z.object({
+  ok: z.literal(true),
+  deletedId: z.string(),
+  currentId: z.string().nullable(),
+});
+export type SessionDeleteResult = z.infer<typeof SessionDeleteResultSchema>;
+
+export const McpServerConfigSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().min(1),
+  command: z.string().min(1),
+  args: z.array(z.string()).optional(),
+  env: z.record(z.string()).optional(),
+  enabled: z.boolean().optional(),
+});
+export type McpServerConfig = z.infer<typeof McpServerConfigSchema>;
+
+export const McpToolInfoSchema = z.object({
+  name: z.string(),
+  description: z.string().optional(),
+});
+export type McpToolInfo = z.infer<typeof McpToolInfoSchema>;
+
+export const McpServerStatusSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  command: z.string(),
+  args: z.array(z.string()).optional(),
+  enabled: z.boolean(),
+  status: z.enum(["connected", "disabled", "error", "connecting"]),
+  error: z.string().optional(),
+  tools: z.array(McpToolInfoSchema),
+});
+export type McpServerStatus = z.infer<typeof McpServerStatusSchema>;
+
+export const McpListPayloadSchema = z.object({}).strict();
+export const McpListResultSchema = z.object({
+  ok: z.literal(true),
+  servers: z.array(McpServerStatusSchema),
+});
+export type McpListResult = z.infer<typeof McpListResultSchema>;
+
+export const McpSetPayloadSchema = z.object({
+  servers: z.array(McpServerConfigSchema),
+});
+export type McpSetPayload = z.infer<typeof McpSetPayloadSchema>;
+
+export const McpSetResultSchema = McpListResultSchema;
+export type McpSetResult = z.infer<typeof McpSetResultSchema>;
+
+export const SkillInfoSchema = z.object({
+  name: z.string(),
+  description: z.string(),
+  filePath: z.string(),
+  source: z.string(),
+  disableModelInvocation: z.boolean().optional(),
+});
+export type SkillInfo = z.infer<typeof SkillInfoSchema>;
+
+export const SkillListPayloadSchema = z.object({}).strict();
+export const SkillListResultSchema = z.object({
+  ok: z.literal(true),
+  skills: z.array(SkillInfoSchema),
+});
+export type SkillListResult = z.infer<typeof SkillListResultSchema>;
 
 export const AgentPromptPayloadSchema = z.object({
   text: z.string().min(1),
@@ -370,6 +452,7 @@ export const SettingsSchema = z.object({
   bashAllowlist: z.array(z.string()).optional(),
   defaultModel: z.string().optional(),
   personaModels: PersonaModelsSchema.optional(),
+  mcpServers: z.array(McpServerConfigSchema).optional(),
 });
 export type Settings = z.infer<typeof SettingsSchema>;
 
@@ -403,6 +486,8 @@ export const CommandTypeSchema = z.enum([
   "session.list",
   "session.new",
   "session.resume",
+  "session.rename",
+  "session.delete",
   "session.fork",
   "session.compact",
   "tree.navigate",
@@ -428,6 +513,9 @@ export const CommandTypeSchema = z.enum([
   "settings.get",
   "settings.set",
   "usage.export",
+  "mcp.list",
+  "mcp.set",
+  "skill.list",
 ]);
 export type CommandType = z.infer<typeof CommandTypeSchema>;
 
@@ -438,6 +526,8 @@ export const CommandPayloadSchemas = {
   "session.list": SessionListPayloadSchema,
   "session.new": SessionNewPayloadSchema,
   "session.resume": SessionResumePayloadSchema,
+  "session.rename": SessionRenamePayloadSchema,
+  "session.delete": SessionDeletePayloadSchema,
   "session.fork": SessionForkPayloadSchema,
   "session.compact": SessionCompactPayloadSchema,
   "tree.navigate": TreeNavigatePayloadSchema,
@@ -463,6 +553,9 @@ export const CommandPayloadSchemas = {
   "settings.get": SettingsGetPayloadSchema,
   "settings.set": SettingsSetPayloadSchema,
   "usage.export": UsageExportPayloadSchema,
+  "mcp.list": McpListPayloadSchema,
+  "mcp.set": McpSetPayloadSchema,
+  "skill.list": SkillListPayloadSchema,
 } as const;
 
 export const CommandResultSchemas = {
@@ -472,6 +565,8 @@ export const CommandResultSchemas = {
   "session.list": SessionListResultSchema,
   "session.new": SessionNewResultSchema,
   "session.resume": SessionResumeResultSchema,
+  "session.rename": SessionRenameResultSchema,
+  "session.delete": SessionDeleteResultSchema,
   "session.fork": SessionForkResultSchema,
   "session.compact": AgentOkResultSchema,
   "tree.navigate": AgentOkResultSchema,
@@ -497,4 +592,7 @@ export const CommandResultSchemas = {
   "settings.get": SettingsResultSchema,
   "settings.set": SettingsResultSchema,
   "usage.export": UsageExportResultSchema,
+  "mcp.list": McpListResultSchema,
+  "mcp.set": McpSetResultSchema,
+  "skill.list": SkillListResultSchema,
 } as const;

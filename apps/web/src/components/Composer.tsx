@@ -38,13 +38,41 @@ export function Composer({ onSend, sending }: ComposerProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { agentStatus, connection, cwd, pendingInsert, restoredDraft } = useUiStore();
   const isRunning = agentStatus === "running";
+  const [skillHints, setSkillHints] = useState<Array<{ id: string; hint: string }>>([]);
   const slashCommands = [
     { id: "/compact", hint: "压缩当前会话上下文" },
     { id: "/new", hint: "新建会话" },
     { id: "/abort", hint: "中止当前轮" },
+    ...skillHints,
   ];
   const availableSlash = isRunning ? slashCommands.filter((item) => item.id === "/abort") : slashCommands;
   const visibleSlash = availableSlash.filter((item) => item.id.startsWith(draft.trim() || "/"));
+
+  useEffect(() => {
+    if (!cwd) {
+      setSkillHints([]);
+      return;
+    }
+    let cancelled = false;
+    void client
+      .request("skill.list", {})
+      .then((response) => {
+        if (cancelled) return;
+        const payload = response.payload as { skills?: Array<{ name: string; description: string }> };
+        setSkillHints(
+          (payload.skills ?? []).map((skill) => ({
+            id: `/skill:${skill.name}`,
+            hint: skill.description,
+          })),
+        );
+      })
+      .catch(() => {
+        if (!cancelled) setSkillHints([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [cwd]);
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -102,6 +130,11 @@ export function Composer({ onSend, sending }: ComposerProps) {
         setDraft("");
         return;
       }
+      if (id.startsWith("/skill:")) {
+        setDraft(`${id} `);
+        textareaRef.current?.focus();
+        return;
+      }
       if (id === "/abort") {
         const response = await client.request("agent.abort", {});
         const restored = (response.payload as { restoredDraft?: string }).restoredDraft;
@@ -133,9 +166,15 @@ export function Composer({ onSend, sending }: ComposerProps) {
       return;
     }
     if (isRunning) return;
-    if (draft.trim().startsWith("/")) {
-      const id = availableSlash.find((item) => draft.trim().startsWith(item.id))?.id;
-      if (id) {
+    const trimmed = draft.trim();
+    if (trimmed.startsWith("/skill:")) {
+      onSend(trimmed);
+      setDraft("");
+      return;
+    }
+    if (trimmed.startsWith("/")) {
+      const id = availableSlash.find((item) => trimmed === item.id || trimmed.startsWith(`${item.id} `))?.id;
+      if (id && !id.startsWith("/skill:")) {
         void runSlash(id);
         return;
       }
@@ -293,7 +332,7 @@ export function Composer({ onSend, sending }: ComposerProps) {
                 ? "请先选择本地工程目录开始提问..."
                 : isRunning
                   ? "Agent 正在执行… Esc 中止，或插入方向 / 结束后做"
-                  : "输入需求，或 @agent:审查者 看这段 diff / Ctrl+Enter 发送..."
+                  : "输入需求，或 /skill:名称、@agent:审查者 … / Ctrl+Enter 发送..."
           }
           className="w-full bg-transparent px-4 pt-3 pb-2 text-[13.5px] text-[#1f1e1d] placeholder-[#abaaa2] outline-none resize-none leading-relaxed"
         />

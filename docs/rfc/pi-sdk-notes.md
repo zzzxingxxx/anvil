@@ -16,6 +16,9 @@
 - 默认目录：`~/.pi/agent/sessions/<encoded-cwd>/`
 - Anvil 的 `session.id` **就是 jsonl 文件路径**，官方 `pi` 可 resume 同一文件
 - `runtime.newSession()` / `runtime.switchSession(path)` 会先 teardown 再创建
+- 重命名走 `sessionManager.appendSessionInfo(name)`，删除只 `unlink` 该 jsonl，不改 session 格式
+- Skill 用官方 `loadSkills()`；`/skill:name` 展开为 Pi 的 `<skill>` 块
+- MCP 不是 Pi 内核能力。Anvil Host 用 stdio JSON-RPC 拉 tools/list，再以 `customTools` 注入 SDK（工具名 `mcp__<server>__<tool>`）
 
 ## 事件
 

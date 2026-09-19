@@ -165,6 +165,8 @@ export const SnapshotEventSchema = z.object({
       title: z.string(),
       mtime: z.number(),
       tokens: z.number().optional(),
+      preview: z.string().optional(),
+      createdAt: z.number().optional(),
     }),
   ).optional(),
   models: z
@@ -195,6 +197,18 @@ export const SnapshotEventSchema = z.object({
           implementer: z.string().optional(),
           reviewer: z.string().optional(),
         })
+        .optional(),
+      mcpServers: z
+        .array(
+          z.object({
+            id: z.string(),
+            name: z.string(),
+            command: z.string(),
+            args: z.array(z.string()).optional(),
+            env: z.record(z.string()).optional(),
+            enabled: z.boolean().optional(),
+          }),
+        )
         .optional(),
     })
     .optional(),

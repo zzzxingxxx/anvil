@@ -68,6 +68,14 @@ export type UiState = {
       implementer?: string;
       reviewer?: string;
     };
+    mcpServers?: Array<{
+      id: string;
+      name: string;
+      command: string;
+      args?: string[];
+      env?: Record<string, string>;
+      enabled?: boolean;
+    }>;
   };
   docker: { available: boolean; version?: string; reason?: string } | null;
 

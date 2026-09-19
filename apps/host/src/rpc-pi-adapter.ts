@@ -4,6 +4,8 @@ import type { PiAdapter, PromptInput } from "./pi-adapter.ts";
 import { resetConversation, upsertMessage, type WorkspaceState } from "./state.ts";
 import { applyPiSessionEvent } from "./sdk-events.ts";
 import { latestSession, toModelInfo, toSessionSummary, toUiMessage, usageFromSessionStats } from "./sdk-map.ts";
+import { deleteSessionFile, renameSessionFile } from "./session-ops.ts";
+import { expandSkillPrompt } from "./skills.ts";
 import { buildTree, pathIdsFrom, seedsFromRpcTree } from "./tree.ts";
 
 /**
@@ -47,10 +49,19 @@ export class RpcPiAdapter implements PiAdapter {
 
   async prompt(input: PromptInput): Promise<void> {
     const client = await this.requireClient();
+    let text = input.text;
+    try {
+      text = await expandSkillPrompt(input.text, this.state.cwd);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.state.agentStatus = "error";
+      this.emit({ type: "agent/error", error: message });
+      return;
+    }
     const user: UiMessage = {
       id: `user-${Date.now()}`,
       role: "user",
-      text: input.text,
+      text,
       createdAt: Date.now(),
     };
     upsertMessage(this.state, user);
@@ -58,7 +69,7 @@ export class RpcPiAdapter implements PiAdapter {
     this.state.agentStatus = "running";
     this.emit({ type: "agent/running" });
     try {
-      await client.prompt(input.text);
+      await client.prompt(text);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       this.state.agentStatus = "error";
@@ -173,6 +184,49 @@ export class RpcPiAdapter implements PiAdapter {
       throw new Error("恢复会话被取消");
     }
     return this.hydrateFromRpc();
+  }
+
+  async renameSession(id: string, title: string): Promise<SessionSummary> {
+    if (this.state.agentStatus === "running") {
+      throw new Error("等当前轮结束再重命名会话");
+    }
+    const nextTitle = title.trim();
+    if (this.state.sessionId === id) {
+      try {
+        await (await this.requireClient()).setSessionName(nextTitle);
+      } catch {
+        /* sidecar name is best-effort; still persist to jsonl */
+      }
+    }
+    const summary = id.endsWith(".jsonl")
+      ? renameSessionFile(id, nextTitle)
+      : { id, title: nextTitle, mtime: Date.now() };
+    this.state.sessions = this.state.sessions.map((item) => (item.id === id ? { ...item, ...summary } : item));
+    if (this.state.sessionId === id) {
+      this.state.sessionTitle = summary.title;
+    }
+    await this.refreshSessions();
+    return summary;
+  }
+
+  async deleteSession(id: string): Promise<SessionSummary | null> {
+    if (this.state.agentStatus === "running") {
+      throw new Error("等当前轮结束再删除会话");
+    }
+    const deletingCurrent = this.state.sessionId === id;
+    if (id.endsWith(".jsonl")) {
+      await deleteSessionFile(id);
+    }
+    this.state.sessions = this.state.sessions.filter((item) => item.id !== id);
+    if (!deletingCurrent) {
+      await this.refreshSessions();
+      return this.state.sessions.find((item) => item.id === this.state.sessionId) ?? null;
+    }
+    const remaining = this.state.sessions;
+    if (remaining[0]) {
+      return this.resumeSession(remaining[0].id);
+    }
+    return this.newSession("新会话");
   }
 
   async fork(entryId: string): Promise<SessionSummary> {

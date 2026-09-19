@@ -29,7 +29,9 @@ import {
   mergeModelLists,
   removePiProvider,
 } from "./pi-models.ts";
+import type { McpHub } from "./mcp.ts";
 import type { PiAdapter } from "./pi-adapter.ts";
+import { listSkills } from "./skills.ts";
 import { resetConversation, type WorkspaceState } from "./state.ts";
 import { pickSystemFolder, resolveInside, resolveWorkspacePath } from "./workspace.ts";
 import type { ApprovalQueue } from "./approvals.ts";
@@ -43,6 +45,7 @@ export async function handleRequest(
   adapter: PiAdapter,
   approvals: ApprovalQueue,
   tasks?: TaskOrchestrator,
+  mcp?: McpHub,
 ): Promise<Envelope> {
   const parsedType = CommandTypeSchema.safeParse(envelope.type);
   if (!parsedType.success) {
@@ -64,7 +67,7 @@ export async function handleRequest(
   }
 
   try {
-    const result = await dispatch(type, payloadParsed.data, state, adapter, approvals, tasks);
+    const result = await dispatch(type, payloadParsed.data, state, adapter, approvals, tasks, mcp);
     logInfo("command", { type, ok: true });
     return makeResponse(envelope.id, type, result);
   } catch (error) {
@@ -86,6 +89,7 @@ async function dispatch(
   adapter: PiAdapter,
   approvals: ApprovalQueue,
   tasks?: TaskOrchestrator,
+  mcp?: McpHub,
 ): Promise<HandlerResult> {
   switch (type) {
     case "workspace.open": {
@@ -103,6 +107,9 @@ async function dispatch(
       state.recentWorkspaces = next.recentWorkspaces;
       const project = await loadProjectSettings(resolved);
       state.settings = mergeSettings(next.settings ?? {}, project);
+      if (mcp) {
+        await mcp.replace(state.settings.mcpServers);
+      }
       if (state.settings.defaultModel && adapter.setModel) {
         try {
           await adapter.setModel(state.settings.defaultModel);
@@ -177,6 +184,42 @@ async function dispatch(
       state.sessionTitle = found.title;
       resetConversation(state);
       return { ok: true, session: { id: found.id, title: found.title } };
+    }
+    case "session.rename": {
+      const { id, title } = payload as { id: string; title: string };
+      if (adapter.renameSession) {
+        const session = await adapter.renameSession(id, title);
+        return { ok: true, session: { id: session.id, title: session.title } };
+      }
+      const found = state.sessions.find((item) => item.id === id);
+      if (!found) {
+        throw new Error("会话不存在");
+      }
+      found.title = title.trim();
+      found.mtime = Date.now();
+      if (state.sessionId === id) {
+        state.sessionTitle = found.title;
+      }
+      return { ok: true, session: { id: found.id, title: found.title } };
+    }
+    case "session.delete": {
+      const { id } = payload as { id: string };
+      if (adapter.deleteSession) {
+        const current = await adapter.deleteSession(id);
+        return { ok: true, deletedId: id, currentId: current?.id ?? state.sessionId };
+      }
+      const found = state.sessions.find((item) => item.id === id);
+      if (!found) {
+        throw new Error("会话不存在");
+      }
+      state.sessions = state.sessions.filter((item) => item.id !== id);
+      if (state.sessionId === id) {
+        const next = state.sessions[0];
+        state.sessionId = next?.id ?? null;
+        state.sessionTitle = next?.title ?? null;
+        resetConversation(state);
+      }
+      return { ok: true, deletedId: id, currentId: state.sessionId };
     }
     case "session.fork": {
       const { entryId } = payload as { entryId: string };
@@ -411,6 +454,14 @@ async function dispatch(
           implementer?: string;
           reviewer?: string;
         };
+        mcpServers?: Array<{
+          id: string;
+          name: string;
+          command: string;
+          args?: string[];
+          env?: Record<string, string>;
+          enabled?: boolean;
+        }>;
       };
       const config = await loadConfig();
       config.settings = { ...config.settings, ...nextSettings };
@@ -441,6 +492,40 @@ async function dispatch(
     case "usage.export": {
       const exported = await exportUsage(state.sessionId);
       return { ok: true, ...exported };
+    }
+    case "mcp.list": {
+      return { ok: true, servers: mcp?.list() ?? [] };
+    }
+    case "mcp.set": {
+      if (state.agentStatus === "running") {
+        throw new Error("等当前轮结束再改 MCP");
+      }
+      const { servers } = payload as {
+        servers: Array<{
+          id: string;
+          name: string;
+          command: string;
+          args?: string[];
+          env?: Record<string, string>;
+          enabled?: boolean;
+        }>;
+      };
+      const config = await loadConfig();
+      config.settings = { ...config.settings, mcpServers: servers };
+      await saveConfig(config);
+      state.settings = { ...state.settings, mcpServers: servers };
+      if (state.cwd) {
+        const project = await loadProjectSettings(state.cwd);
+        await saveProjectSettings(state.cwd, mergeSettings(project, { mcpServers: servers }));
+      }
+      const listed = mcp ? await mcp.replace(servers) : [];
+      if (adapter.reloadExtensions) {
+        await adapter.reloadExtensions();
+      }
+      return { ok: true, servers: listed };
+    }
+    case "skill.list": {
+      return { ok: true, skills: listSkills(state.cwd) };
     }
   }
 }
