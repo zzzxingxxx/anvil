@@ -31,7 +31,7 @@ import {
 } from "./pi-models.ts";
 import type { McpHub } from "./mcp.ts";
 import type { PiAdapter } from "./pi-adapter.ts";
-import { listSkills } from "./skills.ts";
+import { createSkill, listSkills } from "./skills.ts";
 import { resetConversation, type WorkspaceState } from "./state.ts";
 import { pickSystemFolder, resolveInside, resolveWorkspacePath } from "./workspace.ts";
 import type { ApprovalQueue } from "./approvals.ts";
@@ -526,6 +526,22 @@ async function dispatch(
     }
     case "skill.list": {
       return { ok: true, skills: listSkills(state.cwd) };
+    }
+    case "skill.create": {
+      const { name, description, body, scope } = payload as {
+        name: string;
+        description: string;
+        body?: string;
+        scope?: "user" | "project";
+      };
+      const skill = await createSkill({
+        name,
+        description,
+        body,
+        scope: scope === "user" ? "user" : "project",
+        cwd: state.cwd,
+      });
+      return { ok: true, skill, skills: listSkills(state.cwd) };
     }
   }
 }

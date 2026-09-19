@@ -199,6 +199,25 @@ export const SkillListResultSchema = z.object({
 });
 export type SkillListResult = z.infer<typeof SkillListResultSchema>;
 
+export const SkillCreatePayloadSchema = z.object({
+  name: z
+    .string()
+    .min(1)
+    .max(48)
+    .regex(/^[a-z0-9][a-z0-9-]*$/, "名称只能用小写字母、数字和连字符"),
+  description: z.string().min(1).max(200),
+  body: z.string().max(20_000).optional(),
+  scope: z.enum(["user", "project"]).default("project"),
+});
+export type SkillCreatePayload = z.infer<typeof SkillCreatePayloadSchema>;
+
+export const SkillCreateResultSchema = z.object({
+  ok: z.literal(true),
+  skill: SkillInfoSchema,
+  skills: z.array(SkillInfoSchema),
+});
+export type SkillCreateResult = z.infer<typeof SkillCreateResultSchema>;
+
 export const AgentPromptPayloadSchema = z.object({
   text: z.string().min(1),
   images: z
@@ -516,6 +535,7 @@ export const CommandTypeSchema = z.enum([
   "mcp.list",
   "mcp.set",
   "skill.list",
+  "skill.create",
 ]);
 export type CommandType = z.infer<typeof CommandTypeSchema>;
 
@@ -556,6 +576,7 @@ export const CommandPayloadSchemas = {
   "mcp.list": McpListPayloadSchema,
   "mcp.set": McpSetPayloadSchema,
   "skill.list": SkillListPayloadSchema,
+  "skill.create": SkillCreatePayloadSchema,
 } as const;
 
 export const CommandResultSchemas = {
@@ -595,4 +616,5 @@ export const CommandResultSchemas = {
   "mcp.list": McpListResultSchema,
   "mcp.set": McpSetResultSchema,
   "skill.list": SkillListResultSchema,
+  "skill.create": SkillCreateResultSchema,
 } as const;

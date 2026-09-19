@@ -324,6 +324,28 @@ Do the demo.
     expect(skills.some((item) => item.name === "demo-skill")).toBe(true);
   });
 
+  it("creates a project skill from the form", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "anvil-skill-create-h-"));
+    process.env.PI_CODING_AGENT_DIR = join(dir, "agent-home");
+    const state = createWorkspaceState();
+    state.cwd = dir;
+    const approvals = new ApprovalQueue();
+    const adapter = new FakePiAdapter(state, approvals);
+    const response = await handleRequest(
+      makeRequest(
+        "skill.create",
+        { name: "review-diff", description: "审查当前 diff", body: "先看 git diff。", scope: "project" },
+        "sk-create",
+      ),
+      state,
+      adapter,
+      approvals,
+    );
+    expect(response.payload).toMatchObject({ ok: true, skill: { name: "review-diff" } });
+    const disk = await readFile(join(dir, ".pi", "skills", "review-diff", "SKILL.md"), "utf8");
+    expect(disk).toContain("name: review-diff");
+  });
+
   it("saves persona model assignments", async () => {
     const state = createWorkspaceState();
     const approvals = new ApprovalQueue();
