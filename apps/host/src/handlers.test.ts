@@ -324,6 +324,30 @@ Do the demo.
     expect(skills.some((item) => item.name === "demo-skill")).toBe(true);
   });
 
+  it("adds an MCP server from a short phrase", async () => {
+    const state = createWorkspaceState();
+    const approvals = new ApprovalQueue();
+    const adapter = new FakePiAdapter(state, approvals);
+    const response = await handleRequest(makeRequest("mcp.add", { text: "记忆" }, "mcp-add"), state, adapter, approvals);
+    expect(response.payload).toMatchObject({ ok: true, added: { id: "memory", name: "memory" } });
+  });
+
+  it("creates a project skill from one sentence", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "anvil-skill-prompt-"));
+    process.env.PI_CODING_AGENT_DIR = join(dir, "agent-home");
+    const state = createWorkspaceState();
+    state.cwd = dir;
+    const approvals = new ApprovalQueue();
+    const adapter = new FakePiAdapter(state, approvals);
+    const response = await handleRequest(
+      makeRequest("skill.create", { prompt: "审查当前 git diff", scope: "project" }, "sk-prompt"),
+      state,
+      adapter,
+      approvals,
+    );
+    expect(response.payload).toMatchObject({ ok: true, skill: { name: "review-diff" } });
+  });
+
   it("creates a project skill from the form", async () => {
     const dir = await mkdtemp(join(tmpdir(), "anvil-skill-create-h-"));
     process.env.PI_CODING_AGENT_DIR = join(dir, "agent-home");

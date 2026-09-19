@@ -1,6 +1,7 @@
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
 import { defineTool, type ToolDefinition } from "@earendil-works/pi-coding-agent";
 import type { McpServerConfig } from "./config.ts";
+import { draftSkillFromPrompt } from "./recipes.ts";
 
 export type McpToolInfo = { name: string; description?: string };
 
@@ -261,6 +262,8 @@ class McpProcess {
 export class McpHub {
   private processes = new Map<string, McpProcess>();
   private configs: McpServerConfig[] = [];
+  onAddMcp?: (text: string) => Promise<{ name: string; status: string; tools: string[] }>;
+  onAddSkill?: (prompt: string) => Promise<{ name: string; filePath: string }>;
 
   list(): McpServerStatus[] {
     return this.configs.map((config) => {
@@ -293,7 +296,7 @@ export class McpHub {
   }
 
   customTools(): ToolDefinition[] {
-    const tools: ToolDefinition[] = [];
+    const tools: ToolDefinition[] = [...this.workbenchTools()];
     for (const proc of this.processes.values()) {
       if (proc.status !== "connected") {
         continue;
@@ -323,6 +326,80 @@ export class McpHub {
       }
     }
     return tools;
+  }
+
+  private workbenchTools(): ToolDefinition[] {
+    const hub = this;
+    return [
+      defineTool({
+        name: "anvil_add_mcp",
+        label: "添加 MCP",
+        description:
+          "根据用户一句话添加 MCP 外部工具。认识 GitHub、本机文件、记忆、网页，或直接的 npx 启动命令。添加前会请用户确认。",
+        promptSnippet: "用户说要接 MCP / 外部工具时调用 anvil_add_mcp。",
+        parameters: {
+          type: "object",
+          properties: {
+            text: { type: "string", description: "用户原话，例如 GitHub、本机文件，或 npx -y @modelcontextprotocol/server-github" },
+          },
+          required: ["text"],
+          additionalProperties: false,
+        } as ToolDefinition["parameters"],
+        async execute(_id, params) {
+          const text = String((params as { text?: unknown }).text ?? "").trim();
+          if (!hub.onAddMcp) {
+            return {
+              content: [{ type: "text", text: "当前 Host 不能添加 MCP。" }],
+              details: { ok: false, name: "", status: "" },
+            };
+          }
+          const added = await hub.onAddMcp(text);
+          return {
+            content: [
+              {
+                type: "text",
+                text: `已添加 MCP「${added.name}」，状态 ${added.status}。工具：${added.tools.join("、") || "暂无"}。`,
+              },
+            ],
+            details: { ok: true, name: added.name, status: added.status },
+          };
+        },
+      }),
+      defineTool({
+        name: "anvil_add_skill",
+        label: "添加 Skill",
+        description: "根据用户一句话创建 SKILL.md。名称会自动生成。创建前会请用户确认。",
+        promptSnippet: "用户说要加一个 Skill / 工作流提示时调用 anvil_add_skill。",
+        parameters: {
+          type: "object",
+          properties: {
+            prompt: { type: "string", description: "这个 Skill 做什么，用中文一句话即可" },
+          },
+          required: ["prompt"],
+          additionalProperties: false,
+        } as ToolDefinition["parameters"],
+        async execute(_id, params) {
+          const prompt = String((params as { prompt?: unknown }).prompt ?? "").trim();
+          draftSkillFromPrompt(prompt);
+          if (!hub.onAddSkill) {
+            return {
+              content: [{ type: "text", text: "当前 Host 不能创建 Skill。" }],
+              details: { ok: false, name: "", filePath: "" },
+            };
+          }
+          const created = await hub.onAddSkill(prompt);
+          return {
+            content: [
+              {
+                type: "text",
+                text: `已创建 Skill「${created.name}」，文件 ${created.filePath}。对话输入 /skill:${created.name} 即可用。`,
+              },
+            ],
+            details: { ok: true, name: created.name, filePath: created.filePath },
+          };
+        },
+      }),
+    ];
   }
 
   async replace(servers: McpServerConfig[] | undefined): Promise<McpServerStatus[]> {

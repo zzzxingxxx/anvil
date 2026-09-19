@@ -74,6 +74,24 @@ describe("decideGate", () => {
     ).toBe("allow");
   });
 
+  it("asks before the agent adds MCP or Skill", () => {
+    expect(
+      decideGate({
+        toolName: "anvil_add_mcp",
+        args: { text: "GitHub" },
+        trust: "untrusted",
+      }).decision,
+    ).toBe("ask");
+    expect(
+      decideGate({
+        toolName: "anvil_add_skill",
+        args: { prompt: "审查 diff" },
+        trust: "trusted",
+        mcpAllowed: false,
+      }).decision,
+    ).toBe("deny");
+  });
+
   it("asks for MCP tools only in trusted workspaces", () => {
     expect(
       decideGate({

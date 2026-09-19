@@ -6,6 +6,7 @@ import {
   ANVIL_WS_PATH,
   EnvelopeSchema,
   makeEvent,
+  makeRequest,
   SnapshotEventSchema,
 } from "@anvil/protocol";
 import { getRequestListener } from "@hono/node-server";
@@ -62,6 +63,43 @@ state.docker = await probeDocker();
 if (state.settings.mcpServers?.length) {
   void mcp.replace(state.settings.mcpServers);
 }
+
+mcp.onAddMcp = async (text) => {
+  const response = await handleRequest(makeRequest("mcp.add", { text }), state, adapter, approvals, tasks, mcp);
+  const payload = response.payload as {
+    ok?: boolean;
+    error?: string;
+    added?: { name: string; status: string; tools?: Array<{ name: string }> };
+  };
+  if (!payload.ok || !payload.added) {
+    throw new Error(payload.error || "添加 MCP 失败");
+  }
+  return {
+    name: payload.added.name,
+    status: payload.added.status,
+    tools: (payload.added.tools ?? []).map((item) => item.name),
+  };
+};
+
+mcp.onAddSkill = async (prompt) => {
+  const response = await handleRequest(
+    makeRequest("skill.create", { prompt, scope: "project" }),
+    state,
+    adapter,
+    approvals,
+    tasks,
+    mcp,
+  );
+  const payload = response.payload as {
+    ok?: boolean;
+    error?: string;
+    skill?: { name: string; filePath: string };
+  };
+  if (!payload.ok || !payload.skill) {
+    throw new Error(payload.error || "创建 Skill 失败");
+  }
+  return payload.skill;
+};
 
 adapter.subscribe((event) => {
   if (event.type === "session/replaced") {
@@ -159,7 +197,9 @@ wss.on("connection", (socket) => {
       envelope.data.type === "model.set" ||
       envelope.data.type === "model.import" ||
       envelope.data.type === "model.remove" ||
-      envelope.data.type === "mcp.set"
+      envelope.data.type === "mcp.set" ||
+      envelope.data.type === "mcp.add" ||
+      envelope.data.type === "skill.create"
     ) {
       broadcast("snapshot", snapshot());
     }

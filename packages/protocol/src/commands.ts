@@ -183,6 +183,17 @@ export type McpSetPayload = z.infer<typeof McpSetPayloadSchema>;
 export const McpSetResultSchema = McpListResultSchema;
 export type McpSetResult = z.infer<typeof McpSetResultSchema>;
 
+export const McpAddPayloadSchema = z.object({
+  text: z.string().min(1).max(500),
+});
+export type McpAddPayload = z.infer<typeof McpAddPayloadSchema>;
+export const McpAddResultSchema = z.object({
+  ok: z.literal(true),
+  added: McpServerStatusSchema,
+  servers: z.array(McpServerStatusSchema),
+});
+export type McpAddResult = z.infer<typeof McpAddResultSchema>;
+
 export const SkillInfoSchema = z.object({
   name: z.string(),
   description: z.string(),
@@ -200,12 +211,14 @@ export const SkillListResultSchema = z.object({
 export type SkillListResult = z.infer<typeof SkillListResultSchema>;
 
 export const SkillCreatePayloadSchema = z.object({
+  prompt: z.string().min(1).max(2000).optional(),
   name: z
     .string()
     .min(1)
     .max(48)
-    .regex(/^[a-z0-9][a-z0-9-]*$/, "名称只能用小写字母、数字和连字符"),
-  description: z.string().min(1).max(200),
+    .regex(/^[a-z0-9][a-z0-9-]*$/, "名称只能用小写字母、数字和连字符")
+    .optional(),
+  description: z.string().min(1).max(200).optional(),
   body: z.string().max(20_000).optional(),
   scope: z.enum(["user", "project"]).default("project"),
 });
@@ -534,6 +547,7 @@ export const CommandTypeSchema = z.enum([
   "usage.export",
   "mcp.list",
   "mcp.set",
+  "mcp.add",
   "skill.list",
   "skill.create",
 ]);
@@ -575,6 +589,7 @@ export const CommandPayloadSchemas = {
   "usage.export": UsageExportPayloadSchema,
   "mcp.list": McpListPayloadSchema,
   "mcp.set": McpSetPayloadSchema,
+  "mcp.add": McpAddPayloadSchema,
   "skill.list": SkillListPayloadSchema,
   "skill.create": SkillCreatePayloadSchema,
 } as const;
@@ -615,6 +630,7 @@ export const CommandResultSchemas = {
   "usage.export": UsageExportResultSchema,
   "mcp.list": McpListResultSchema,
   "mcp.set": McpSetResultSchema,
+  "mcp.add": McpAddResultSchema,
   "skill.list": SkillListResultSchema,
   "skill.create": SkillCreateResultSchema,
 } as const;

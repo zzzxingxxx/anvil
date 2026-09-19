@@ -31,6 +31,7 @@ import {
 } from "./pi-models.ts";
 import type { McpHub } from "./mcp.ts";
 import type { PiAdapter } from "./pi-adapter.ts";
+import { draftSkillFromPrompt, resolveMcpIntent } from "./recipes.ts";
 import { createSkill, listSkills } from "./skills.ts";
 import { resetConversation, type WorkspaceState } from "./state.ts";
 import { pickSystemFolder, resolveInside, resolveWorkspacePath } from "./workspace.ts";
@@ -510,34 +511,50 @@ async function dispatch(
           enabled?: boolean;
         }>;
       };
-      const config = await loadConfig();
-      config.settings = { ...config.settings, mcpServers: servers };
-      await saveConfig(config);
-      state.settings = { ...state.settings, mcpServers: servers };
-      if (state.cwd) {
-        const project = await loadProjectSettings(state.cwd);
-        await saveProjectSettings(state.cwd, mergeSettings(project, { mcpServers: servers }));
-      }
-      const listed = mcp ? await mcp.replace(servers) : [];
-      if (adapter.reloadExtensions) {
-        await adapter.reloadExtensions();
-      }
+      const listed = await persistMcpServers(state, adapter, mcp, servers);
       return { ok: true, servers: listed };
+    }
+    case "mcp.add": {
+      const { text } = payload as { text: string };
+      const recipe = resolveMcpIntent(text, state.cwd);
+      const current = state.settings.mcpServers ?? [];
+      if (current.some((item) => item.id === recipe.id || item.name === recipe.name)) {
+        throw new Error(`已经有 ${recipe.name} 这台 MCP 了`);
+      }
+      const next = [
+        ...current,
+        { id: recipe.id, name: recipe.name, command: recipe.command, args: recipe.args, enabled: true },
+      ];
+      const listed = await persistMcpServers(state, adapter, mcp, next);
+      const added =
+        listed.find((item) => item.id === recipe.id) ??
+        listed[listed.length - 1] ?? {
+          id: recipe.id,
+          name: recipe.name,
+          command: recipe.command,
+          args: recipe.args,
+          enabled: true,
+          status: "connecting" as const,
+          tools: [],
+        };
+      return { ok: true, added, servers: listed };
     }
     case "skill.list": {
       return { ok: true, skills: listSkills(state.cwd) };
     }
     case "skill.create": {
-      const { name, description, body, scope } = payload as {
-        name: string;
-        description: string;
+      const { prompt, name, description, body, scope } = payload as {
+        prompt?: string;
+        name?: string;
+        description?: string;
         body?: string;
         scope?: "user" | "project";
       };
+      const drafted = prompt?.trim() ? draftSkillFromPrompt(prompt) : null;
       const skill = await createSkill({
-        name,
-        description,
-        body,
+        name: name?.trim() || drafted?.name || "",
+        description: description?.trim() || drafted?.description || "",
+        body: body?.trim() || drafted?.body,
         scope: scope === "user" ? "user" : "project",
         cwd: state.cwd,
       });
@@ -569,4 +586,32 @@ async function applySelectedModel(
   config.settings = { ...config.settings, defaultModel: model.id };
   await saveConfig(config);
   return model;
+}
+
+async function persistMcpServers(
+  state: WorkspaceState,
+  adapter: PiAdapter,
+  mcp: McpHub | undefined,
+  servers: Array<{
+    id: string;
+    name: string;
+    command: string;
+    args?: string[];
+    env?: Record<string, string>;
+    enabled?: boolean;
+  }>,
+) {
+  const config = await loadConfig();
+  config.settings = { ...config.settings, mcpServers: servers };
+  await saveConfig(config);
+  state.settings = { ...state.settings, mcpServers: servers };
+  if (state.cwd) {
+    const project = await loadProjectSettings(state.cwd);
+    await saveProjectSettings(state.cwd, mergeSettings(project, { mcpServers: servers }));
+  }
+  const listed = mcp ? await mcp.replace(servers) : [];
+  if (adapter.reloadExtensions) {
+    await adapter.reloadExtensions();
+  }
+  return listed;
 }

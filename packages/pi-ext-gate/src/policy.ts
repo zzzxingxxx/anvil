@@ -48,7 +48,7 @@ export function riskFor(toolName: string, args: unknown): ApprovalRequest["risk"
   if (WRITE_TOOLS.has(toolName)) {
     return toolName === "bash" || toolName === "powershell" ? "high" : "medium";
   }
-  if (toolName.toLowerCase().startsWith("mcp__")) {
+  if (toolName.toLowerCase().startsWith("mcp__") || toolName === "anvil_add_mcp" || toolName === "anvil_add_skill") {
     return "medium";
   }
   return "low";
@@ -71,6 +71,13 @@ export function decideGate(input: GateInput): { decision: GateDecision; reason: 
       return { decision: "deny", reason: "未信任仓库禁止 MCP 外部工具" };
     }
     return { decision: "ask", reason: "MCP 外部工具需要确认" };
+  }
+
+  if (name === "anvil_add_mcp" || name === "anvil_add_skill") {
+    if (input.mcpAllowed === false) {
+      return { decision: "deny", reason: "子任务不能改工作台配置" };
+    }
+    return { decision: "ask", reason: name === "anvil_add_mcp" ? "添加 MCP 需要确认" : "创建 Skill 需要确认" };
   }
 
   if (input.allowedTools && !input.allowedTools.some((item) => item.toLowerCase() === name)) {
