@@ -7,6 +7,8 @@ import {
   LayoutGrid,
   MessageSquare,
   Settings2,
+  Plug,
+  BookOpen,
   Search,
   ChevronRight,
   FolderSync,
@@ -307,11 +309,13 @@ export function Sidebar() {
             </button>
 
             {/* 移动端视图切换 */}
-            <div className="grid grid-cols-4 gap-1 sm:hidden">
+            <div className="grid grid-cols-3 gap-1 sm:hidden">
               {(
                 [
                   { id: "chat", label: "对话", icon: MessageSquare },
                   { id: "board", label: "看板", icon: LayoutGrid },
+                  { id: "mcp", label: "MCP", icon: Plug },
+                  { id: "skills", label: "Skill", icon: BookOpen },
                   { id: "settings", label: "设置", icon: Settings2 },
                 ] as const
               ).map((tab) => {

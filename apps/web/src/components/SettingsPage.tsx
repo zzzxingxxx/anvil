@@ -9,7 +9,7 @@ import {
   AlertCircle,
   Bot,
   Plug,
-  BookOpen,
+  ChevronRight,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { client } from "../ws.ts";
@@ -38,27 +38,6 @@ type Endpoint = {
   modelCount: number;
 };
 
-type McpTool = { name: string; description?: string };
-
-type McpServer = {
-  id: string;
-  name: string;
-  command: string;
-  args?: string[];
-  enabled: boolean;
-  status: "connected" | "disabled" | "error" | "connecting";
-  error?: string;
-  tools: McpTool[];
-};
-
-type SkillInfo = {
-  name: string;
-  description: string;
-  filePath: string;
-  source: string;
-  disableModelInvocation?: boolean;
-};
-
 export function SettingsPage() {
   const docker = useUiStore((state) => state.docker);
   const cwd = useUiStore((state) => state.cwd);
@@ -76,11 +55,6 @@ export function SettingsPage() {
   const [bashOpen, setBashOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [mcpServers, setMcpServers] = useState<McpServer[]>([]);
-  const [mcpName, setMcpName] = useState("");
-  const [mcpCommand, setMcpCommand] = useState("");
-  const [mcpArgs, setMcpArgs] = useState("");
-  const [skills, setSkills] = useState<SkillInfo[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -114,26 +88,6 @@ export function SettingsPage() {
       })
       .catch(() => {
         if (!cancelled) setEndpoints([]);
-      });
-    void client
-      .request("mcp.list", {})
-      .then((response) => {
-        if (cancelled) return;
-        const payload = response.payload as { servers?: McpServer[] };
-        setMcpServers(payload.servers ?? []);
-      })
-      .catch(() => {
-        if (!cancelled) setMcpServers([]);
-      });
-    void client
-      .request("skill.list", {})
-      .then((response) => {
-        if (cancelled) return;
-        const payload = response.payload as { skills?: SkillInfo[] };
-        setSkills(payload.skills ?? []);
-      })
-      .catch(() => {
-        if (!cancelled) setSkills([]);
       });
     return () => {
       cancelled = true;
@@ -244,88 +198,6 @@ export function SettingsPage() {
     }
   };
 
-  const saveMcpServers = async (servers: Array<{ id: string; name: string; command: string; args?: string[]; enabled?: boolean }>) => {
-    const response = await client.request("mcp.set", { servers });
-    const payload = response.payload as { servers?: McpServer[] };
-    setMcpServers(payload.servers ?? []);
-  };
-
-  const addMcpServer = async () => {
-    if (busy || !mcpName.trim() || !mcpCommand.trim()) return;
-    const args = mcpArgs
-      .split(/\s+/)
-      .map((item) => item.trim())
-      .filter(Boolean);
-    const next = [
-      ...mcpServers.map((item) => ({
-        id: item.id,
-        name: item.name,
-        command: item.command,
-        args: item.args,
-        enabled: item.enabled,
-      })),
-      {
-        id: `mcp-${Date.now()}`,
-        name: mcpName.trim(),
-        command: mcpCommand.trim(),
-        args,
-        enabled: true,
-      },
-    ];
-    try {
-      await saveMcpServers(next);
-      setMcpName("");
-      setMcpCommand("");
-      setMcpArgs("");
-      setNotice("已保存 MCP 服务器，正在尝试连接。");
-    } catch (error) {
-      useUiStore.setState({
-        lastError: error instanceof Error ? error.message : String(error),
-      });
-    }
-  };
-
-  const removeMcpServer = async (id: string) => {
-    if (busy) return;
-    try {
-      await saveMcpServers(
-        mcpServers
-          .filter((item) => item.id !== id)
-          .map((item) => ({
-            id: item.id,
-            name: item.name,
-            command: item.command,
-            args: item.args,
-            enabled: item.enabled,
-          })),
-      );
-      setNotice("已移除 MCP 服务器。");
-    } catch (error) {
-      useUiStore.setState({
-        lastError: error instanceof Error ? error.message : String(error),
-      });
-    }
-  };
-
-  const toggleMcpServer = async (id: string, enabled: boolean) => {
-    if (busy) return;
-    try {
-      await saveMcpServers(
-        mcpServers.map((item) => ({
-          id: item.id,
-          name: item.name,
-          command: item.command,
-          args: item.args,
-          enabled: item.id === id ? enabled : item.enabled,
-        })),
-      );
-    } catch (error) {
-      useUiStore.setState({
-        lastError: error instanceof Error ? error.message : String(error),
-      });
-    }
-  };
-
   const grouped = groupedModels(models);
 
   return (
@@ -335,7 +207,7 @@ export function SettingsPage() {
         <div className="border-b border-[#0000000a] pb-4">
           <h1 className="text-xl font-bold text-[#1f1e1d] tracking-tight">工作台设置</h1>
           <p className="text-xs text-[#7e7d77] mt-1">
-            管理模型接口、MCP 外部工具、Skill，以及终端执行策略。
+            管理模型接口、子智能体模型，以及终端执行策略。MCP 与 Skill 已移到独立配置页。
           </p>
         </div>
 
@@ -545,148 +417,40 @@ export function SettingsPage() {
           </div>
         </section>
 
-        <section className="rounded-2xl border border-[var(--border-card)] bg-white p-5 sm:p-6 shadow-[var(--shadow-card)] space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-[#faf9f5] border border-[#0000000a] flex items-center justify-center text-[#1f1e1d]">
-                <Plug className="w-4 h-4 text-[#5e5c54]" />
-              </div>
-              <div>
-                <h2 className="text-sm font-semibold text-[#1f1e1d]">MCP 外部工具</h2>
-                <p className="text-[11px] text-[#7e7d77]">
-                  通过 stdio 启动 MCP 服务器。已信任工作区里会作为自定义工具暴露给 Agent，调用前仍需审批。
-                </p>
-              </div>
+        <section className="rounded-2xl border border-[var(--border-card)] bg-white p-5 sm:p-6 shadow-[var(--shadow-card)] space-y-3">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-[#faf9f5] border border-[#0000000a] flex items-center justify-center text-[#1f1e1d]">
+              <Plug className="w-4 h-4 text-[#5e5c54]" />
             </div>
-            <span className="text-[10px] font-mono font-medium px-2 py-0.5 rounded-full bg-[#edece6] text-[#4f4e4a]">
-              {mcpServers.filter((item) => item.status === "connected").length} 已连接
-            </span>
+            <div>
+              <h2 className="text-sm font-semibold text-[#1f1e1d]">扩展配置</h2>
+              <p className="text-[11px] text-[#7e7d77]">MCP 外部工具与 Skill 已拆成独立页面。</p>
+            </div>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_minmax(0,1.2fr)_auto] gap-2">
-            <input
-              value={mcpName}
-              onChange={(e) => setMcpName(e.target.value)}
-              placeholder="显示名，如 GitHub"
-              className="px-3 py-2 rounded-lg border border-[#00000014] bg-[#faf9f5] text-xs outline-none focus:bg-white"
-            />
-            <input
-              value={mcpCommand}
-              onChange={(e) => setMcpCommand(e.target.value)}
-              placeholder="启动命令，如 npx"
-              className="px-3 py-2 rounded-lg border border-[#00000014] bg-[#faf9f5] text-xs font-mono outline-none focus:bg-white"
-            />
-            <input
-              value={mcpArgs}
-              onChange={(e) => setMcpArgs(e.target.value)}
-              placeholder="参数，空格分隔"
-              className="px-3 py-2 rounded-lg border border-[#00000014] bg-[#faf9f5] text-xs font-mono outline-none focus:bg-white"
-            />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <button
               type="button"
-              disabled={busy || !mcpName.trim() || !mcpCommand.trim()}
-              onClick={() => void addMcpServer()}
-              className="px-3 py-2 rounded-lg bg-[#1f1e1d] text-white text-xs font-medium disabled:opacity-40 flex items-center justify-center gap-1"
+              onClick={() => useUiStore.getState().setActiveTab("mcp")}
+              className="flex items-center justify-between p-3 rounded-xl bg-[#faf9f5] border border-[#0000000c] text-left hover:bg-white transition-colors"
             >
-              <Plus className="w-3.5 h-3.5" />
-              添加
+              <span>
+                <span className="block text-xs font-medium text-[#1f1e1d]">MCP 外部工具</span>
+                <span className="block text-[11px] text-[#7e7d77] mt-0.5">配置 stdio 服务器与工具列表</span>
+              </span>
+              <ChevronRight className="w-3.5 h-3.5 text-[#abaaa2]" />
+            </button>
+            <button
+              type="button"
+              onClick={() => useUiStore.getState().setActiveTab("skills")}
+              className="flex items-center justify-between p-3 rounded-xl bg-[#faf9f5] border border-[#0000000c] text-left hover:bg-white transition-colors"
+            >
+              <span>
+                <span className="block text-xs font-medium text-[#1f1e1d]">Skill</span>
+                <span className="block text-[11px] text-[#7e7d77] mt-0.5">查看 /skill: 指令与来源</span>
+              </span>
+              <ChevronRight className="w-3.5 h-3.5 text-[#abaaa2]" />
             </button>
           </div>
-          {mcpServers.length === 0 ? (
-            <p className="text-[11px] text-[#7e7d77]">还没有 MCP 服务器。添加后会在下一轮对话里出现 mcp__ 工具。</p>
-          ) : (
-            <div className="space-y-2">
-              {mcpServers.map((server) => (
-                <div key={server.id} className="rounded-xl border border-[#0000000c] bg-[#faf9f5] p-3 space-y-1.5">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <div className="text-xs font-medium text-[#1f1e1d]">{server.name}</div>
-                      <div className="text-[10.5px] font-mono text-[#7e7d77] truncate">
-                        {server.command} {(server.args ?? []).join(" ")}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1 shrink-0">
-                      <span
-                        className={`text-[10px] px-1.5 py-0.5 rounded-full ${
-                          server.status === "connected"
-                            ? "bg-emerald-50 text-emerald-800"
-                            : server.status === "disabled"
-                              ? "bg-[#edece6] text-[#7e7d77]"
-                              : "bg-rose-50 text-rose-700"
-                        }`}
-                      >
-                        {server.status === "connected"
-                          ? "已连接"
-                          : server.status === "disabled"
-                            ? "已停用"
-                            : server.status === "connecting"
-                              ? "连接中"
-                              : "出错"}
-                      </span>
-                      <button
-                        type="button"
-                        disabled={busy}
-                        onClick={() => void toggleMcpServer(server.id, !server.enabled)}
-                        className="px-2 py-1 rounded-md text-[10.5px] text-[#5e5c54] hover:bg-white"
-                      >
-                        {server.enabled ? "停用" : "启用"}
-                      </button>
-                      <button
-                        type="button"
-                        disabled={busy}
-                        onClick={() => void removeMcpServer(server.id)}
-                        className="p-1 rounded-md text-[#7e7d77] hover:text-rose-600 hover:bg-rose-50"
-                        title="移除"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </div>
-                  {server.error ? <p className="text-[10.5px] text-rose-700">{server.error}</p> : null}
-                  {server.tools.length > 0 ? (
-                    <p className="text-[10.5px] text-[#7e7d77]">
-                      工具：{server.tools.map((tool) => tool.name).join("、")}
-                    </p>
-                  ) : null}
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
-
-        <section className="rounded-2xl border border-[var(--border-card)] bg-white p-5 sm:p-6 shadow-[var(--shadow-card)] space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-[#faf9f5] border border-[#0000000a] flex items-center justify-center text-[#1f1e1d]">
-                <BookOpen className="w-4 h-4 text-[#5e5c54]" />
-              </div>
-              <div>
-                <h2 className="text-sm font-semibold text-[#1f1e1d]">Skill</h2>
-                <p className="text-[11px] text-[#7e7d77]">
-                  读取 ~/.pi/agent/skills 与项目 .pi/skills。输入 /skill:名称 会把 SKILL.md 注入本轮提示。
-                </p>
-              </div>
-            </div>
-            <span className="text-[10px] font-mono font-medium px-2 py-0.5 rounded-full bg-[#edece6] text-[#4f4e4a]">
-              {skills.length} 个
-            </span>
-          </div>
-          {skills.length === 0 ? (
-            <p className="text-[11px] text-[#7e7d77]">
-              还没有 Skill。在用户目录或当前工程的 skills 文件夹放入 SKILL.md 后刷新本页。
-            </p>
-          ) : (
-            <div className="space-y-2">
-              {skills.map((skill) => (
-                <div key={`${skill.source}-${skill.filePath}`} className="rounded-xl border border-[#0000000c] bg-[#faf9f5] p-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="text-xs font-medium text-[#1f1e1d] font-mono">/skill:{skill.name}</div>
-                    <span className="text-[10px] text-[#7e7d77]">{skill.source === "project" ? "项目" : "用户"}</span>
-                  </div>
-                  <p className="text-[11px] text-[#4f4e4a] mt-1">{skill.description}</p>
-                </div>
-              ))}
-            </div>
-          )}
         </section>
 
         {/* 卡片 2: 终端与执行策略 */}

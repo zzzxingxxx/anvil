@@ -13,7 +13,7 @@ import type {
 import { create } from "zustand";
 
 export type ConnectionStatus = "connecting" | "open" | "closed";
-export type ActiveTab = "chat" | "board" | "settings";
+export type ActiveTab = "chat" | "board" | "settings" | "mcp" | "skills";
 
 export type ToolCard = {
   callId: string;

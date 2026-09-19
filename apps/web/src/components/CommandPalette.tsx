@@ -18,6 +18,8 @@ const SLASH_COMMANDS = [
   { id: "/new", hint: "新建探索分支会话" },
   { id: "/abort", hint: "中止当前正在执行的轮次" },
   { id: "/skill:", hint: "注入已发现的 Skill" },
+  { id: "/mcp", hint: "打开 MCP 外部工具配置页" },
+  { id: "/skills", hint: "打开 Skill 配置页" },
 ] as const;
 
 type PaletteRow =
@@ -125,6 +127,10 @@ export function CommandPalette() {
         await client.request("session.new", { title: "快速新建" });
       } else if (id === "/abort") {
         await client.request("agent.abort", {});
+      } else if (id === "/mcp") {
+        useUiStore.getState().setActiveTab("mcp");
+      } else if (id === "/skills") {
+        useUiStore.getState().setActiveTab("skills");
       }
     } catch (error) {
       useUiStore.setState({

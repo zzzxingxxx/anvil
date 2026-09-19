@@ -14,6 +14,8 @@ import { CommandPalette } from "./components/CommandPalette.tsx";
 import { TaskTray } from "./components/TaskTray.tsx";
 import { Board } from "./components/Board.tsx";
 import { SettingsPage } from "./components/SettingsPage.tsx";
+import { McpPage } from "./components/McpPage.tsx";
+import { SkillsPage } from "./components/SkillsPage.tsx";
 import { EmptyState } from "./components/EmptyState.tsx";
 import { WorkspaceWelcome } from "./components/WorkspaceWelcome.tsx";
 
@@ -86,6 +88,16 @@ export function App() {
           {activeTab === "settings" ? (
             <div className="min-h-0 flex-1 h-full overflow-hidden flex flex-col">
               <SettingsPage />
+            </div>
+          ) : null}
+          {activeTab === "mcp" ? (
+            <div className="min-h-0 flex-1 h-full overflow-hidden flex flex-col">
+              <McpPage />
+            </div>
+          ) : null}
+          {activeTab === "skills" ? (
+            <div className="min-h-0 flex-1 h-full overflow-hidden flex flex-col">
+              <SkillsPage />
             </div>
           ) : null}
           {activeTab === "chat" ? (

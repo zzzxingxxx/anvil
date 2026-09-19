@@ -9,6 +9,8 @@ import {
   MessageSquare,
   LayoutGrid,
   Settings2,
+  Plug,
+  BookOpen,
 } from "lucide-react";
 import { useUiStore } from "../store.ts";
 import { ModelSelector } from "./ModelSelector.tsx";
@@ -19,6 +21,8 @@ import { pickAndOpenWorkspace } from "../lib/workspace.ts";
 const TABS = [
   { id: "chat", label: "对话", icon: MessageSquare },
   { id: "board", label: "看板", icon: LayoutGrid },
+  { id: "mcp", label: "MCP", icon: Plug },
+  { id: "skills", label: "Skill", icon: BookOpen },
   { id: "settings", label: "设置", icon: Settings2 },
 ] as const;
 
