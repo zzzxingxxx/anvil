@@ -14,6 +14,7 @@ export type McpServerStatus = {
   status: "connected" | "disabled" | "error" | "connecting";
   error?: string;
   tools: McpToolInfo[];
+  envKeys?: string[];
 };
 
 type Pending = {
@@ -131,7 +132,7 @@ class McpProcess {
   }
 
   snapshot(): McpServerStatus {
-    return {
+    return publicServerStatus({
       id: this.config.id,
       name: this.config.name,
       command: this.config.command,
@@ -140,7 +141,8 @@ class McpProcess {
       status: this.status,
       error: this.error,
       tools: this.tools.map((item) => ({ name: item.name, description: item.description })),
-    };
+      envKeys: envKeysOf(this.config.env),
+    });
   }
 
   dispose(): void {
@@ -269,7 +271,7 @@ export class McpHub {
     return this.configs.map((config) => {
       const enabled = config.enabled !== false;
       if (!enabled) {
-        return {
+        return publicServerStatus({
           id: config.id,
           name: config.name,
           command: config.command,
@@ -277,11 +279,13 @@ export class McpHub {
           enabled: false,
           status: "disabled",
           tools: [],
-        };
+          envKeys: envKeysOf(config.env),
+        });
       }
       const running = this.processes.get(config.id);
       return (
-        running?.snapshot() ?? {
+        running?.snapshot() ??
+        publicServerStatus({
           id: config.id,
           name: config.name,
           command: config.command,
@@ -290,7 +294,8 @@ export class McpHub {
           status: "error",
           error: "未连接",
           tools: [],
-        }
+          envKeys: envKeysOf(config.env),
+        })
       );
     });
   }
@@ -464,4 +469,37 @@ export function sanitizeServers(servers: McpServerConfig[] | undefined): McpServ
 
 export function isMcpToolName(name: string): boolean {
   return name.toLowerCase().startsWith("mcp__");
+}
+
+export function envKeysOf(env?: Record<string, string>): string[] {
+  return env ? Object.keys(env).filter((key) => key.trim() && env[key]?.trim()) : [];
+}
+
+export function publicServerStatus(status: McpServerStatus): McpServerStatus {
+  const { env: _env, ...rest } = status as McpServerStatus & { env?: Record<string, string> };
+  return { ...rest, envKeys: status.envKeys ?? [] };
+}
+
+export function mergeEnv(
+  current?: Record<string, string>,
+  patch?: Record<string, string>,
+): Record<string, string> | undefined {
+  if (!patch) {
+    return current;
+  }
+  const next = { ...(current ?? {}) };
+  for (const [key, value] of Object.entries(patch)) {
+    const name = key.trim();
+    if (!name) continue;
+    if (value === "") {
+      delete next[name];
+    } else {
+      next[name] = value;
+    }
+  }
+  return Object.keys(next).length ? next : undefined;
+}
+
+export function stripEnvForProject(servers: McpServerConfig[] | undefined): McpServerConfig[] {
+  return (servers ?? []).map(({ env: _env, ...rest }) => rest);
 }

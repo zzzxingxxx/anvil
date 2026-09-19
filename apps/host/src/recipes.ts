@@ -4,6 +4,7 @@ export type McpRecipe = {
   command: string;
   args: string[];
   hint: string;
+  envKeys?: string[];
 };
 
 export const MCP_RECIPES: McpRecipe[] = [
@@ -20,6 +21,7 @@ export const MCP_RECIPES: McpRecipe[] = [
     command: "npx",
     args: ["-y", "@modelcontextprotocol/server-github"],
     hint: "GitHub",
+    envKeys: ["GITHUB_TOKEN", "GITHUB_PERSONAL_ACCESS_TOKEN"],
   },
   {
     id: "memory",

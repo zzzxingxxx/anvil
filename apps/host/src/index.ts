@@ -199,7 +199,10 @@ wss.on("connection", (socket) => {
       envelope.data.type === "model.remove" ||
       envelope.data.type === "mcp.set" ||
       envelope.data.type === "mcp.add" ||
-      envelope.data.type === "skill.create"
+      envelope.data.type === "mcp.env" ||
+      envelope.data.type === "skill.create" ||
+      envelope.data.type === "skill.update" ||
+      envelope.data.type === "skill.delete"
     ) {
       broadcast("snapshot", snapshot());
     }

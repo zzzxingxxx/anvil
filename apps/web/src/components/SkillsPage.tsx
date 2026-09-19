@@ -1,4 +1,4 @@
-import { BookOpen, Copy, RefreshCw, Sparkles } from "lucide-react";
+import { BookOpen, Copy, RefreshCw, Sparkles, Pencil, Trash2, Check, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { client } from "../ws.ts";
 import { useUiStore } from "../store.ts";
@@ -9,6 +9,8 @@ type SkillInfo = {
   description: string;
   filePath: string;
   source: string;
+  body?: string;
+  editable?: boolean;
 };
 
 export function SkillsPage() {
@@ -19,6 +21,9 @@ export function SkillsPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [editing, setEditing] = useState<string | null>(null);
+  const [editDescription, setEditDescription] = useState("");
+  const [editBody, setEditBody] = useState("");
 
   const load = async () => {
     setLoading(true);
@@ -51,7 +56,7 @@ export function SkillsPage() {
       const payload = response.payload as { skill?: SkillInfo; skills?: SkillInfo[] };
       setSkills(payload.skills ?? []);
       setPrompt("");
-      setNotice(`已创建 /skill:${payload.skill?.name ?? ""}。点「插入对话」就能用。`);
+      setNotice(`已创建 /skill:${payload.skill?.name ?? ""}。`);
     } catch (caught) {
       useUiStore.setState({ lastError: caught instanceof Error ? caught.message : String(caught) });
     } finally {
@@ -59,23 +64,38 @@ export function SkillsPage() {
     }
   };
 
-  const askAi = () => {
-    const text = prompt.trim();
-    useUiStore.setState({
-      restoredDraft: text
-        ? `帮我创建一个 Skill：${text}。需要确认后再写入 SKILL.md。`
-        : "根据当前项目帮我创建一个最有用的 Skill，确认后再写入。",
-      activeTab: "chat",
-    });
+  const startEdit = (skill: SkillInfo) => {
+    setEditing(skill.filePath);
+    setEditDescription(skill.description);
+    setEditBody(skill.body ?? "");
   };
 
-  const copyCommand = async (name: string) => {
-    const command = `/skill:${name}`;
+  const saveEdit = async (filePath: string) => {
+    if (!editDescription.trim()) return;
     try {
-      await navigator.clipboard.writeText(command);
-      setNotice(`已复制 ${command}`);
-    } catch {
-      useUiStore.setState({ restoredDraft: `${command} `, activeTab: "chat" });
+      const response = await client.request("skill.update", {
+        filePath,
+        description: editDescription.trim(),
+        body: editBody,
+      });
+      const payload = response.payload as { skills?: SkillInfo[] };
+      setSkills(payload.skills ?? []);
+      setEditing(null);
+      setNotice("已保存 SKILL.md。");
+    } catch (caught) {
+      useUiStore.setState({ lastError: caught instanceof Error ? caught.message : String(caught) });
+    }
+  };
+
+  const removeSkill = async (skill: SkillInfo) => {
+    if (!window.confirm(`删除 /skill:${skill.name}？文件会从磁盘移除。`)) return;
+    try {
+      const response = await client.request("skill.delete", { filePath: skill.filePath });
+      const payload = response.payload as { skills?: SkillInfo[] };
+      setSkills(payload.skills ?? []);
+      setNotice(`已删除 /skill:${skill.name}。`);
+    } catch (caught) {
+      useUiStore.setState({ lastError: caught instanceof Error ? caught.message : String(caught) });
     }
   };
 
@@ -83,7 +103,7 @@ export function SkillsPage() {
     <ConfigPageShell
       icon={BookOpen}
       title="Skill"
-      detail="一句话说它做什么，就会写成 SKILL.md。也可以让对话里的 Agent 帮你写。"
+      detail="一句话创建。用户和项目目录里的 SKILL.md 可以在这里改或删。"
       badge={loading ? "加载中" : `${skills.length} 个`}
       notice={notice}
       error={error}
@@ -100,7 +120,14 @@ export function SkillsPage() {
         <div className="flex flex-wrap justify-end gap-2">
           <button
             type="button"
-            onClick={askAi}
+            onClick={() =>
+              useUiStore.setState({
+                restoredDraft: prompt.trim()
+                  ? `帮我创建一个 Skill：${prompt.trim()}`
+                  : "根据当前项目帮我创建一个最有用的 Skill。",
+                activeTab: "chat",
+              })
+            }
             className="px-3 py-2 rounded-lg border border-[#00000014] text-xs text-[#4f4e4a] hover:bg-[#faf9f5] flex items-center gap-1"
           >
             <Sparkles className="w-3.5 h-3.5" />
@@ -115,7 +142,6 @@ export function SkillsPage() {
             {saving ? "正在创建…" : "创建"}
           </button>
         </div>
-        {!cwd ? <p className="text-[10.5px] text-rose-700">先打开工作区。</p> : null}
       </section>
 
       <section className="rounded-2xl border border-[var(--border-card)] bg-white p-5 sm:p-6 shadow-[var(--shadow-card)] space-y-3">
@@ -132,7 +158,7 @@ export function SkillsPage() {
           </button>
         </div>
         {skills.length === 0 ? (
-          <p className="text-[11px] text-[#7e7d77]">还没有。写一句话点创建，或让 AI 根据项目生成。</p>
+          <p className="text-[11px] text-[#7e7d77]">还没有。写一句话点创建，或让 AI 生成。</p>
         ) : (
           <div className="space-y-2">
             {skills.map((skill) => (
@@ -140,27 +166,86 @@ export function SkillsPage() {
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
                     <div className="text-xs font-medium font-mono text-[#1f1e1d]">/skill:{skill.name}</div>
-                    <p className="text-[11px] text-[#4f4e4a] mt-1">{skill.description}</p>
+                    {editing === skill.filePath ? null : (
+                      <p className="text-[11px] text-[#4f4e4a] mt-1">{skill.description}</p>
+                    )}
                   </div>
                   <span className="text-[10px] text-[#7e7d77] shrink-0">{skill.source === "project" ? "项目" : "用户"}</span>
                 </div>
-                <div className="flex items-center gap-1">
-                  <button
-                    type="button"
-                    onClick={() => void copyCommand(skill.name)}
-                    className="flex items-center gap-1 px-2 py-1 rounded-md text-[10.5px] text-[#5e5c54] hover:bg-white"
-                  >
-                    <Copy className="w-3 h-3" />
-                    复制
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => useUiStore.setState({ restoredDraft: `/skill:${skill.name} `, activeTab: "chat" })}
-                    className="px-2 py-1 rounded-md text-[10.5px] text-[#5e5c54] hover:bg-white"
-                  >
-                    插入对话
-                  </button>
-                </div>
+                {editing === skill.filePath ? (
+                  <div className="space-y-2">
+                    <input
+                      value={editDescription}
+                      onChange={(e) => setEditDescription(e.target.value)}
+                      className="w-full px-2 py-1.5 rounded-md border border-[#00000014] bg-white text-xs outline-none"
+                    />
+                    <textarea
+                      rows={6}
+                      value={editBody}
+                      onChange={(e) => setEditBody(e.target.value)}
+                      className="w-full px-2 py-1.5 rounded-md border border-[#00000014] bg-white text-[11px] font-mono outline-none"
+                    />
+                    <div className="flex gap-1">
+                      <button
+                        type="button"
+                        onClick={() => void saveEdit(skill.filePath)}
+                        className="flex items-center gap-1 px-2 py-1 rounded-md bg-[#1f1e1d] text-white text-[10.5px]"
+                      >
+                        <Check className="w-3 h-3" />
+                        保存
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setEditing(null)}
+                        className="flex items-center gap-1 px-2 py-1 rounded-md text-[10.5px] text-[#5e5c54] hover:bg-white"
+                      >
+                        <X className="w-3 h-3" />
+                        取消
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => void navigator.clipboard.writeText(`/skill:${skill.name}`).then(
+                        () => setNotice(`已复制 /skill:${skill.name}`),
+                        () => useUiStore.setState({ restoredDraft: `/skill:${skill.name} `, activeTab: "chat" }),
+                      )}
+                      className="flex items-center gap-1 px-2 py-1 rounded-md text-[10.5px] text-[#5e5c54] hover:bg-white"
+                    >
+                      <Copy className="w-3 h-3" />
+                      复制
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => useUiStore.setState({ restoredDraft: `/skill:${skill.name} `, activeTab: "chat" })}
+                      className="px-2 py-1 rounded-md text-[10.5px] text-[#5e5c54] hover:bg-white"
+                    >
+                      插入对话
+                    </button>
+                    {skill.editable ? (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => startEdit(skill)}
+                          className="flex items-center gap-1 px-2 py-1 rounded-md text-[10.5px] text-[#5e5c54] hover:bg-white"
+                        >
+                          <Pencil className="w-3 h-3" />
+                          编辑
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void removeSkill(skill)}
+                          className="flex items-center gap-1 px-2 py-1 rounded-md text-[10.5px] text-rose-700 hover:bg-rose-50"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                          删除
+                        </button>
+                      </>
+                    ) : null}
+                  </div>
+                )}
               </div>
             ))}
           </div>

@@ -29,10 +29,10 @@ import {
   mergeModelLists,
   removePiProvider,
 } from "./pi-models.ts";
-import type { McpHub } from "./mcp.ts";
+import { mergeEnv, stripEnvForProject, type McpHub } from "./mcp.ts";
 import type { PiAdapter } from "./pi-adapter.ts";
 import { draftSkillFromPrompt, resolveMcpIntent } from "./recipes.ts";
-import { createSkill, listSkills } from "./skills.ts";
+import { createSkill, deleteSkill, listSkills, listSkillsDetailed, updateSkill } from "./skills.ts";
 import { resetConversation, type WorkspaceState } from "./state.ts";
 import { pickSystemFolder, resolveInside, resolveWorkspacePath } from "./workspace.ts";
 import type { ApprovalQueue } from "./approvals.ts";
@@ -515,7 +515,7 @@ async function dispatch(
       return { ok: true, servers: listed };
     }
     case "mcp.add": {
-      const { text } = payload as { text: string };
+      const { text, env } = payload as { text: string; env?: Record<string, string> };
       const recipe = resolveMcpIntent(text, state.cwd);
       const current = state.settings.mcpServers ?? [];
       if (current.some((item) => item.id === recipe.id || item.name === recipe.name)) {
@@ -523,7 +523,14 @@ async function dispatch(
       }
       const next = [
         ...current,
-        { id: recipe.id, name: recipe.name, command: recipe.command, args: recipe.args, enabled: true },
+        {
+          id: recipe.id,
+          name: recipe.name,
+          command: recipe.command,
+          args: recipe.args,
+          enabled: true,
+          env: mergeEnv(undefined, env),
+        },
       ];
       const listed = await persistMcpServers(state, adapter, mcp, next);
       const added =
@@ -539,8 +546,19 @@ async function dispatch(
         };
       return { ok: true, added, servers: listed };
     }
+    case "mcp.env": {
+      const { id, env } = payload as { id: string; env: Record<string, string> };
+      const current = state.settings.mcpServers ?? [];
+      const target = current.find((item) => item.id === id);
+      if (!target) {
+        throw new Error("找不到这台 MCP");
+      }
+      const next = current.map((item) => (item.id === id ? { ...item, env: mergeEnv(item.env, env) } : item));
+      const listed = await persistMcpServers(state, adapter, mcp, next);
+      return { ok: true, servers: listed };
+    }
     case "skill.list": {
-      return { ok: true, skills: listSkills(state.cwd) };
+      return { ok: true, skills: await listSkillsDetailed(state.cwd) };
     }
     case "skill.create": {
       const { prompt, name, description, body, scope } = payload as {
@@ -558,7 +576,17 @@ async function dispatch(
         scope: scope === "user" ? "user" : "project",
         cwd: state.cwd,
       });
-      return { ok: true, skill, skills: listSkills(state.cwd) };
+      return { ok: true, skill, skills: await listSkillsDetailed(state.cwd) };
+    }
+    case "skill.update": {
+      const { filePath, description, body } = payload as { filePath: string; description: string; body: string };
+      const skill = await updateSkill({ filePath, description, body, cwd: state.cwd });
+      return { ok: true, skill, skills: await listSkillsDetailed(state.cwd) };
+    }
+    case "skill.delete": {
+      const { filePath } = payload as { filePath: string };
+      const deletedPath = await deleteSkill(filePath, state.cwd);
+      return { ok: true, deletedPath, skills: await listSkillsDetailed(state.cwd) };
     }
   }
 }
@@ -607,7 +635,7 @@ async function persistMcpServers(
   state.settings = { ...state.settings, mcpServers: servers };
   if (state.cwd) {
     const project = await loadProjectSettings(state.cwd);
-    await saveProjectSettings(state.cwd, mergeSettings(project, { mcpServers: servers }));
+    await saveProjectSettings(state.cwd, mergeSettings(project, { mcpServers: stripEnvForProject(servers) }));
   }
   const listed = mcp ? await mcp.replace(servers) : [];
   if (adapter.reloadExtensions) {

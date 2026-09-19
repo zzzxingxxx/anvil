@@ -165,6 +165,7 @@ export const McpServerStatusSchema = z.object({
   status: z.enum(["connected", "disabled", "error", "connecting"]),
   error: z.string().optional(),
   tools: z.array(McpToolInfoSchema),
+  envKeys: z.array(z.string()).optional(),
 });
 export type McpServerStatus = z.infer<typeof McpServerStatusSchema>;
 
@@ -185,6 +186,7 @@ export type McpSetResult = z.infer<typeof McpSetResultSchema>;
 
 export const McpAddPayloadSchema = z.object({
   text: z.string().min(1).max(500),
+  env: z.record(z.string()).optional(),
 });
 export type McpAddPayload = z.infer<typeof McpAddPayloadSchema>;
 export const McpAddResultSchema = z.object({
@@ -200,6 +202,8 @@ export const SkillInfoSchema = z.object({
   filePath: z.string(),
   source: z.string(),
   disableModelInvocation: z.boolean().optional(),
+  body: z.string().optional(),
+  editable: z.boolean().optional(),
 });
 export type SkillInfo = z.infer<typeof SkillInfoSchema>;
 
@@ -230,6 +234,34 @@ export const SkillCreateResultSchema = z.object({
   skills: z.array(SkillInfoSchema),
 });
 export type SkillCreateResult = z.infer<typeof SkillCreateResultSchema>;
+
+export const SkillUpdatePayloadSchema = z.object({
+  filePath: z.string().min(1),
+  description: z.string().min(1).max(200),
+  body: z.string().max(20_000),
+});
+export type SkillUpdatePayload = z.infer<typeof SkillUpdatePayloadSchema>;
+export const SkillUpdateResultSchema = SkillCreateResultSchema;
+export type SkillUpdateResult = z.infer<typeof SkillUpdateResultSchema>;
+
+export const SkillDeletePayloadSchema = z.object({
+  filePath: z.string().min(1),
+});
+export type SkillDeletePayload = z.infer<typeof SkillDeletePayloadSchema>;
+export const SkillDeleteResultSchema = z.object({
+  ok: z.literal(true),
+  deletedPath: z.string(),
+  skills: z.array(SkillInfoSchema),
+});
+export type SkillDeleteResult = z.infer<typeof SkillDeleteResultSchema>;
+
+export const McpEnvPayloadSchema = z.object({
+  id: z.string().min(1),
+  env: z.record(z.string()),
+});
+export type McpEnvPayload = z.infer<typeof McpEnvPayloadSchema>;
+export const McpEnvResultSchema = McpListResultSchema;
+export type McpEnvResult = z.infer<typeof McpEnvResultSchema>;
 
 export const AgentPromptPayloadSchema = z.object({
   text: z.string().min(1),
@@ -548,8 +580,11 @@ export const CommandTypeSchema = z.enum([
   "mcp.list",
   "mcp.set",
   "mcp.add",
+  "mcp.env",
   "skill.list",
   "skill.create",
+  "skill.update",
+  "skill.delete",
 ]);
 export type CommandType = z.infer<typeof CommandTypeSchema>;
 
@@ -590,8 +625,11 @@ export const CommandPayloadSchemas = {
   "mcp.list": McpListPayloadSchema,
   "mcp.set": McpSetPayloadSchema,
   "mcp.add": McpAddPayloadSchema,
+  "mcp.env": McpEnvPayloadSchema,
   "skill.list": SkillListPayloadSchema,
   "skill.create": SkillCreatePayloadSchema,
+  "skill.update": SkillUpdatePayloadSchema,
+  "skill.delete": SkillDeletePayloadSchema,
 } as const;
 
 export const CommandResultSchemas = {
@@ -631,6 +669,9 @@ export const CommandResultSchemas = {
   "mcp.list": McpListResultSchema,
   "mcp.set": McpSetResultSchema,
   "mcp.add": McpAddResultSchema,
+  "mcp.env": McpEnvResultSchema,
   "skill.list": SkillListResultSchema,
   "skill.create": SkillCreateResultSchema,
+  "skill.update": SkillUpdateResultSchema,
+  "skill.delete": SkillDeleteResultSchema,
 } as const;

@@ -1,6 +1,6 @@
 import { getAgentDir, loadSkills } from "@earendil-works/pi-coding-agent";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { dirname, join, resolve, sep } from "node:path";
 
 export type SkillInfo = {
   name: string;
@@ -8,6 +8,8 @@ export type SkillInfo = {
   filePath: string;
   source: string;
   disableModelInvocation?: boolean;
+  body?: string;
+  editable?: boolean;
 };
 
 const SKILL_NAME = /^[a-z0-9][a-z0-9-]*$/;
@@ -19,13 +21,34 @@ export function listSkills(cwd?: string | null): SkillInfo[] {
     skillPaths: [],
     includeDefaults: true,
   });
-  return result.skills.map((skill) => ({
-    name: skill.name,
-    description: skill.description,
-    filePath: skill.filePath,
-    source: skillSource(skill.sourceInfo),
-    disableModelInvocation: skill.disableModelInvocation,
-  }));
+  return result.skills.map((skill) => {
+    const source = skillSource(skill.sourceInfo);
+    return {
+      name: skill.name,
+      description: skill.description,
+      filePath: skill.filePath,
+      source,
+      disableModelInvocation: skill.disableModelInvocation,
+      editable: isManagedSkillPath(skill.filePath, cwd),
+    };
+  });
+}
+
+export async function listSkillsDetailed(cwd?: string | null): Promise<SkillInfo[]> {
+  const listed = listSkills(cwd);
+  return Promise.all(
+    listed.map(async (skill) => {
+      if (!skill.editable) {
+        return skill;
+      }
+      try {
+        const parsed = parseSkillMarkdown(await readFile(skill.filePath, "utf8"));
+        return { ...skill, description: parsed.description || skill.description, body: parsed.body };
+      } catch {
+        return skill;
+      }
+    }),
+  );
 }
 
 export async function createSkill(input: {
@@ -70,7 +93,46 @@ ${body}
     description,
     filePath,
     source: input.scope,
+    body,
+    editable: true,
   };
+}
+
+export async function updateSkill(input: {
+  filePath: string;
+  description: string;
+  body: string;
+  cwd?: string | null;
+}): Promise<SkillInfo> {
+  const filePath = assertManagedSkillPath(input.filePath, input.cwd);
+  const current = listSkills(input.cwd).find((item) => samePath(item.filePath, filePath));
+  if (!current) {
+    throw new Error("找不到这个 Skill");
+  }
+  const description = input.description.trim();
+  if (!description) {
+    throw new Error("请填写一句话说明");
+  }
+  const body = input.body.trim();
+  await writeFile(
+    filePath,
+    `---
+name: ${current.name}
+description: ${description.replace(/\s+/g, " ")}
+---
+
+${body}
+`,
+    "utf8",
+  );
+  return { ...current, description, body, editable: true, filePath };
+}
+
+export async function deleteSkill(filePath: string, cwd?: string | null): Promise<string> {
+  const resolved = assertManagedSkillPath(filePath, cwd);
+  const folder = dirname(resolved);
+  await rm(folder, { recursive: true, force: true });
+  return resolved;
 }
 
 export async function expandSkillPrompt(text: string, cwd?: string | null): Promise<string> {
@@ -93,6 +155,49 @@ export async function expandSkillPrompt(text: string, cwd?: string | null): Prom
   const body = content.replace(/^---[\s\S]*?---\s*/, "").trim();
   const skillBlock = `<skill name="${escapeAttr(skill.name)}" location="${escapeAttr(skill.filePath)}">\n${body}\n</skill>`;
   return rest ? `${skillBlock}\n\n${rest}` : skillBlock;
+}
+
+function parseSkillMarkdown(content: string): { description: string; body: string } {
+  const match = content.match(/^---\s*\n([\s\S]*?)\n---\s*\n?([\s\S]*)$/);
+  if (!match) {
+    return { description: "", body: content.trim() };
+  }
+  const description = match[1]?.match(/^description:\s*(.+)$/m)?.[1]?.trim() ?? "";
+  return { description, body: (match[2] ?? "").trim() };
+}
+
+function isManagedSkillPath(filePath: string, cwd?: string | null): boolean {
+  try {
+    assertManagedSkillPath(filePath, cwd);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function assertManagedSkillPath(filePath: string, cwd?: string | null): string {
+  const resolved = resolve(filePath);
+  if (!resolved.toLowerCase().endsWith(`${sep}skill.md`) && !resolved.toLowerCase().endsWith("/skill.md")) {
+    throw new Error("只能编辑 SKILL.md");
+  }
+  const allowed = [join(getAgentDir(), "skills")];
+  if (cwd?.trim()) {
+    allowed.push(join(resolve(cwd.trim()), ".pi", "skills"));
+  }
+  if (!allowed.some((root) => isInside(resolved, root))) {
+    throw new Error("只能改用户或当前项目 skills 目录里的文件");
+  }
+  return resolved;
+}
+
+function isInside(filePath: string, root: string): boolean {
+  const target = resolve(filePath).toLowerCase();
+  const base = resolve(root).toLowerCase();
+  return target === base || target.startsWith(`${base}${sep}`) || target.startsWith(`${base}/`);
+}
+
+function samePath(left: string, right: string): boolean {
+  return resolve(left).toLowerCase() === resolve(right).toLowerCase();
 }
 
 function skillSource(info: { source?: string; scope?: string } | undefined): string {

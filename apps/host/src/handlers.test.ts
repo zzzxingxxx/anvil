@@ -370,6 +370,47 @@ Do the demo.
     expect(disk).toContain("name: review-diff");
   });
 
+  it("stores MCP env on the host without echoing the secret", async () => {
+    const state = createWorkspaceState();
+    const approvals = new ApprovalQueue();
+    const adapter = new FakePiAdapter(state, approvals);
+    await handleRequest(makeRequest("mcp.add", { text: "GitHub" }, "mcp-gh"), state, adapter, approvals);
+    const response = await handleRequest(
+      makeRequest("mcp.env", { id: "github", env: { GITHUB_TOKEN: "ghp_test_secret" } }, "mcp-env"),
+      state,
+      adapter,
+      approvals,
+    );
+    expect(JSON.stringify(response.payload)).not.toContain("ghp_test_secret");
+    expect(response.payload).toMatchObject({ ok: true });
+    expect(state.settings.mcpServers?.find((item) => item.id === "github")?.env?.GITHUB_TOKEN).toBe("ghp_test_secret");
+  });
+
+  it("updates and deletes a created skill", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "anvil-skill-edit-h-"));
+    process.env.PI_CODING_AGENT_DIR = join(dir, "agent-home");
+    const state = createWorkspaceState();
+    state.cwd = dir;
+    const approvals = new ApprovalQueue();
+    const adapter = new FakePiAdapter(state, approvals);
+    const created = await handleRequest(
+      makeRequest("skill.create", { prompt: "审查当前 git diff", scope: "project" }, "sk-edit-c"),
+      state,
+      adapter,
+      approvals,
+    );
+    const filePath = (created.payload as { skill: { filePath: string } }).skill.filePath;
+    const updated = await handleRequest(
+      makeRequest("skill.update", { filePath, description: "新说明", body: "新正文" }, "sk-edit-u"),
+      state,
+      adapter,
+      approvals,
+    );
+    expect(updated.payload).toMatchObject({ ok: true, skill: { description: "新说明" } });
+    const deleted = await handleRequest(makeRequest("skill.delete", { filePath }, "sk-edit-d"), state, adapter, approvals);
+    expect(deleted.payload).toMatchObject({ ok: true, deletedPath: filePath });
+  });
+
   it("saves persona model assignments", async () => {
     const state = createWorkspaceState();
     const approvals = new ApprovalQueue();

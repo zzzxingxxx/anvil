@@ -2,7 +2,7 @@ import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { createSkill, expandSkillPrompt, listSkills } from "./skills.ts";
+import { createSkill, deleteSkill, expandSkillPrompt, listSkills, listSkillsDetailed, updateSkill } from "./skills.ts";
 
 describe("skills", () => {
   const previousPiDir = process.env.PI_CODING_AGENT_DIR;
@@ -57,5 +57,28 @@ Look at git diff and list risks.
     const disk = await readFile(created.filePath, "utf8");
     expect(disk).toContain("name: write-pr");
     expect(listSkills(cwd).some((item) => item.name === "write-pr")).toBe(true);
+  });
+
+  it("updates and deletes a project skill", async () => {
+    const cwd = await mkdtemp(join(tmpdir(), "anvil-skill-edit-"));
+    process.env.PI_CODING_AGENT_DIR = join(cwd, "agent-home");
+    const created = await createSkill({
+      name: "review-diff",
+      description: "旧说明",
+      body: "旧正文",
+      scope: "project",
+      cwd,
+    });
+    const updated = await updateSkill({
+      filePath: created.filePath,
+      description: "新说明",
+      body: "先看 diff。",
+      cwd,
+    });
+    expect(updated.description).toBe("新说明");
+    const detailed = await listSkillsDetailed(cwd);
+    expect(detailed.find((item) => item.name === "review-diff")?.body).toContain("先看 diff");
+    await deleteSkill(created.filePath, cwd);
+    expect(listSkills(cwd).some((item) => item.name === "review-diff")).toBe(false);
   });
 });
